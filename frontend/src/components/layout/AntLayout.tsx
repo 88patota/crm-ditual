@@ -11,6 +11,7 @@ import {
   MenuUnfoldOutlined,
   BellOutlined,
   SettingOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -33,6 +34,11 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
       label: <Link to="/dashboard">Dashboard</Link>,
     },
     {
+      key: '/budgets',
+      icon: <FileTextOutlined />,
+      label: <Link to="/budgets">Orçamentos</Link>,
+    },
+    {
       key: '/profile',
       icon: <UserOutlined />,
       label: <Link to="/profile">Perfil</Link>,
@@ -41,7 +47,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
 
   // Add admin-only navigation
   if (user?.role === 'admin') {
-    navigationItems.splice(1, 0, {
+    navigationItems.splice(-1, 0, {
       key: '/users',
       icon: <TeamOutlined />,
       label: <Link to="/users">Usuários</Link>,
@@ -202,50 +208,103 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
           borderBottom: '1px solid #f0f0f0',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          height: '64px',
+          lineHeight: '64px'
         }}>
-          <Space size="middle">
+          <Space size="middle" align="center">
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{
                 fontSize: '16px',
-                width: 32,
-                height: 32,
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             />
-            <Title level={4} style={{ margin: 0, color: '#262626' }}>
+            <Title level={4} style={{ margin: 0, color: '#262626', lineHeight: 1 }}>
               {getCurrentPageTitle()}
             </Title>
           </Space>
 
-          <Space size="middle">
-            <Badge count={3} size="small">
-              <Button type="text" icon={<BellOutlined />} size="large" />
+          <Space size="large" align="center">
+            <Badge count={3} size="small" offset={[-2, 2]}>
+              <Button 
+                type="text" 
+                icon={<BellOutlined />} 
+                style={{
+                  fontSize: '16px',
+                  width: 40,
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '6px'
+                }}
+              />
             </Badge>
             
             <Dropdown 
               menu={{ items: userMenuItems }}
               trigger={['click']}
               placement="bottomRight"
+              arrow={{ pointAtCenter: true }}
             >
-              <Space style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}>
+              <div 
+                style={{ 
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: 'transparent'
+                }}
+                className="user-dropdown-trigger"
+              >
                 <Avatar 
-                  style={{ backgroundColor: '#1890ff' }}
-                  size="small"
+                  style={{ 
+                    backgroundColor: '#1890ff',
+                    flexShrink: 0
+                  }}
+                  size={32}
                 >
                   {user?.full_name?.charAt(0).toUpperCase()}
                 </Avatar>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 500 }}>
+                <div style={{ 
+                  textAlign: 'left',
+                  lineHeight: 1.2,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 500,
+                    color: '#262626',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '120px'
+                  }}>
                     {user?.full_name}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#8c8c8c', textTransform: 'capitalize' }}>
-                    {user?.role}
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#8c8c8c', 
+                    textTransform: 'capitalize',
+                    marginTop: '2px'
+                  }}>
+                    {user?.role === 'admin' ? 'Administrador' : 'Vendas'}
                   </div>
                 </div>
-              </Space>
+              </div>
             </Dropdown>
           </Space>
         </Header>

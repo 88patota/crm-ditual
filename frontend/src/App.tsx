@@ -11,6 +11,10 @@ import Register from './pages/Register';
 import AntDashboard from './pages/AntDashboard';
 import Profile from './pages/Profile';
 import Users from './pages/Users';
+import Budgets from './pages/Budgets';
+import BudgetCreate from './pages/BudgetCreate';
+import BudgetEdit from './pages/BudgetEdit';
+import BudgetView from './pages/BudgetView';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -64,6 +68,46 @@ function AppRoutes() {
           <ProtectedRoute adminOnly>
             <AntLayout>
               <Users />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <Budgets />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/new"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <BudgetCreate />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/:id"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <BudgetView />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/:id/edit"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <BudgetEdit />
             </AntLayout>
           </ProtectedRoute>
         }
