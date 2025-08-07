@@ -43,7 +43,7 @@ const AntLogin: React.FC = () => {
       role: 'Administrator',
       description: 'Acesso completo ao sistema',
       username: 'admin',
-      password: 'admin123456',
+      password: 'admin123',
       color: 'blue',
     },
     {

@@ -8,7 +8,18 @@ export default defineConfig({
     port: 3000,
     host: true,
     proxy: {
-      '/api': {
+      '^/api/v1/budgets.*': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
+      },
+      '^/api/v1/users.*': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '^/api.*': {
         target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false,

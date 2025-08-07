@@ -51,7 +51,7 @@ const ModernLogin: React.FC = () => {
       role: 'Administrator',
       description: 'Full system access',
       username: 'admin',
-      password: 'admin123456',
+      password: 'admin123',
       variant: 'default' as const,
     },
     {

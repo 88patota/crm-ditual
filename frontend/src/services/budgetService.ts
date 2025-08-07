@@ -1,5 +1,60 @@
 import api from '../lib/api';
 
+// Tipos simplificados - APENAS campos obrigatórios
+export interface BudgetItemSimplified {
+  description: string;
+  quantity: number;
+  weight?: number;
+  purchase_value_with_icms: number;
+  purchase_icms_percentage: number;
+  purchase_other_expenses?: number;
+  sale_value_with_icms: number;
+  sale_icms_percentage: number;
+}
+
+export interface BudgetSimplified {
+  order_number?: string; // Será gerado automaticamente se não fornecido
+  client_name: string;
+  status?: string;
+  expires_at?: string;
+  notes?: string;
+  items: BudgetItemSimplified[];
+}
+
+export interface BudgetPreviewCalculation {
+  total_purchase_value: number;
+  total_sale_value: number;
+  total_commission: number;
+  profitability_percentage: number;
+  markup_percentage: number; // CALCULADO AUTOMATICAMENTE
+  items_preview: Array<{
+    description: string;
+    quantity: number;
+    purchase_value_with_icms: number;
+    calculated_markup: number; // NOVO: markup individual calculado
+    sale_value_with_icms: number;
+    total_purchase: number;
+    total_sale: number;
+    profitability: number;
+    commission_value: number;
+  }>;
+  commission_percentage_default: number;
+  sale_icms_percentage_default: number;
+  other_expenses_default: number;
+  // NOVOS CAMPOS
+  minimum_markup_applied: number;
+  maximum_markup_applied: number;
+}
+
+export interface MarkupConfiguration {
+  minimum_markup_percentage: number;
+  maximum_markup_percentage: number;
+  default_market_position: string;
+  icms_sale_default: number;
+  commission_default: number;
+  other_expenses_default: number;
+}
+
 export interface BudgetItem {
   id?: number;
   description: string;
@@ -84,12 +139,10 @@ export interface BudgetCalculation {
   }>;
 }
 
-const BUDGET_API_URL = 'http://localhost:8002/api/v1/budgets';
-
 export const budgetService = {
   // Create budget
   async createBudget(budget: Budget): Promise<Budget> {
-    const response = await api.post<Budget>(`${BUDGET_API_URL}/`, budget);
+    const response = await api.post<Budget>('/budgets/', budget);
     return response.data;
   },
 
@@ -101,59 +154,85 @@ export const budgetService = {
     client_name?: string;
     created_by?: string;
   }): Promise<BudgetSummary[]> {
-    const response = await api.get<BudgetSummary[]>(BUDGET_API_URL, { params });
+    const response = await api.get<BudgetSummary[]>('/budgets/', { params });
     return response.data;
   },
 
   // Get budget by ID
   async getBudgetById(id: number): Promise<Budget> {
-    const response = await api.get<Budget>(`${BUDGET_API_URL}/${id}`);
+    const response = await api.get<Budget>(`/budgets/${id}`);
     return response.data;
   },
 
   // Get budget by order number
   async getBudgetByOrderNumber(orderNumber: string): Promise<Budget> {
-    const response = await api.get<Budget>(`${BUDGET_API_URL}/order/${orderNumber}`);
+    const response = await api.get<Budget>(`/budgets/order/${orderNumber}`);
     return response.data;
   },
 
   // Update budget
   async updateBudget(id: number, budget: Partial<Budget>): Promise<Budget> {
-    const response = await api.put<Budget>(`${BUDGET_API_URL}/${id}`, budget);
+    const response = await api.put<Budget>(`/budgets/${id}`, budget);
     return response.data;
   },
 
   // Delete budget
   async deleteBudget(id: number): Promise<void> {
-    await api.delete(`${BUDGET_API_URL}/${id}`);
+    await api.delete(`/budgets/${id}`);
   },
 
   // Recalculate budget
   async recalculateBudget(id: number): Promise<Budget> {
-    const response = await api.post<Budget>(`${BUDGET_API_URL}/${id}/recalculate`);
+    const response = await api.post<Budget>(`/budgets/${id}/recalculate`);
     return response.data;
   },
 
   // Apply markup
   async applyMarkup(id: number, markupPercentage: number): Promise<Budget> {
     const response = await api.post<Budget>(
-      `${BUDGET_API_URL}/${id}/apply-markup?markup_percentage=${markupPercentage}`
+      `/budgets/${id}/apply-markup?markup_percentage=${markupPercentage}`
     );
     return response.data;
   },
 
   // Calculate budget (preview)
   async calculateBudget(budget: Budget): Promise<BudgetCalculation> {
-    const response = await api.post<BudgetCalculation>(`${BUDGET_API_URL}/calculate`, budget);
+    const response = await api.post<BudgetCalculation>('/budgets/calculate', budget);
     return response.data;
   },
 
   // Calculate with markup (preview)
   async calculateWithMarkup(budget: Budget, markupPercentage: number): Promise<BudgetCalculation> {
     const response = await api.post<BudgetCalculation>(
-      `${BUDGET_API_URL}/calculate-with-markup?markup_percentage=${markupPercentage}`,
+      `/budgets/calculate-with-markup?markup_percentage=${markupPercentage}`,
       budget
     );
+    return response.data;
+  },
+
+  // MÉTODOS SIMPLIFICADOS
+
+  // Método para calcular orçamento simplificado
+  async calculateBudgetSimplified(budget: BudgetSimplified): Promise<BudgetCalculation> {
+    const response = await api.post<BudgetCalculation>('/budgets/calculate-simplified', budget);
+    return response.data;
+  },
+
+  // Método para obter configurações de markup
+  async getMarkupSettings(): Promise<MarkupConfiguration> {
+    const response = await api.get<MarkupConfiguration>('/budgets/markup-settings');
+    return response.data;
+  },
+
+  // Método para obter próximo número de pedido
+  async getNextOrderNumber(): Promise<string> {
+    const response = await api.get<{order_number: string}>('/budgets/next-order-number');
+    return response.data.order_number;
+  },
+
+  // Método para criar orçamento simplificado
+  async createBudgetSimplified(budget: BudgetSimplified): Promise<Budget> {
+    const response = await api.post<Budget>('/budgets/simplified', budget);
     return response.data;
   },
 };

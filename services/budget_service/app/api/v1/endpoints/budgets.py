@@ -4,12 +4,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.budget import BudgetStatus
 from app.schemas.budget import (
-    BudgetCreate, BudgetUpdate, BudgetResponse, BudgetSummary, BudgetCalculation
+    BudgetCreate, BudgetUpdate, BudgetResponse, BudgetSummary, BudgetCalculation,
+    BudgetSimplifiedCreate, MarkupConfiguration, BudgetItemCreate
 )
 from app.services.budget_service import BudgetService
 from app.services.budget_calculator import BudgetCalculatorService
 
 router = APIRouter()
+
+
+async def generate_order_number(db: AsyncSession) -> str:
+    """Gera número sequencial do pedido no formato PED-0001"""
+    from sqlalchemy import text
+    
+    # Buscar o último número de pedido
+    result = await db.execute(
+        text("SELECT order_number FROM budgets WHERE order_number LIKE 'PED-%' ORDER BY order_number DESC LIMIT 1")
+    )
+    last_order = result.scalar()
+    
+    if last_order:
+        # Extrair número e incrementar
+        try:
+            last_number = int(last_order.split('-')[1])
+            next_number = last_number + 1
+        except (IndexError, ValueError):
+            next_number = 1
+    else:
+        next_number = 1
+    
+    return f"PED-{next_number:04d}"
 
 
 @router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
@@ -29,7 +53,10 @@ async def create_budget(
             )
         
         budget = await BudgetService.create_budget(db, budget_data, created_by)
-        return budget
+        
+        # Get budget with items using eager loading to avoid MissingGreenlet error
+        budget_with_items = await BudgetService.get_budget_by_id(db, budget.id)
+        return budget_with_items
         
     except ValueError as e:
         raise HTTPException(
@@ -69,6 +96,26 @@ async def get_budgets(
         ))
     
     return summaries
+
+
+@router.get("/markup-settings", response_model=MarkupConfiguration)
+async def get_markup_settings():
+    """Obter configurações de markup do sistema"""
+    return MarkupConfiguration(
+        minimum_markup_percentage=20.0,
+        maximum_markup_percentage=200.0,
+        default_market_position="competitive",
+        icms_sale_default=17.0,
+        commission_default=1.5,
+        other_expenses_default=0.0
+    )
+
+
+@router.get("/next-order-number")
+async def get_next_order_number(db: AsyncSession = Depends(get_db)):
+    """Obter o próximo número de pedido disponível"""
+    next_number = await generate_order_number(db)
+    return {"order_number": next_number}
 
 
 @router.get("/{budget_id}", response_model=BudgetResponse)
@@ -268,4 +315,219 @@ async def calculate_with_markup(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+
+
+@router.post("/calculate-simplified", response_model=BudgetCalculation)
+async def calculate_simplified_budget(
+    budget_data: BudgetSimplifiedCreate
+):
+    """Calcular orçamento simplificado com apenas campos obrigatórios"""
+    try:
+        # Validar dados
+        budget_dict = budget_data.dict()
+        errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
+        if errors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Dados inválidos: {'; '.join(errors)}"
+            )
+        
+        # Calcular usando função simplificada
+        calculation_result = BudgetCalculatorService.calculate_simplified_budget(budget_data.items)
+        
+        # Preparar resposta
+        items_calculations = []
+        for item in calculation_result['items']:
+            items_calculations.append({
+                'description': item['description'],
+                'quantity': item['quantity'],
+                'total_purchase': item['total_purchase'],
+                'total_sale': item['total_sale'],
+                'profitability': item['profitability'],
+                'commission_value': item['commission_value']
+            })
+        
+        return BudgetCalculation(
+            total_purchase_value=calculation_result['totals']['total_purchase_value'],
+            total_sale_value=calculation_result['totals']['total_sale_value'],
+            total_commission=calculation_result['totals']['total_commission'],
+            profitability_percentage=calculation_result['totals']['profitability_percentage'],
+            markup_percentage=calculation_result['totals']['markup_percentage'],
+            items_calculations=items_calculations
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/simplified", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
+async def create_simplified_budget(
+    budget_data: BudgetSimplifiedCreate,
+    db: AsyncSession = Depends(get_db),
+    created_by: str = "admin"  # TODO: Get from JWT token
+):
+    """Criar orçamento simplificado com geração automática de número do pedido"""
+    try:
+        # Validar dados de entrada
+        budget_dict = budget_data.dict()
+        errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
+        if errors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Dados inválidos: {'; '.join(errors)}"
+            )
+        
+        # Gerar número do pedido se não fornecido
+        order_number = budget_data.order_number
+        if not order_number:
+            order_number = await generate_order_number(db)
+        else:
+            # Verificar se número do pedido já existe
+            existing_budget = await BudgetService.get_budget_by_order_number(db, order_number)
+            if existing_budget:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Número do pedido já existe"
+                )
+        
+        # Calcular todos os valores baseados nos dados de entrada
+        calculation_result = BudgetCalculatorService.calculate_simplified_budget(budget_data.items)
+        
+        # Criar orçamento completo para salvar
+        complete_budget_data = BudgetCreate(
+            order_number=order_number,
+            client_name=budget_data.client_name,
+            markup_percentage=calculation_result['totals']['markup_percentage'],
+            notes=budget_data.notes,
+            expires_at=budget_data.expires_at,
+            items=[BudgetItemCreate(**item_data) for item_data in calculation_result['items']]
+        )
+        
+        budget = await BudgetService.create_budget(db, complete_budget_data, created_by)
+        
+        # Retornar orçamento completo
+        budget_with_items = await BudgetService.get_budget_by_id(db, budget.id)
+        return budget_with_items
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/calculate-markup", response_model=dict)
+async def calculate_item_markup(
+    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
+    purchase_icms_percentage: float = Query(..., description="Percentual de ICMS na compra"),
+    sale_value_with_icms: float = Query(..., description="Valor de venda com ICMS"),
+    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
+    other_expenses: float = Query(0.0, description="Outras despesas")
+):
+    """
+    Calcular markup automaticamente baseado nos valores de compra e venda
+    Segue exatamente a fórmula da planilha de referência
+    """
+    try:
+        markup_percentage = BudgetCalculatorService.calculate_automatic_markup_from_planilha(
+            purchase_value_with_icms=purchase_value_with_icms,
+            purchase_icms_percentage=purchase_icms_percentage,
+            sale_value_with_icms=sale_value_with_icms,
+            sale_icms_percentage=sale_icms_percentage,
+            other_expenses=other_expenses
+        )
+        
+        # Calcular valores sem impostos para referência
+        purchase_without_taxes = purchase_value_with_icms * (1 - purchase_icms_percentage / 100)
+        sale_without_taxes = sale_value_with_icms * (1 - sale_icms_percentage / 100)
+        total_cost = purchase_without_taxes + other_expenses
+        profit = sale_without_taxes - total_cost
+        
+        return {
+            "success": True,
+            "data": {
+                "markup_percentage": markup_percentage,
+                "breakdown": {
+                    "purchase_value_with_icms": purchase_value_with_icms,
+                    "purchase_value_without_taxes": round(purchase_without_taxes, 2),
+                    "other_expenses": other_expenses,
+                    "total_cost": round(total_cost, 2),
+                    "sale_value_with_icms": sale_value_with_icms,
+                    "sale_value_without_taxes": round(sale_without_taxes, 2),
+                    "profit": round(profit, 2),
+                    "markup_percentage": markup_percentage
+                }
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro no cálculo do markup: {str(e)}"
+        )
+
+
+@router.post("/suggest-sale-price", response_model=dict)
+async def suggest_sale_price_from_markup(
+    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
+    purchase_icms_percentage: float = Query(..., description="Percentual de ICMS na compra"),
+    desired_markup_percentage: float = Query(..., description="Markup desejado em percentual"),
+    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
+    other_expenses: float = Query(0.0, description="Outras despesas")
+):
+    """
+    Sugerir preço de venda necessário para atingir um markup desejado
+    Baseado na fórmula inversa da planilha
+    """
+    try:
+        suggested_sale_price = BudgetCalculatorService.calculate_sale_price_from_markup(
+            purchase_value_with_icms=purchase_value_with_icms,
+            purchase_icms_percentage=purchase_icms_percentage,
+            sale_icms_percentage=sale_icms_percentage,
+            desired_markup_percentage=desired_markup_percentage,
+            other_expenses=other_expenses
+        )
+        
+        # Verificar se o markup calculado realmente bate
+        actual_markup = BudgetCalculatorService.calculate_automatic_markup_from_planilha(
+            purchase_value_with_icms=purchase_value_with_icms,
+            purchase_icms_percentage=purchase_icms_percentage,
+            sale_value_with_icms=suggested_sale_price,
+            sale_icms_percentage=sale_icms_percentage,
+            other_expenses=other_expenses
+        )
+        
+        # Calcular valores para referência
+        purchase_without_taxes = purchase_value_with_icms * (1 - purchase_icms_percentage / 100)
+        sale_without_taxes = suggested_sale_price * (1 - sale_icms_percentage / 100)
+        total_cost = purchase_without_taxes + other_expenses
+        profit = sale_without_taxes - total_cost
+        
+        return {
+            "success": True,
+            "data": {
+                "suggested_sale_price": suggested_sale_price,
+                "actual_markup_achieved": actual_markup,
+                "breakdown": {
+                    "purchase_value_with_icms": purchase_value_with_icms,
+                    "purchase_value_without_taxes": round(purchase_without_taxes, 2),
+                    "other_expenses": other_expenses,
+                    "total_cost": round(total_cost, 2),
+                    "suggested_sale_price": suggested_sale_price,
+                    "sale_value_without_taxes": round(sale_without_taxes, 2),
+                    "profit": round(profit, 2),
+                    "desired_markup": desired_markup_percentage,
+                    "actual_markup": actual_markup
+                }
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro no cálculo do preço de venda: {str(e)}"
         )

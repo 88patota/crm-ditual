@@ -157,7 +157,7 @@ export default function Budgets() {
       prefix: <DollarCircleOutlined className="stats-icon total-value" />,
       color: '#52c41a',
       bgColor: '#f6ffed',
-      formatter: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      formatter: (value: string | number) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
     },
     {
       title: 'Comissões Totais',
@@ -165,7 +165,7 @@ export default function Budgets() {
       prefix: <TrophyOutlined className="stats-icon commissions" />,
       color: '#fa541c',
       bgColor: '#fff2e8',
-      formatter: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      formatter: (value: string | number) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
     },
     {
       title: 'Rentabilidade Média',
@@ -175,7 +175,7 @@ export default function Budgets() {
       prefix: <CalculatorOutlined className="stats-icon profitability" />,
       color: '#722ed1',
       bgColor: '#f9f0ff',
-      formatter: (value: number) => `${value.toFixed(1)}%`,
+      formatter: (value: string | number) => `${Number(value).toFixed(1)}%`,
     },
   ];
 

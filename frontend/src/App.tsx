@@ -13,6 +13,7 @@ import Profile from './pages/Profile';
 import Users from './pages/Users';
 import Budgets from './pages/Budgets';
 import BudgetCreate from './pages/BudgetCreate';
+import SimplifiedBudgetCreate from './pages/AutoMarkupBudgetCreate';
 import BudgetEdit from './pages/BudgetEdit';
 import BudgetView from './pages/BudgetView';
 
@@ -84,6 +85,26 @@ function AppRoutes() {
       />
       <Route
         path="/budgets/new"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <SimplifiedBudgetCreate />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/new-simplified"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <SimplifiedBudgetCreate />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/new-complete"
         element={
           <ProtectedRoute>
             <AntLayout>
