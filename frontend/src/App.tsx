@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, App as AntApp } from 'antd';
 import ptBR from 'antd/locale/pt_BR';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { setQueryClient } from './lib/api';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AntLayout from './components/layout/AntLayout';
 import AntLogin from './pages/AntLogin';
@@ -26,6 +27,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Configure queryClient for API interceptors
+setQueryClient(queryClient);
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
+from app.core.security import get_current_active_user, get_user_filter, require_admin, CurrentUser
 from app.models.budget import BudgetStatus
 from app.schemas.budget import (
     BudgetCreate, BudgetUpdate, BudgetResponse, BudgetSummary, BudgetCalculation,
@@ -42,7 +43,7 @@ async def generate_order_number(db: AsyncSession) -> str:
 async def create_budget(
     budget_data: BudgetCreate,
     db: AsyncSession = Depends(get_db),
-    created_by: str = "admin"  # TODO: Get from JWT token
+    current_user: CurrentUser = Depends(get_current_active_user)
 ):
     """Criar um novo orçamento"""
     try:
@@ -54,7 +55,7 @@ async def create_budget(
                 detail="Número do pedido já existe"
             )
         
-        budget = await BudgetService.create_budget(db, budget_data, created_by)
+        budget = await BudgetService.create_budget(db, budget_data, current_user.username)
         
         # Get budget with items using eager loading to avoid MissingGreenlet error
         budget_with_items = await BudgetService.get_budget_by_id(db, budget.id)
@@ -74,9 +75,15 @@ async def get_budgets(
     status: Optional[BudgetStatus] = None,
     client_name: Optional[str] = None,
     created_by: Optional[str] = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    user_filter: Optional[str] = Depends(get_user_filter)
 ):
-    """Listar orçamentos com filtros"""
+    """Listar orçamentos com filtros baseados no perfil do usuário"""
+    
+    # Se user_filter não é None, significa que é um vendedor e deve ver apenas seus orçamentos
+    if user_filter is not None:
+        created_by = user_filter
+    
     budgets = await BudgetService.get_budgets(
         db, skip=skip, limit=limit, status=status, 
         client_name=client_name, created_by=created_by
@@ -123,15 +130,24 @@ async def get_next_order_number(db: AsyncSession = Depends(get_db)):
 @router.get("/{budget_id}", response_model=BudgetResponse)
 async def get_budget(
     budget_id: int,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_active_user)
 ):
-    """Obter orçamento por ID"""
+    """Obter orçamento por ID com controle de acesso"""
     budget = await BudgetService.get_budget_by_id(db, budget_id)
     if not budget:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Orçamento não encontrado"
         )
+    
+    # Verificar se o usuário tem permissão para ver este orçamento
+    if current_user.role != "admin" and budget.created_by != current_user.username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado: você só pode visualizar seus próprios orçamentos"
+        )
+    
     return budget
 
 
@@ -370,7 +386,7 @@ async def calculate_simplified_budget(
 async def create_simplified_budget(
     budget_data: BudgetSimplifiedCreate,
     db: AsyncSession = Depends(get_db),
-    created_by: str = "admin"  # TODO: Get from JWT token
+    current_user: CurrentUser = Depends(get_current_active_user)
 ):
     """Criar orçamento simplificado com geração automática de número do pedido"""
     try:
@@ -409,7 +425,7 @@ async def create_simplified_budget(
             items=[BudgetItemCreate(**item_data) for item_data in calculation_result['items']]
         )
         
-        budget = await BudgetService.create_budget(db, complete_budget_data, created_by)
+        budget = await BudgetService.create_budget(db, complete_budget_data, current_user.username)
         
         # Retornar orçamento completo
         budget_with_items = await BudgetService.get_budget_by_id(db, budget.id)
@@ -539,7 +555,8 @@ async def suggest_sale_price_from_markup(
 async def export_budget_as_pdf(
     budget_id: int,
     simplified: bool = Query(False, description="Gerar versão simplificada da proposta"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_active_user)
 ):
     """Exportar orçamento como proposta em PDF"""
     try:
@@ -549,6 +566,13 @@ async def export_budget_as_pdf(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Orçamento não encontrado"
+            )
+        
+        # Verificar permissão
+        if current_user.role != "admin" and budget.created_by != current_user.username:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado: você só pode exportar seus próprios orçamentos"
             )
         
         # Gerar PDF
