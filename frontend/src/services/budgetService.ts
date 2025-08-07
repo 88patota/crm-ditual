@@ -235,4 +235,74 @@ export const budgetService = {
     const response = await api.post<Budget>('/budgets/simplified', budget);
     return response.data;
   },
+
+  // MÉTODOS PARA EXPORTAÇÃO PDF
+
+  // Exportar orçamento como PDF por ID
+  async exportBudgetAsPdf(id: number, simplified: boolean = false): Promise<Blob> {
+    const response = await api.get(`/budgets/${id}/export-pdf?simplified=${simplified}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Exportar orçamento como PDF por número do pedido
+  async exportBudgetByOrderAsPdf(orderNumber: string, simplified: boolean = false): Promise<Blob> {
+    const response = await api.get(`/budgets/order/${orderNumber}/export-pdf?simplified=${simplified}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  // Função auxiliar para fazer download do PDF
+  downloadPdf(pdfBlob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  // Método completo para exportar e fazer download
+  async exportAndDownloadPdf(
+    id: number, 
+    simplified: boolean = false, 
+    customFilename?: string
+  ): Promise<void> {
+    try {
+      const pdfBlob = await this.exportBudgetAsPdf(id, simplified);
+      
+      // Gerar nome do arquivo se não fornecido
+      const filename = customFilename || 
+        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${Date.now()}.pdf`;
+      
+      this.downloadPdf(pdfBlob, filename);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      throw error;
+    }
+  },
+
+  // Método completo para exportar por número do pedido e fazer download
+  async exportAndDownloadPdfByOrder(
+    orderNumber: string, 
+    simplified: boolean = false, 
+    customFilename?: string
+  ): Promise<void> {
+    try {
+      const pdfBlob = await this.exportBudgetByOrderAsPdf(orderNumber, simplified);
+      
+      // Gerar nome do arquivo se não fornecido
+      const filename = customFilename || 
+        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${orderNumber}.pdf`;
+      
+      this.downloadPdf(pdfBlob, filename);
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      throw error;
+    }
+  },
 };

@@ -1,5 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.budget import BudgetStatus
@@ -9,6 +10,7 @@ from app.schemas.budget import (
 )
 from app.services.budget_service import BudgetService
 from app.services.budget_calculator import BudgetCalculatorService
+from app.services.pdf_export_service import pdf_export_service
 
 router = APIRouter()
 
@@ -530,4 +532,86 @@ async def suggest_sale_price_from_markup(
         raise HTTPException(
             status_code=500,
             detail=f"Erro no cálculo do preço de venda: {str(e)}"
+        )
+
+
+@router.get("/{budget_id}/export-pdf")
+async def export_budget_as_pdf(
+    budget_id: int,
+    simplified: bool = Query(False, description="Gerar versão simplificada da proposta"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Exportar orçamento como proposta em PDF"""
+    try:
+        # Buscar orçamento
+        budget = await BudgetService.get_budget_by_id(db, budget_id)
+        if not budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        # Gerar PDF
+        if simplified:
+            pdf_content = pdf_export_service.generate_simplified_proposal_pdf(budget)
+            filename = f"Proposta_Simplificada_{budget.order_number}.pdf"
+        else:
+            pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+            filename = f"Proposta_Completa_{budget.order_number}.pdf"
+        
+        # Retornar PDF como resposta
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/pdf"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar PDF: {str(e)}"
+        )
+
+
+@router.get("/order/{order_number}/export-pdf")
+async def export_budget_by_order_as_pdf(
+    order_number: str,
+    simplified: bool = Query(False, description="Gerar versão simplificada da proposta"),
+    db: AsyncSession = Depends(get_db)
+):
+    """Exportar orçamento como proposta em PDF usando número do pedido"""
+    try:
+        # Buscar orçamento por número do pedido
+        budget = await BudgetService.get_budget_by_order_number(db, order_number)
+        if not budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        # Gerar PDF
+        if simplified:
+            pdf_content = pdf_export_service.generate_simplified_proposal_pdf(budget)
+            filename = f"Proposta_Simplificada_{budget.order_number}.pdf"
+        else:
+            pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+            filename = f"Proposta_Completa_{budget.order_number}.pdf"
+        
+        # Retornar PDF como resposta
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/pdf"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar PDF: {str(e)}"
         )

@@ -32,7 +32,9 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  FilePdfOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import { budgetService } from '../services/budgetService';
 import type { Budget, BudgetItem } from '../services/budgetService';
@@ -78,6 +80,27 @@ export default function BudgetView() {
       message.error(errorMessage);
     },
   });
+
+  // Função para exportar PDF
+  const handleExportPdf = async (simplified: boolean = false) => {
+    if (!budget) return;
+    
+    try {
+      const loadingMessage = message.loading('Gerando PDF...', 0);
+      
+      await budgetService.exportAndDownloadPdf(
+        budget.id!, 
+        simplified,
+        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${budget.order_number}.pdf`
+      );
+      
+      loadingMessage();
+      message.success('PDF gerado e download iniciado!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      message.error('Erro ao gerar PDF. Tente novamente.');
+    }
+  };
 
   const getErrorMessage = (error: unknown): string => {
     if (typeof error === 'object' && error !== null && 'response' in error) {
@@ -276,6 +299,28 @@ export default function BudgetView() {
                   Recalcular
                 </Button>
               </Tooltip>
+              
+              {/* Botões de Exportação PDF */}
+              <Tooltip title="Exportar proposta completa em PDF">
+                <Button
+                  icon={<FilePdfOutlined />}
+                  onClick={() => handleExportPdf(false)}
+                  style={{ color: '#dc2626' }}
+                >
+                  PDF Completo
+                </Button>
+              </Tooltip>
+              
+              <Tooltip title="Exportar proposta simplificada em PDF">
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleExportPdf(true)}
+                  style={{ color: '#059669' }}
+                >
+                  PDF Simples
+                </Button>
+              </Tooltip>
+              
               <Link to={`/budgets/${id}/edit`}>
                 <Button type="primary" icon={<EditOutlined />}>
                   Editar

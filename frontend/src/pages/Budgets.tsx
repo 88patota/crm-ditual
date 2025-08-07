@@ -32,7 +32,9 @@ import {
   MoreOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  FilePdfOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
@@ -138,6 +140,24 @@ export default function Budgets() {
     });
   };
 
+  const handleExportPdf = async (budget: BudgetSummary, simplified: boolean = false) => {
+    try {
+      const loadingMessage = message.loading('Gerando PDF...', 0);
+      
+      await budgetService.exportAndDownloadPdf(
+        budget.id, 
+        simplified,
+        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${budget.order_number}.pdf`
+      );
+      
+      loadingMessage();
+      message.success('PDF gerado e download iniciado!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      message.error('Erro ao gerar PDF. Tente novamente.');
+    }
+  };
+
   const filteredBudgets = budgets.filter(budget =>
     budget.client_name.toLowerCase().includes(searchText.toLowerCase()) ||
     budget.order_number.toLowerCase().includes(searchText.toLowerCase())
@@ -189,6 +209,28 @@ export default function Budgets() {
       key: 'edit',
       icon: <EditOutlined />,
       label: <Link to={`/budgets/${budget.id}/edit`}>Editar</Link>,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'export-submenu',
+      icon: <FilePdfOutlined />,
+      label: 'Exportar PDF',
+      children: [
+        {
+          key: 'export-complete',
+          icon: <FilePdfOutlined style={{ color: '#dc2626' }} />,
+          label: 'Proposta Completa',
+          onClick: () => handleExportPdf(budget, false),
+        },
+        {
+          key: 'export-simple',
+          icon: <DownloadOutlined style={{ color: '#059669' }} />,
+          label: 'Proposta Simplificada',
+          onClick: () => handleExportPdf(budget, true),
+        },
+      ],
     },
     {
       type: 'divider',

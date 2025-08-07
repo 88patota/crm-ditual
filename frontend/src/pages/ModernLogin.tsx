@@ -48,17 +48,17 @@ const ModernLogin: React.FC = () => {
 
   const demoCredentials = [
     {
-      role: 'Administrator',
-      description: 'Full system access',
+      role: 'Administrador',
+      description: 'Acesso completo ao sistema - Gerenciar usuários, orçamentos e configurações',
       username: 'admin',
       password: 'admin123',
       variant: 'default' as const,
     },
     {
-      role: 'Sales Representative',
-      description: 'Limited access',
-      username: 'vendedor1',
-      password: 'venda123456',
+      role: 'Vendedor',
+      description: 'Perfil de vendas - Criar e gerenciar orçamentos, exportar propostas PDF',
+      username: 'vendedor',
+      password: 'vendedor123',
       variant: 'secondary' as const,
     },
   ];
