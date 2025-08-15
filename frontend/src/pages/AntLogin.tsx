@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Space, Alert, Row, Col, Divider, Tag } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Alert, Divider } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,7 +11,7 @@ interface LoginForm {
   password: string;
 }
 
-const AntLogin: React.FC = () => {
+function AntLogin() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,14 +22,15 @@ const AntLogin: React.FC = () => {
       setLoading(true);
       setError(null);
       await login({ username: values.username, password: values.password });
-    } catch (error: any) {
-      const errorDetail = error.response?.data?.detail;
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string | Array<{ msg: string }> } } };
+      const errorDetail = axiosError?.response?.data?.detail;
       let errorMessage = 'Erro ao fazer login';
       
       if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
       } else if (Array.isArray(errorDetail)) {
-        errorMessage = errorDetail.map(err => err.msg).join(', ');
+        errorMessage = errorDetail.map((err: { msg: string }) => err.msg).join(', ');
       }
       
       setError(errorMessage);
@@ -257,6 +258,6 @@ const AntLogin: React.FC = () => {
       `}</style>
     </div>
   );
-};
+}
 
 export default AntLogin;

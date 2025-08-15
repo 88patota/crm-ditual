@@ -30,9 +30,32 @@ import {
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
 import dayjs from 'dayjs';
+import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+// Funções utilitárias para formatação de moeda brasileira
+const formatBRLCurrency = (value: number | string | undefined): string => {
+  if (!value && value !== 0) return '';
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numValue);
+};
+
+const parseBRLCurrency = (value: string | undefined): number => {
+  if (!value) return 0;
+  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
+  const cleanValue = value
+    .replace(/R\$\s?/g, '')
+    .replace(/\./g, '')
+    .replace(/,/g, '.');
+  return parseFloat(cleanValue) || 0;
+};
 
 interface SimplifiedBudgetFormProps {
   onSubmit: (data: BudgetSimplified) => Promise<void>;
@@ -202,8 +225,8 @@ export default function SimplifiedBudgetForm({
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
         />
       ),
@@ -239,8 +262,8 @@ export default function SimplifiedBudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
           placeholder="0,00"
         />
@@ -258,8 +281,8 @@ export default function SimplifiedBudgetForm({
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
         />
       ),
@@ -511,7 +534,7 @@ export default function SimplifiedBudgetForm({
                     <Statistic
                       title="Total Compra"
                       value={preview.total_purchase_value}
-                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      formatter={(value) => formatCurrency(Number(value))}
                       valueStyle={{ color: '#ff4d4f' }}
                     />
                   </Card>
@@ -521,7 +544,7 @@ export default function SimplifiedBudgetForm({
                     <Statistic
                       title="Total Venda"
                       value={preview.total_sale_value}
-                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      formatter={(value) => formatCurrency(Number(value))}
                       valueStyle={{ color: '#52c41a' }}
                     />
                   </Card>

@@ -281,7 +281,10 @@ export const budgetService = {
       
       this.downloadPdf(pdfBlob, filename);
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
+      // Log error for debugging but don't expose to user
+      if (import.meta.env.DEV) {
+        console.error('Erro ao exportar PDF:', error);
+      }
       throw error;
     }
   },
@@ -301,7 +304,10 @@ export const budgetService = {
       
       this.downloadPdf(pdfBlob, filename);
     } catch (error) {
-      console.error('Erro ao exportar PDF:', error);
+      // Log error for debugging but don't expose to user
+      if (import.meta.env.DEV) {
+        console.error('Erro ao exportar PDF:', error);
+      }
       throw error;
     }
   },

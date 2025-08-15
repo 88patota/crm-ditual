@@ -24,9 +24,32 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../../services/budgetService';
 import type { MarkupConfiguration } from '../../services/budgetService';
+import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+// Funções utilitárias para formatação de moeda brasileira
+const formatBRLCurrency = (value: number | string | undefined): string => {
+  if (!value && value !== 0) return '';
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numValue);
+};
+
+const parseBRLCurrency = (value: string | undefined): number => {
+  if (!value) return 0;
+  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
+  const cleanValue = value
+    .replace(/R\$\s?/g, '')
+    .replace(/\./g, '')
+    .replace(/,/g, '.');
+  return parseFloat(cleanValue) || 0;
+};
 
 export default function MarkupSettings() {
   const [form] = Form.useForm();
@@ -278,8 +301,8 @@ export default function MarkupSettings() {
                     min={0}
                     step={0.01}
                     precision={2}
-                    formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                    formatter={formatBRLCurrency}
+                    parser={parseBRLCurrency}
                     style={{ width: '100%' }}
                   />
                 </Form.Item>

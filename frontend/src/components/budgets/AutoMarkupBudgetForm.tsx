@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Form,
   Card,
@@ -13,11 +13,9 @@ import {
   Table,
   message,
   Popconfirm,
-  Select,
   DatePicker,
   Alert,
-  Statistic,
-  Tooltip
+  Statistic
 } from 'antd';
 import {
   PlusOutlined,
@@ -26,27 +24,50 @@ import {
   SaveOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import type { BudgetInput, BudgetItemInput, BudgetPreviewCalculation } from '../../services/budgetService';
+import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import dayjs from 'dayjs';
+import { ErrorHandler } from '../../utils/errorHandler';
+import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
-const { Option } = Select;
+
+// Funções utilitárias para formatação de moeda brasileira
+const formatBRLCurrency = (value: number | string | undefined): string => {
+  if (!value && value !== 0) return '';
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numValue);
+};
+
+const parseBRLCurrency = (value: string | undefined): number => {
+  if (!value) return 0;
+  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
+  const cleanValue = value
+    .replace(/R\$\s?/g, '')
+    .replace(/\./g, '')
+    .replace(/,/g, '.');
+  return parseFloat(cleanValue) || 0;
+};
 
 interface AutoMarkupBudgetFormProps {
-  onSubmit: (data: BudgetInput) => Promise<void>;
+  onSubmit: (data: BudgetSimplified) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
-const initialBudgetItem: BudgetItemInput = {
+const initialBudgetItem: BudgetItemSimplified = {
   description: '',
   quantity: 1,
   weight: 0,
   purchase_value_with_icms: 0,
   purchase_icms_percentage: 17, // ICMS padrão Brasil
-  market_reference_price: undefined,
-  competitor_price: undefined,
+  purchase_other_expenses: 0,
+  sale_value_with_icms: 0,
+  sale_icms_percentage: 18
 };
 
 export default function AutoMarkupBudgetForm({ 
@@ -55,9 +76,9 @@ export default function AutoMarkupBudgetForm({
   isLoading = false 
 }: AutoMarkupBudgetFormProps) {
   const [form] = Form.useForm();
-  const [items, setItems] = useState<BudgetItemInput[]>([{ ...initialBudgetItem }]);
+  const [items, setItems] = useState<BudgetItemSimplified[]>([{ ...initialBudgetItem }]);
   const [calculating, setCalculating] = useState(false);
-  const [preview, setPreview] = useState<BudgetPreviewCalculation | null>(null);
+  const [preview, setPreview] = useState<BudgetCalculation | null>(null);
 
   const addItem = () => {
     setItems([...items, { ...initialBudgetItem }]);
@@ -73,7 +94,7 @@ export default function AutoMarkupBudgetForm({
     }
   };
 
-  const updateItem = (index: number, field: keyof BudgetItemInput, value: any) => {
+  const updateItem = (index: number, field: keyof BudgetItemSimplified, value: string | number | undefined) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
@@ -85,23 +106,19 @@ export default function AutoMarkupBudgetForm({
       setCalculating(true);
       const formData = form.getFieldsValue();
       
-      const budgetData: BudgetInput = {
+      const budgetData: BudgetSimplified = {
         ...formData,
         items: items,
-        // REMOVIDO: markup_percentage
-        minimum_margin_percentage: formData.minimum_margin_percentage || 20,
-        target_market_position: formData.target_market_position || 'competitive',
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
-      // NOVO ENDPOINT: calcular com markup automático
-      const calculation = await budgetService.calculateBudgetAutoMarkup(budgetData);
+      const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
       
-      message.success(`Markup calculado automaticamente: ${calculation.markup_percentage.toFixed(1)}%`);
+      message.success('Orçamento calculado com sucesso!');
     } catch (error) {
-      console.error('Erro ao calcular orçamento:', error);
-      message.error('Erro ao calcular orçamento');
+      const errorMessage = ErrorHandler.handle(error, 'Calculate Budget');
+      message.error(errorMessage);
     } finally {
       setCalculating(false);
     }
@@ -110,17 +127,15 @@ export default function AutoMarkupBudgetForm({
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
-      const budgetData: BudgetInput = {
+      const budgetData: BudgetSimplified = {
         ...formData,
         items: items,
-        minimum_margin_percentage: formData.minimum_margin_percentage || 20,
-        target_market_position: formData.target_market_position || 'competitive',
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
       await onSubmit(budgetData);
     } catch (error) {
-      console.error('Erro na validação do formulário:', error);
+      ErrorHandler.handle(error, 'Form Validation');
     }
   };
 
@@ -130,7 +145,7 @@ export default function AutoMarkupBudgetForm({
       dataIndex: 'description',
       key: 'description',
       width: 200,
-      render: (value: string, _: BudgetItemInput, index: number) => (
+      render: (value: string, _: BudgetItemSimplified, index: number) => (
         <Input
           value={value}
           onChange={(e) => updateItem(index, 'description', e.target.value)}
@@ -144,7 +159,7 @@ export default function AutoMarkupBudgetForm({
       dataIndex: 'quantity',
       key: 'quantity',
       width: 120,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
           onChange={(val) => updateItem(index, 'quantity', val || 1)}
@@ -161,7 +176,7 @@ export default function AutoMarkupBudgetForm({
       dataIndex: 'weight',
       key: 'weight',
       width: 120,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
           onChange={(val) => updateItem(index, 'weight', val || 0)}
@@ -178,26 +193,26 @@ export default function AutoMarkupBudgetForm({
       dataIndex: 'purchase_value_with_icms',
       key: 'purchase_value_with_icms',
       width: 180,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
           onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
           required
         />
       ),
     },
     {
-      title: '% ICMS *',
+      title: '% ICMS Compra *',
       dataIndex: 'purchase_icms_percentage',
       key: 'purchase_icms_percentage',
       width: 120,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
           onChange={(val) => updateItem(index, 'purchase_icms_percentage', val || 17)}
@@ -206,47 +221,67 @@ export default function AutoMarkupBudgetForm({
           step={0.1}
           precision={1}
           formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          parser={(value) => Number(value!.replace('%', ''))}
           style={{ width: '100%' }}
           required
         />
       ),
     },
     {
-      title: 'Preço Referência Mercado',
-      dataIndex: 'market_reference_price',
-      key: 'market_reference_price',
-      width: 180,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      title: 'Outras Despesas',
+      dataIndex: 'purchase_other_expenses',
+      key: 'purchase_other_expenses',
+      width: 150,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'market_reference_price', val || undefined)}
+          onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
-          placeholder="Opcional"
+          placeholder="Despesas extras"
         />
       ),
     },
     {
-      title: 'Preço Concorrente',
-      dataIndex: 'competitor_price',
-      key: 'competitor_price',
-      width: 160,
-      render: (value: number, _: BudgetItemInput, index: number) => (
+      title: 'Valor c/ICMS (Venda) *',
+      dataIndex: 'sale_value_with_icms',
+      key: 'sale_value_with_icms',
+      width: 180,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'competitor_price', val || undefined)}
+          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+          formatter={formatBRLCurrency}
+          parser={parseBRLCurrency}
           style={{ width: '100%' }}
-          placeholder="Opcional"
+          placeholder="Preço de venda"
+        />
+      ),
+    },
+    {
+      title: '% ICMS Venda *',
+      dataIndex: 'sale_icms_percentage',
+      key: 'sale_icms_percentage',
+      width: 120,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
+        <InputNumber
+          value={value}
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 18)}
+          min={0}
+          max={100}
+          step={0.1}
+          precision={1}
+          formatter={(value) => `${value}%`}
+          parser={(value) => Number(value!.replace('%', ''))}
+          style={{ width: '100%' }}
+          required
         />
       ),
     },
@@ -255,7 +290,7 @@ export default function AutoMarkupBudgetForm({
       key: 'actions',
       width: 80,
       fixed: 'right' as const,
-      render: (_: any, __: BudgetItemInput, index: number) => (
+      render: (_: unknown, __: BudgetItemSimplified, index: number) => (
         <Popconfirm
           title="Remover item"
           description="Tem certeza que deseja remover este item?"
@@ -282,18 +317,14 @@ export default function AutoMarkupBudgetForm({
           form={form}
           layout="vertical"
           onFinish={handleSubmit}
-          initialValues={{
-            minimum_margin_percentage: 20,
-            target_market_position: 'competitive',
-          }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
             <Col>
               <Title level={3} style={{ margin: 0 }}>
-                Novo Orçamento com Markup Automático 💼
+                Novo Orçamento Simplificado 💼
               </Title>
               <Text type="secondary">
-                Preencha apenas os campos essenciais. O markup será calculado automaticamente baseado em análise de mercado.
+                Formulário simplificado para criação rápida de orçamentos. Informe os valores de compra e venda para cada item.
               </Text>
             </Col>
             <Col>
@@ -354,49 +385,18 @@ export default function AutoMarkupBudgetForm({
           <Row gutter={[16, 16]}>
             <Col xs={24} md={8}>
               <Form.Item
-                label="Margem Mínima Desejada (%)"
-                name="minimum_margin_percentage"
-                extra="Margem mínima de lucro desejada"
-              >
-                <InputNumber
-                  min={5}
-                  max={100}
-                  step={0.1}
-                  precision={1}
-                  formatter={(value) => `${value}%`}
-                  parser={(value) => value!.replace('%', '')}
-                  style={{ width: '100%' }}
-                  defaultValue={20}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item
-                label="Posicionamento de Mercado"
-                name="target_market_position"
-                extra="Estratégia de preços em relação aos concorrentes"
-              >
-                <Select defaultValue="competitive">
-                  <Option value="budget">Econômico (5% abaixo da concorrência)</Option>
-                  <Option value="competitive">Competitivo (2% acima da concorrência)</Option>
-                  <Option value="premium">Premium (10% acima da concorrência)</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item
                 label="Observações"
                 name="notes"
               >
-                <Input.TextArea rows={2} placeholder="Observações adicionais..." />
+                <Input.TextArea rows={3} placeholder="Observações adicionais..." />
               </Form.Item>
             </Col>
           </Row>
 
           {/* Alerta explicativo */}
           <Alert
-            message="Markup Calculado Automaticamente"
-            description="O markup será calculado automaticamente baseado nos custos, margem mínima configurada, posicionamento de mercado e preços de referência informados."
+            message="Formulário Simplificado"
+            description="Este formulário permite criação rápida de orçamentos. Preencha os valores de compra e venda para cada item."
             type="info"
             icon={<InfoCircleOutlined />}
             style={{ marginBottom: '24px' }}
@@ -427,16 +427,16 @@ export default function AutoMarkupBudgetForm({
             />
           </div>
 
-          {/* Preview dos Cálculos ATUALIZADO */}
+          {/* Preview dos Cálculos */}
           {preview && (
             <>
-              <Divider>Cálculos Automáticos</Divider>
+              <Divider>Resumo Financeiro</Divider>
               
               <Alert
-                message="Markup Calculado Automaticamente"
+                message="Cálculo Realizado"
                 description={`
                   Markup aplicado: ${preview.markup_percentage.toFixed(1)}% 
-                  (Baseado em análise de custos, margem mínima e posicionamento de mercado)
+                  (Baseado nos valores de compra e venda informados)
                 `}
                 type="success"
                 icon={<InfoCircleOutlined />}
@@ -444,7 +444,7 @@ export default function AutoMarkupBudgetForm({
                 showIcon
               />
 
-              {/* Stats cards com markup calculado */}
+              {/* Stats cards */}
               <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
                 <Col xs={12} md={6}>
                   <Card>
@@ -462,7 +462,7 @@ export default function AutoMarkupBudgetForm({
                     <Statistic
                       title="Total Compra"
                       value={preview.total_purchase_value}
-                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      formatter={(value) => formatCurrency(Number(value))}
                       valueStyle={{ color: '#ff4d4f' }}
                     />
                   </Card>
@@ -472,7 +472,7 @@ export default function AutoMarkupBudgetForm({
                     <Statistic
                       title="Total Venda"
                       value={preview.total_sale_value}
-                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      formatter={(value) => formatCurrency(Number(value))}
                       valueStyle={{ color: '#52c41a' }}
                     />
                   </Card>
@@ -491,16 +491,6 @@ export default function AutoMarkupBudgetForm({
                   </Card>
                 </Col>
               </Row>
-
-              <Card title="Configurações Aplicadas" size="small">
-                <Text>
-                  • Markup calculado automaticamente baseado em análise de mercado<br/>
-                  • Margem mínima: {preview.minimum_markup_applied}%<br/>
-                  • Margem máxima: {preview.maximum_markup_applied}%<br/>
-                  • Comissão: {preview.commission_percentage_default}%<br/>
-                  • ICMS venda: {preview.sale_icms_percentage_default}%
-                </Text>
-              </Card>
             </>
           )}
         </Form>
