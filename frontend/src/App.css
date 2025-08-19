@@ -1,0 +1,8 @@
+/* App.css - Estilos globais da aplicação */
+
+/* Removemos estilos desnecessários e mantemos apenas o essencial */
+.App {
+  min-height: 100vh;
+}
+
+/* Estilos específicos da aplicação podem ser adicionados aqui se necessário */
