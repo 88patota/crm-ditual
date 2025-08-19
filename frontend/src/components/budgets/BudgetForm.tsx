@@ -20,42 +20,14 @@ import {
   PlusOutlined,
   DeleteOutlined,
   CalculatorOutlined,
-  SaveOutlined,
-  ReloadOutlined
+  SaveOutlined
 } from '@ant-design/icons';
 import type { Budget, BudgetItem } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import dayjs from 'dayjs';
 import { formatCurrency } from '../../lib/utils';
+import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
-
-// Funções utilitárias para formatação de moeda brasileira
-const formatBRLCurrency = (value: number | string | undefined): string => {
-  if (!value && value !== 0) return '';
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numValue);
-};
-
-const parseBRLCurrency = (value: string | undefined): number => {
-  if (!value) return 0;
-  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
-  const cleanValue = value
-    .replace(/R\$\s?/g, '')
-    .replace(/\./g, '')
-    .replace(/,/g, '.');
-  return parseFloat(cleanValue) || 0;
-};
-
-const parsePercentage = (value: string | undefined): number => {
-  if (!value) return 0;
-  return parseFloat(value.replace('%', '')) || 0;
-};
+const { Title } = Typography;
 const { Option } = Select;
 
 interface BudgetFormProps {
@@ -64,10 +36,6 @@ interface BudgetFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   isEdit?: boolean;
-}
-
-interface BudgetFormData extends Omit<Budget, 'items'> {
-  items: BudgetItem[];
 }
 
 const initialBudgetItem: BudgetItem = {
@@ -121,7 +89,7 @@ export default function BudgetForm({
     }
   };
 
-  const updateItem = (index: number, field: keyof BudgetItem, value: any) => {
+  const updateItem = (index: number, field: keyof BudgetItem, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -243,9 +211,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -262,8 +229,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={parsePercentage}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -280,9 +246,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -298,9 +263,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -317,8 +281,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={parsePercentage}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -336,8 +299,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={parsePercentage}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -354,9 +316,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -365,7 +326,7 @@ export default function BudgetForm({
       key: 'actions',
       width: 80,
       fixed: 'right' as const,
-      render: (_: any, __: BudgetItem, index: number) => (
+      render: (_: unknown, __: BudgetItem, index: number) => (
         <Popconfirm
           title="Remover item"
           description="Tem certeza que deseja remover este item?"
@@ -473,8 +434,7 @@ export default function BudgetForm({
                   max={1000}
                   step={0.1}
                   precision={1}
-                  formatter={(value) => `${value}%`}
-                  parser={(value) => value!.replace('%', '')}
+                  addonAfter="%"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -528,7 +488,7 @@ export default function BudgetForm({
               <Form.Item label="Total Compra" name="total_purchase_value">
                 <InputNumber
                   readOnly
-                  formatter={formatBRLCurrency}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -537,7 +497,7 @@ export default function BudgetForm({
               <Form.Item label="Total Venda" name="total_sale_value">
                 <InputNumber
                   readOnly
-                  formatter={formatBRLCurrency}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -546,7 +506,7 @@ export default function BudgetForm({
               <Form.Item label="Total Comissão" name="total_commission">
                 <InputNumber
                   readOnly
-                  formatter={formatBRLCurrency}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -555,7 +515,7 @@ export default function BudgetForm({
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `${value}%`}
+                  formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Form,
   Card,
@@ -29,33 +29,11 @@ import {
 } from '@ant-design/icons';
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import dayjs from 'dayjs';
 import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Funções utilitárias para formatação de moeda brasileira
-const formatBRLCurrency = (value: number | string | undefined): string => {
-  if (!value && value !== 0) return '';
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numValue);
-};
-
-const parseBRLCurrency = (value: string | undefined): number => {
-  if (!value) return 0;
-  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
-  const cleanValue = value
-    .replace(/R\$\s?/g, '')
-    .replace(/\./g, '')
-    .replace(/,/g, '.');
-  return parseFloat(cleanValue) || 0;
-};
 
 interface SimplifiedBudgetFormProps {
   onSubmit: (data: BudgetSimplified) => Promise<void>;
@@ -86,12 +64,7 @@ export default function SimplifiedBudgetForm({
   const [orderNumber, setOrderNumber] = useState<string>('');
   const [loadingOrderNumber, setLoadingOrderNumber] = useState(true);
 
-  // Carregar número do pedido ao inicializar o componente
-  useEffect(() => {
-    loadNextOrderNumber();
-  }, []);
-
-  const loadNextOrderNumber = async () => {
+  const loadNextOrderNumber = useCallback(async () => {
     try {
       setLoadingOrderNumber(true);
       const nextNumber = await budgetService.getNextOrderNumber();
@@ -103,7 +76,12 @@ export default function SimplifiedBudgetForm({
     } finally {
       setLoadingOrderNumber(false);
     }
-  };
+  }, [form]);
+
+  // Carregar número do pedido ao inicializar o componente
+  useEffect(() => {
+    loadNextOrderNumber();
+  }, [loadNextOrderNumber]);
 
   const addItem = () => {
     setItems([...items, { ...initialBudgetItem }]);
@@ -119,7 +97,7 @@ export default function SimplifiedBudgetForm({
     }
   };
 
-  const updateItem = (index: number, field: keyof BudgetItemSimplified, value: any) => {
+  const updateItem = (index: number, field: keyof BudgetItemSimplified, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
@@ -225,9 +203,8 @@ export default function SimplifiedBudgetForm({
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -245,7 +222,7 @@ export default function SimplifiedBudgetForm({
           step={0.1}
           precision={1}
           formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          parser={(value) => parseFloat(value!.replace('%', '')) || 0}
           style={{ width: '100%' }}
         />
       ),
@@ -262,8 +239,6 @@ export default function SimplifiedBudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
           placeholder="0,00"
         />
@@ -281,9 +256,8 @@ export default function SimplifiedBudgetForm({
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -301,7 +275,7 @@ export default function SimplifiedBudgetForm({
           step={0.1}
           precision={1}
           formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          parser={(value) => parseFloat(value!.replace('%', '')) || 0}
           style={{ width: '100%' }}
         />
       ),
@@ -311,7 +285,7 @@ export default function SimplifiedBudgetForm({
       key: 'actions',
       width: 80,
       fixed: 'right' as const,
-      render: (_: any, __: BudgetItemSimplified, index: number) => (
+      render: (_: unknown, __: BudgetItemSimplified, index: number) => (
         <Popconfirm
           title="Remover item"
           description="Tem certeza que deseja remover este item?"

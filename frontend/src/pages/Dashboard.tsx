@@ -1,7 +1,7 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
-import Card, { CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Users, UserCheck, Shield, Activity } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   Card,
   Form,
@@ -24,7 +24,6 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../../services/budgetService';
 import type { MarkupConfiguration } from '../../services/budgetService';
-import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -198,7 +197,7 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => value!.replace('%', '')}
+                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -219,7 +218,7 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => value!.replace('%', '')}
+                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -260,7 +259,7 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => value!.replace('%', '')}
+                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -281,7 +280,7 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => value!.replace('%', '')}
+                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>

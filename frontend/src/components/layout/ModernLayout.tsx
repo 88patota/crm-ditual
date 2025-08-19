@@ -11,8 +11,6 @@ import {
   Menu,
   X,
   Bell,
-  Settings,
-  Search,
   ChevronDown,
 } from 'lucide-react';
 

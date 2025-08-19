@@ -31,28 +31,6 @@ import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
 
-// Funções utilitárias para formatação de moeda brasileira
-const formatBRLCurrency = (value: number | string | undefined): string => {
-  if (!value && value !== 0) return '';
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numValue);
-};
-
-const parseBRLCurrency = (value: string | undefined): number => {
-  if (!value) return 0;
-  // Remove R$, espaços, pontos (separadores de milhares) e substitui vírgula por ponto
-  const cleanValue = value
-    .replace(/R\$\s?/g, '')
-    .replace(/\./g, '')
-    .replace(/,/g, '.');
-  return parseFloat(cleanValue) || 0;
-};
-
 interface AutoMarkupBudgetFormProps {
   onSubmit: (data: BudgetSimplified) => Promise<void>;
   onCancel: () => void;
@@ -200,10 +178,9 @@ export default function AutoMarkupBudgetForm({
           min={0.01}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
           required
+          placeholder="0,00"
         />
       ),
     },
@@ -239,10 +216,8 @@ export default function AutoMarkupBudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
-          placeholder="Despesas extras"
+          placeholder="0,00"
         />
       ),
     },
@@ -258,10 +233,8 @@ export default function AutoMarkupBudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={formatBRLCurrency}
-          parser={parseBRLCurrency}
           style={{ width: '100%' }}
-          placeholder="Preço de venda"
+          placeholder="0,00"
         />
       ),
     },

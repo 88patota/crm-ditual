@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.endpoints import budgets
+from app.api.v1.endpoints import budgets, dashboard
 from app.core.database import create_tables
 
 app = FastAPI(
@@ -20,6 +20,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(budgets.router, prefix="/api/v1/budgets", tags=["budgets"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 
 
 @app.on_event("startup")

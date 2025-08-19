@@ -1,9 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
-import { StripeCard, StripeCardContent, StripeCardHeader, StripeCardTitle } from '../components/ui/StripeCard';
-import StripeMetricCard from '../components/ui/StripeMetricCard';
-import StripeBadge from '../components/ui/StripeBadge';
 import { 
   Users, 
   UserCheck, 
@@ -217,7 +214,7 @@ export default function StripeDashboard() {
           <div className="p-6">
             {user?.role === 'admin' && recentUsers.length > 0 ? (
               <div className="space-y-4">
-                {recentUsers.map((recentUser, index) => (
+                {recentUsers.map((recentUser) => (
                   <div key={recentUser.id} className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-700 text-sm font-medium">
                       {recentUser.full_name.charAt(0).toUpperCase()}

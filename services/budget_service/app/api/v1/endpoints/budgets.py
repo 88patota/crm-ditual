@@ -1,7 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.core.security import get_current_active_user, get_user_filter, require_admin, CurrentUser
 from app.models.budget import BudgetStatus
@@ -448,7 +450,7 @@ async def calculate_item_markup(
 ):
     """
     Calcular markup automaticamente baseado nos valores de compra e venda
-    Segue exatamente a fórmula da planilha de referência
+    Segue exatamente as regras de negócio definidas (incluindo PIS/COFINS)
     """
     try:
         markup_percentage = BudgetCalculatorService.calculate_automatic_markup_from_planilha(
@@ -459,11 +461,17 @@ async def calculate_item_markup(
             other_expenses=other_expenses
         )
         
-        # Calcular valores sem impostos para referência
-        purchase_without_taxes = purchase_value_with_icms * (1 - purchase_icms_percentage / 100)
-        sale_without_taxes = sale_value_with_icms * (1 - sale_icms_percentage / 100)
+        # Calcular valores conforme regras 1 e 3 (incluindo PIS/COFINS)
+        purchase_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
+        sale_without_taxes = (sale_value_with_icms * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
         total_cost = purchase_without_taxes + other_expenses
         profit = sale_without_taxes - total_cost
+        
+        # Calcular custo Dunamis conforme regra 10
+        dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
+            purchase_value_with_icms=purchase_value_with_icms,
+            sale_icms_percentage=sale_icms_percentage
+        )
         
         return {
             "success": True,
@@ -471,13 +479,15 @@ async def calculate_item_markup(
                 "markup_percentage": markup_percentage,
                 "breakdown": {
                     "purchase_value_with_icms": purchase_value_with_icms,
-                    "purchase_value_without_taxes": round(purchase_without_taxes, 2),
+                    "purchase_value_without_taxes": round(purchase_without_taxes, 6),
                     "other_expenses": other_expenses,
-                    "total_cost": round(total_cost, 2),
+                    "total_cost": round(total_cost, 6),
                     "sale_value_with_icms": sale_value_with_icms,
-                    "sale_value_without_taxes": round(sale_without_taxes, 2),
-                    "profit": round(profit, 2),
-                    "markup_percentage": markup_percentage
+                    "sale_value_without_taxes": round(sale_without_taxes, 6),
+                    "profit": round(profit, 6),
+                    "markup_percentage": markup_percentage,
+                    "dunamis_cost": round(dunamis_cost, 6),
+                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE
                 }
             }
         }
@@ -499,7 +509,7 @@ async def suggest_sale_price_from_markup(
 ):
     """
     Sugerir preço de venda necessário para atingir um markup desejado
-    Baseado na fórmula inversa da planilha
+    Baseado nas regras de negócio atualizadas (incluindo PIS/COFINS)
     """
     try:
         suggested_sale_price = BudgetCalculatorService.calculate_sale_price_from_markup(
@@ -519,27 +529,35 @@ async def suggest_sale_price_from_markup(
             other_expenses=other_expenses
         )
         
-        # Calcular valores para referência
-        purchase_without_taxes = purchase_value_with_icms * (1 - purchase_icms_percentage / 100)
-        sale_without_taxes = suggested_sale_price * (1 - sale_icms_percentage / 100)
+        # Calcular valores conforme regras 1 e 3 (incluindo PIS/COFINS)
+        purchase_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
+        sale_without_taxes = (suggested_sale_price * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
         total_cost = purchase_without_taxes + other_expenses
         profit = sale_without_taxes - total_cost
+        
+        # Calcular custo Dunamis também para referência
+        dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
+            purchase_value_with_icms=purchase_value_with_icms,
+            sale_icms_percentage=sale_icms_percentage
+        )
         
         return {
             "success": True,
             "data": {
-                "suggested_sale_price": suggested_sale_price,
-                "actual_markup_achieved": actual_markup,
+                "suggested_sale_price": round(suggested_sale_price, 2),
+                "actual_markup_achieved": round(actual_markup, 2),
                 "breakdown": {
                     "purchase_value_with_icms": purchase_value_with_icms,
-                    "purchase_value_without_taxes": round(purchase_without_taxes, 2),
+                    "purchase_value_without_taxes": round(purchase_without_taxes, 6),
                     "other_expenses": other_expenses,
-                    "total_cost": round(total_cost, 2),
-                    "suggested_sale_price": suggested_sale_price,
-                    "sale_value_without_taxes": round(sale_without_taxes, 2),
-                    "profit": round(profit, 2),
+                    "total_cost": round(total_cost, 6),
+                    "suggested_sale_price": round(suggested_sale_price, 2),
+                    "sale_value_without_taxes": round(sale_without_taxes, 6),
+                    "profit": round(profit, 6),
                     "desired_markup": desired_markup_percentage,
-                    "actual_markup": actual_markup
+                    "actual_markup": round(actual_markup, 2),
+                    "dunamis_cost": round(dunamis_cost, 6),
+                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE
                 }
             }
         }
@@ -548,6 +566,49 @@ async def suggest_sale_price_from_markup(
         raise HTTPException(
             status_code=500,
             detail=f"Erro no cálculo do preço de venda: {str(e)}"
+        )
+
+
+@router.post("/calculate-dunamis-cost", response_model=dict)
+async def calculate_dunamis_cost(
+    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
+    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
+    quantity: float = Query(1.0, description="Quantidade do item")
+):
+    """
+    Calcular custo a ser lançado no Dunamis conforme Regra 10
+    Fórmula: Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
+    """
+    try:
+        dunamis_cost_unit = BudgetCalculatorService.calculate_dunamis_cost(
+            purchase_value_with_icms=purchase_value_with_icms,
+            sale_icms_percentage=sale_icms_percentage
+        )
+        
+        dunamis_cost_total = dunamis_cost_unit * quantity
+        
+        return {
+            "success": True,
+            "data": {
+                "dunamis_cost_per_unit": round(dunamis_cost_unit, 6),
+                "dunamis_cost_total": round(dunamis_cost_total, 6),
+                "calculation_details": {
+                    "purchase_value_with_icms": purchase_value_with_icms,
+                    "sale_icms_percentage": sale_icms_percentage,
+                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE,
+                    "quantity": quantity,
+                    "formula": "Valor Compra c/ICMS / (1 - %ICMS Venda) / (1 - %PIS/COFINS)",
+                    "step1": f"{purchase_value_with_icms} / (1 - {sale_icms_percentage}%)",
+                    "step2": f"/ (1 - {BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE}%)",
+                    "result_per_unit": round(dunamis_cost_unit, 6)
+                }
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro no cálculo do custo Dunamis: {str(e)}"
         )
 
 

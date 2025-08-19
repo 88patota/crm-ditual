@@ -37,7 +37,6 @@ import {
   DownloadOutlined
 } from '@ant-design/icons';
 import { budgetService } from '../services/budgetService';
-import type { Budget, BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -112,7 +111,7 @@ export default function BudgetView() {
     return 'Ocorreu um erro inesperado. Tente novamente.';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'draft': return 'default';
       case 'pending': return 'processing';
@@ -123,18 +122,18 @@ export default function BudgetView() {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string | undefined) => {
     switch (status) {
       case 'draft': return 'Rascunho';
       case 'pending': return 'Pendente';
       case 'approved': return 'Aprovado';
       case 'rejected': return 'Rejeitado';
       case 'expired': return 'Expirado';
-      default: return status;
+      default: return status || 'Desconhecido';
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | undefined) => {
     switch (status) {
       case 'approved': return <CheckCircleOutlined />;
       case 'rejected': return <CloseCircleOutlined />;

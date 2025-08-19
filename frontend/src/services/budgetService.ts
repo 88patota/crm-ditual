@@ -55,6 +55,27 @@ export interface MarkupConfiguration {
   other_expenses_default: number;
 }
 
+// Interface para estatísticas do dashboard
+export interface DashboardStats {
+  period: {
+    start_date: string;
+    end_date: string;
+    days?: number;
+  };
+  budgets_by_status: {
+    draft: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    expired: number;
+  };
+  total_budgets: number;
+  total_value: number;
+  approved_budgets: number;
+  approved_value: number;
+  conversion_rate: number;
+}
+
 export interface BudgetItem {
   id?: number;
   description: string;
@@ -310,5 +331,22 @@ export const budgetService = {
       }
       throw error;
     }
+  },
+
+  // Estatísticas do dashboard
+  async getDashboardStats(days?: number, customStart?: string, customEnd?: string): Promise<DashboardStats> {
+    const params = new URLSearchParams();
+    
+    if (days !== undefined) {
+      params.append('days', days.toString());
+    }
+    
+    if (customStart && customEnd) {
+      params.append('custom_start', customStart);
+      params.append('custom_end', customEnd);
+    }
+    
+    const response = await api.get(`/dashboard/stats?${params.toString()}`);
+    return response.data;
   },
 };
