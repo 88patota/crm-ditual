@@ -32,10 +32,11 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  FilePdfOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 import { budgetService } from '../services/budgetService';
-import type { Budget, BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -79,6 +80,27 @@ export default function BudgetView() {
     },
   });
 
+  // Função para exportar PDF
+  const handleExportPdf = async (simplified: boolean = false) => {
+    if (!budget) return;
+    
+    try {
+      const loadingMessage = message.loading('Gerando PDF...', 0);
+      
+      await budgetService.exportAndDownloadPdf(
+        budget.id!, 
+        simplified,
+        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${budget.order_number}.pdf`
+      );
+      
+      loadingMessage();
+      message.success('PDF gerado e download iniciado!');
+    } catch (error) {
+      console.error('Erro ao exportar PDF:', error);
+      message.error('Erro ao gerar PDF. Tente novamente.');
+    }
+  };
+
   const getErrorMessage = (error: unknown): string => {
     if (typeof error === 'object' && error !== null && 'response' in error) {
       const axiosError = error as { response?: { data?: { detail?: string } } };
@@ -89,7 +111,7 @@ export default function BudgetView() {
     return 'Ocorreu um erro inesperado. Tente novamente.';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     switch (status) {
       case 'draft': return 'default';
       case 'pending': return 'processing';
@@ -100,18 +122,18 @@ export default function BudgetView() {
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status: string | undefined) => {
     switch (status) {
       case 'draft': return 'Rascunho';
       case 'pending': return 'Pendente';
       case 'approved': return 'Aprovado';
       case 'rejected': return 'Rejeitado';
       case 'expired': return 'Expirado';
-      default: return status;
+      default: return status || 'Desconhecido';
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string | undefined) => {
     switch (status) {
       case 'approved': return <CheckCircleOutlined />;
       case 'rejected': return <CloseCircleOutlined />;
@@ -276,6 +298,28 @@ export default function BudgetView() {
                   Recalcular
                 </Button>
               </Tooltip>
+              
+              {/* Botões de Exportação PDF */}
+              <Tooltip title="Exportar proposta completa em PDF">
+                <Button
+                  icon={<FilePdfOutlined />}
+                  onClick={() => handleExportPdf(false)}
+                  style={{ color: '#dc2626' }}
+                >
+                  PDF Completo
+                </Button>
+              </Tooltip>
+              
+              <Tooltip title="Exportar proposta simplificada em PDF">
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleExportPdf(true)}
+                  style={{ color: '#059669' }}
+                >
+                  PDF Simples
+                </Button>
+              </Tooltip>
+              
               <Link to={`/budgets/${id}/edit`}>
                 <Button type="primary" icon={<EditOutlined />}>
                   Editar

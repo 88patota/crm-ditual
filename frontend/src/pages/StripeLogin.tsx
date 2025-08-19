@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import StripeButton from '../components/ui/StripeButton';
-import { ModernInput, FormGroup } from '../components/ui/forms';
+import { ModernInput } from '../components/ui/forms';
 import { StripeCard, StripeCardContent } from '../components/ui/StripeCard';
 import type { LoginRequest } from '../types/auth';
 import { LogIn, UserPlus, ArrowRight, User, Lock } from 'lucide-react';
@@ -25,8 +25,9 @@ export default function StripeLogin() {
     try {
       await login(data);
       navigate('/dashboard');
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 401) {
         setError('root', { message: 'Invalid credentials' });
       } else {
         setError('root', { message: 'An error occurred. Please try again.' });
@@ -191,7 +192,7 @@ export default function StripeLogin() {
                     <div className="text-left sm:text-right">
                       <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono">admin</code>
                       <br />
-                      <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono mt-1 inline-block">admin123456</code>
+                      <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono mt-1 inline-block">admin123</code>
                     </div>
                   </div>
                 </div>

@@ -29,7 +29,7 @@ class Budget(Base):
     profitability_percentage = Column(Float, default=0.0)
     
     # Status and metadata
-    status = Column(Enum(BudgetStatus), nullable=False, default=BudgetStatus.DRAFT)
+    status = Column(String, nullable=False, default=BudgetStatus.DRAFT.value)
     notes = Column(Text, nullable=True)
     created_by = Column(String, nullable=False)  # Username who created
     

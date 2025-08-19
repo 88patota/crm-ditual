@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, App as AntApp } from 'antd';
 import ptBR from 'antd/locale/pt_BR';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { setQueryClient } from './lib/api';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AntLayout from './components/layout/AntLayout';
 import AntLogin from './pages/AntLogin';
@@ -13,6 +14,7 @@ import Profile from './pages/Profile';
 import Users from './pages/Users';
 import Budgets from './pages/Budgets';
 import BudgetCreate from './pages/BudgetCreate';
+import SimplifiedBudgetCreate from './pages/AutoMarkupBudgetCreate';
 import BudgetEdit from './pages/BudgetEdit';
 import BudgetView from './pages/BudgetView';
 
@@ -25,6 +27,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Configure queryClient for API interceptors
+setQueryClient(queryClient);
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -84,6 +89,26 @@ function AppRoutes() {
       />
       <Route
         path="/budgets/new"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <SimplifiedBudgetCreate />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/new-simplified"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <SimplifiedBudgetCreate />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budgets/new-complete"
         element={
           <ProtectedRoute>
             <AntLayout>

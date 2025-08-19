@@ -20,14 +20,14 @@ import {
   PlusOutlined,
   DeleteOutlined,
   CalculatorOutlined,
-  SaveOutlined,
-  ReloadOutlined
+  SaveOutlined
 } from '@ant-design/icons';
 import type { Budget, BudgetItem } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
+import { formatCurrency } from '../../lib/utils';
 import dayjs from 'dayjs';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 interface BudgetFormProps {
@@ -36,10 +36,6 @@ interface BudgetFormProps {
   onCancel: () => void;
   isLoading?: boolean;
   isEdit?: boolean;
-}
-
-interface BudgetFormData extends Omit<Budget, 'items'> {
-  items: BudgetItem[];
 }
 
 const initialBudgetItem: BudgetItem = {
@@ -93,7 +89,7 @@ export default function BudgetForm({
     }
   };
 
-  const updateItem = (index: number, field: keyof BudgetItem, value: any) => {
+  const updateItem = (index: number, field: keyof BudgetItem, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     
@@ -215,9 +211,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -234,8 +229,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -252,9 +246,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -270,9 +263,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -289,8 +281,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -308,8 +299,7 @@ export default function BudgetForm({
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => value!.replace('%', '')}
+          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -326,9 +316,8 @@ export default function BudgetForm({
           min={0}
           step={0.01}
           precision={2}
-          formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-          parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
           style={{ width: '100%' }}
+          placeholder="0,00"
         />
       ),
     },
@@ -337,7 +326,7 @@ export default function BudgetForm({
       key: 'actions',
       width: 80,
       fixed: 'right' as const,
-      render: (_: any, __: BudgetItem, index: number) => (
+      render: (_: unknown, __: BudgetItem, index: number) => (
         <Popconfirm
           title="Remover item"
           description="Tem certeza que deseja remover este item?"
@@ -445,8 +434,7 @@ export default function BudgetForm({
                   max={1000}
                   step={0.1}
                   precision={1}
-                  formatter={(value) => `${value}%`}
-                  parser={(value) => value!.replace('%', '')}
+                  addonAfter="%"
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -500,7 +488,7 @@ export default function BudgetForm({
               <Form.Item label="Total Compra" name="total_purchase_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -509,7 +497,7 @@ export default function BudgetForm({
               <Form.Item label="Total Venda" name="total_sale_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -518,7 +506,7 @@ export default function BudgetForm({
               <Form.Item label="Total Comissão" name="total_commission">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -527,7 +515,7 @@ export default function BudgetForm({
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `${value}%`}
+                  formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

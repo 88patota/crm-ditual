@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Card from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Card } from '../components/ui/Card';
 import type { LoginRequest } from '../types/auth';
 import { LogIn, UserPlus } from 'lucide-react';
 
@@ -25,8 +25,9 @@ export default function Login() {
     try {
       await login(data);
       navigate('/dashboard');
-    } catch (error: any) {
-      if (error.response?.status === 401) {
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError.response?.status === 401) {
         setError('root', { message: 'Credenciais inválidas' });
       } else {
         setError('root', { message: 'Erro ao fazer login. Tente novamente.' });

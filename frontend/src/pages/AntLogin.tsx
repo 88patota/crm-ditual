@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Space, Alert, Row, Col, Divider, Tag } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Alert, Divider } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,7 +11,7 @@ interface LoginForm {
   password: string;
 }
 
-const AntLogin: React.FC = () => {
+function AntLogin() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,14 +22,15 @@ const AntLogin: React.FC = () => {
       setLoading(true);
       setError(null);
       await login({ username: values.username, password: values.password });
-    } catch (error: any) {
-      const errorDetail = error.response?.data?.detail;
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string | Array<{ msg: string }> } } };
+      const errorDetail = axiosError?.response?.data?.detail;
       let errorMessage = 'Erro ao fazer login';
       
       if (typeof errorDetail === 'string') {
         errorMessage = errorDetail;
       } else if (Array.isArray(errorDetail)) {
-        errorMessage = errorDetail.map(err => err.msg).join(', ');
+        errorMessage = errorDetail.map((err: { msg: string }) => err.msg).join(', ');
       }
       
       setError(errorMessage);
@@ -40,18 +41,25 @@ const AntLogin: React.FC = () => {
 
   const demoCredentials = [
     {
-      role: 'Administrator',
-      description: 'Acesso completo ao sistema',
+      role: 'Administrador',
+      description: 'Acesso completo ao sistema - Gerenciar usuários, orçamentos e configurações',
       username: 'admin',
-      password: 'admin123456',
+      password: 'admin123',
       color: 'blue',
     },
     {
-      role: 'Sales Representative',
-      description: 'Acesso limitado',
-      username: 'vendedor1',
-      password: 'venda123456',
+      role: 'Vendedor (João)',
+      description: 'Perfil de vendas - Criar e gerenciar orçamentos, exportar propostas PDF',
+      username: 'vendedor',
+      password: 'vendedor123',
       color: 'green',
+    },
+    {
+      role: 'Vendedor (Maria)',
+      description: 'Perfil de vendas - Criar e gerenciar orçamentos, exportar propostas PDF',
+      username: 'vendedor2',
+      password: 'vendedor123',
+      color: 'orange',
     },
   ];
 
@@ -166,38 +174,47 @@ const AntLogin: React.FC = () => {
                   style={{ 
                     background: 'white',
                     cursor: 'pointer',
-                    border: '1px solid #dee2e6'
+                    border: `1px solid ${credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16'}`,
+                    borderRadius: '6px'
                   }}
                   hoverable
                   onClick={() => fillCredentials(credential.username, credential.password)}
                 >
-                  <Row align="middle" justify="space-between">
-                    <Col>
-                      <Space direction="vertical" size={0}>
-                        <Space size="small">
-                          <Text strong style={{ fontSize: '14px' }}>
-                            {credential.role}
-                          </Text>
-                          <Tag color={credential.color} style={{ fontSize: '10px', margin: 0 }}>
-                            {credential.description}
-                          </Tag>
-                        </Space>
-                        <Space size="small">
-                          <Text code style={{ fontSize: '11px' }}>
-                            {credential.username}
-                          </Text>
-                          <Text code style={{ fontSize: '11px' }}>
-                            {credential.password}
-                          </Text>
-                        </Space>
-                      </Space>
-                    </Col>
-                    <Col>
-                      <Button size="small" type="link">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ marginBottom: '4px' }}>
+                        <Text strong style={{ fontSize: '13px', color: '#262626' }}>
+                          {credential.role}
+                        </Text>
+                      </div>
+                      <div style={{ marginBottom: '6px' }}>
+                        <Text style={{ fontSize: '11px', color: '#8c8c8c', lineHeight: '1.3' }}>
+                          {credential.description}
+                        </Text>
+                      </div>
+                      <div>
+                        <Text code style={{ fontSize: '11px', marginRight: '8px' }}>
+                          {credential.username}
+                        </Text>
+                        <Text code style={{ fontSize: '11px' }}>
+                          {credential.password}
+                        </Text>
+                      </div>
+                    </div>
+                    <div style={{ marginLeft: '12px' }}>
+                      <Button 
+                        type="primary" 
+                        size="small"
+                        style={{
+                          backgroundColor: credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16',
+                          borderColor: credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16',
+                          fontSize: '11px'
+                        }}
+                      >
                         Usar
                       </Button>
-                    </Col>
-                  </Row>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </Space>
@@ -241,6 +258,6 @@ const AntLogin: React.FC = () => {
       `}</style>
     </div>
   );
-};
+}
 
 export default AntLogin;

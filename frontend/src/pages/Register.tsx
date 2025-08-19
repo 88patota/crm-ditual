@@ -25,9 +25,10 @@ export default function Register() {
     try {
       await registerUser(data);
       navigate('/dashboard');
-    } catch (error: any) {
-      if (error.response?.data?.detail) {
-        setError('root', { message: error.response.data.detail });
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      if (axiosError.response?.data?.detail) {
+        setError('root', { message: axiosError.response.data.detail });
       } else {
         setError('root', { message: 'An error occurred. Please try again.' });
       }

@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
+import type { User } from '../types/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -19,16 +20,6 @@ import {
   ArrowDownRight,
 } from 'lucide-react';
 import { formatDateTime } from '../lib/utils';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
 
 const ModernDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -93,10 +84,6 @@ const ModernDashboard: React.FC = () => {
     }
   };
 
-  const getStatusVariant = (isActive: boolean) => {
-    return isActive ? 'success' : 'secondary';
-  };
-
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -137,12 +124,12 @@ const ModernDashboard: React.FC = () => {
                 <div className="text-2xl font-bold">{stat.value}</div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   {stat.changeType === 'positive' ? (
-                    <ArrowUpRight className="mr-1 h-3 w-3 text-success" />
+                    <ArrowUpRight className="mr-1 h-3 w-3 text-green-600" />
                   ) : (
-                    <ArrowDownRight className="mr-1 h-3 w-3 text-destructive" />
+                    <ArrowDownRight className="mr-1 h-3 w-3 text-red-600" />
                   )}
                   <span 
-                    className={stat.changeType === 'positive' ? 'text-success' : 'text-destructive'}
+                    className={stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}
                   >
                     {stat.change}
                   </span>
@@ -212,7 +199,7 @@ const ModernDashboard: React.FC = () => {
                     <Activity className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Status</span>
                   </div>
-                  <Badge variant="success">Online</Badge>
+                  <Badge variant="default">Online</Badge>
                 </div>
               </div>
             </CardContent>

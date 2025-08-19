@@ -1,4 +1,6 @@
 import React from 'react';
+import '../styles/AntDashboard.css';
+import type { User } from '../types/auth';
 import { 
   Card, 
   Row, 
@@ -28,18 +30,9 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
+import AdminDashboard from './AdminDashboard';
 
 const { Title, Text, Paragraph } = Typography;
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  full_name: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
 
 const AntDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -47,7 +40,13 @@ const AntDashboard: React.FC = () => {
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: authService.getAllUsers,
+    enabled: user?.role !== 'admin', // Só carregar se não for admin
   });
+
+  // Se o usuário for admin, mostrar o dashboard administrativo
+  if (user?.role === 'admin') {
+    return <AdminDashboard />;
+  }
 
   const stats = [
     {

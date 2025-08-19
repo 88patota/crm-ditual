@@ -7,8 +7,26 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    allowedHosts: ['tbhn1ll9p.localto.net', 'localhost', '127.0.0.1'],
     proxy: {
-      '/api': {
+      '^/api/v1/budgets.*': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
+      },
+      '^/api/v1/dashboard.*': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
+      },
+      '^/api/v1/users.*': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+      '^/api.*': {
         target: 'http://localhost:8001',
         changeOrigin: true,
         secure: false,

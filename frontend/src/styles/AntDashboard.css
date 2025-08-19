@@ -1,0 +1,157 @@
+/* Custom styles for AntDashboard */
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.stats-card {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+}
+
+.stats-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.status-card {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.status-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.stats-icon {
+  font-size: 24px;
+  margin-right: 8px;
+}
+
+.stats-icon.users {
+  color: #1890ff;
+}
+
+.stats-icon.active {
+  color: #52c41a;
+}
+
+.stats-icon.new {
+  color: #fa8c16;
+}
+
+.stats-icon.growth {
+  color: #722ed1;
+}
+
+/* Admin Dashboard specific styles */
+.admin-dashboard-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.admin-dashboard-card .ant-card-body {
+  padding: 24px;
+}
+
+.admin-metric-card {
+  text-align: center;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.admin-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.admin-period-selector {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+/* Timeline custom styles */
+.ant-timeline-item-content {
+  padding-left: 16px;
+}
+
+/* Progress custom styles */
+.ant-progress-text {
+  font-weight: 500;
+}
+
+/* Card hover effects */
+.ant-card {
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* List item hover */
+.ant-list-item {
+  transition: background-color 0.2s ease;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.ant-list-item:hover {
+  background-color: #f5f5f5;
+}
+
+/* Custom spacing for dashboard sections */
+.dashboard-section {
+  margin-bottom: 24px;
+}
+
+/* Badge adjustments */
+.ant-tag {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Responsive adjustments for admin dashboard */
+@media (max-width: 768px) {
+  .admin-metric-card {
+    margin-bottom: 16px;
+  }
+  
+  .admin-dashboard-card {
+    margin-bottom: 16px;
+  }
+  
+  .stats-card {
+    margin-bottom: 16px;
+  }
+}
+
+/* Loading states */
+.dashboard-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+/* Filter section */
+.dashboard-filters {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+/* Status colors for different budget states */
+.status-draft { color: #8c8c8c; }
+.status-pending { color: #faad14; }
+.status-approved { color: #52c41a; }
+.status-rejected { color: #ff4d4f; }
+.status-expired { color: #fa8c16; }
