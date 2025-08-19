@@ -43,13 +43,13 @@ interface SimplifiedBudgetFormProps {
 
 const initialBudgetItem: BudgetItemSimplified = {
   description: '',
-  quantity: 1,
-  weight: 0,
-  purchase_value_with_icms: 0,
-  purchase_icms_percentage: 17,
-  purchase_other_expenses: 0,
-  sale_value_with_icms: 0,
-  sale_icms_percentage: 17,
+  peso_compra: 0,
+  peso_venda: 0,
+  valor_com_icms_compra: 0,
+  percentual_icms_compra: 0.18, // 18% in decimal format
+  outras_despesas_item: 0,
+  valor_com_icms_venda: 0,
+  percentual_icms_venda: 0.18, // 18% in decimal format
 };
 
 export default function SimplifiedBudgetForm({ 
@@ -99,7 +99,28 @@ export default function SimplifiedBudgetForm({
 
   const updateItem = (index: number, field: keyof BudgetItemSimplified, value: unknown) => {
     const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Garantir conversão correta de números, especialmente com vírgulas
+    if (field === 'peso_compra' || field === 'peso_venda' || 
+        field === 'valor_com_icms_compra' || field === 'valor_com_icms_venda' ||
+        field === 'outras_despesas_item') {
+      let numericValue = 0;
+      
+      if (typeof value === 'number') {
+        numericValue = value;
+      } else if (typeof value === 'string') {
+        // Converter vírgulas em pontos para garantir parsing correto
+        const normalizedValue = value.replace(',', '.');
+        numericValue = parseFloat(normalizedValue) || 0;
+      } else if (value === null || value === undefined) {
+        numericValue = 0;
+      }
+      
+      newItems[index] = { ...newItems[index], [field]: numericValue };
+    } else {
+      newItems[index] = { ...newItems[index], [field]: value };
+    }
+    
     setItems(newItems);
     setPreview(null);
   };
@@ -131,16 +152,27 @@ export default function SimplifiedBudgetForm({
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
+      if (items.length === 0) {
+        message.error('O orçamento deve conter pelo menos um item.');
+        return;
+      }
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado automaticamente
-        items: items,
+        items: items.map(item => ({
+          ...item,
+          peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
+          peso_venda: parseFloat(item.peso_venda.toString().replace(',', '.')),
+          valor_com_icms_compra: parseFloat(item.valor_com_icms_compra.toString().replace(',', '.')),
+          valor_com_icms_venda: parseFloat(item.valor_com_icms_venda.toString().replace(',', '.')),
+        })),
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
       await onSubmit(budgetData);
     } catch (error) {
       console.error('Erro na validação do formulário:', error);
+      message.error('Erro ao validar o formulário. Verifique os campos obrigatórios.');
     }
   };
 
@@ -159,47 +191,44 @@ export default function SimplifiedBudgetForm({
       ),
     },
     {
-      title: 'Quantidade *',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 120,
+      title: 'Peso Compra (kg) *',
+      dataIndex: 'peso_compra',
+      key: 'peso_compra',
+      width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'quantity', val || 1)}
-          min={0.01}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
-        />
+<Input
+  value={value}
+  onChange={(e) => updateItem(index, 'peso_compra', e.target.value)}
+  style={{ width: '100%' }}
+  placeholder="Digite o peso"
+  inputMode="decimal"
+/>
       ),
     },
     {
-      title: 'Peso (kg)',
-      dataIndex: 'weight',
-      key: 'weight',
-      width: 120,
+      title: 'Peso Venda (kg) *',
+      dataIndex: 'peso_venda',
+      key: 'peso_venda',
+      width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'weight', val || 0)}
-          min={0}
-          step={0.001}
-          precision={3}
-          style={{ width: '100%' }}
-          placeholder="0,000"
-        />
+<Input
+  value={value}
+  onChange={(e) => updateItem(index, 'peso_venda', e.target.value)}
+  style={{ width: '100%' }}
+  placeholder="Digite o peso"
+  inputMode="decimal"
+/>
       ),
     },
     {
       title: 'Valor c/ICMS (Compra) *',
-      dataIndex: 'purchase_value_with_icms',
-      key: 'purchase_value_with_icms',
+      dataIndex: 'valor_com_icms_compra',
+      key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
           min={0.01}
           step={0.01}
           precision={2}
@@ -210,13 +239,13 @@ export default function SimplifiedBudgetForm({
     },
     {
       title: '% ICMS (Compra) *',
-      dataIndex: 'purchase_icms_percentage',
-      key: 'purchase_icms_percentage',
+      dataIndex: 'percentual_icms_compra',
+      key: 'percentual_icms_compra',
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'purchase_icms_percentage', val || 17)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 18) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -229,13 +258,13 @@ export default function SimplifiedBudgetForm({
     },
     {
       title: 'Outras Despesas',
-      dataIndex: 'purchase_other_expenses',
-      key: 'purchase_other_expenses',
+      dataIndex: 'outras_despesas_item',
+      key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
+          onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
           min={0}
           step={0.01}
           precision={2}
@@ -246,13 +275,13 @@ export default function SimplifiedBudgetForm({
     },
     {
       title: 'Valor c/ICMS (Venda) *',
-      dataIndex: 'sale_value_with_icms',
-      key: 'sale_value_with_icms',
+      dataIndex: 'valor_com_icms_venda',
+      key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
           min={0.01}
           step={0.01}
           precision={2}
@@ -263,13 +292,13 @@ export default function SimplifiedBudgetForm({
     },
     {
       title: '% ICMS (Venda) *',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
+      dataIndex: 'percentual_icms_venda',
+      key: 'percentual_icms_venda',
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 17)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -436,7 +465,7 @@ export default function SimplifiedBudgetForm({
           </Row>
 
           <Row gutter={[16, 16]}>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={6}>
               <Form.Item
                 label="Data de Expiração"
                 name="expires_at"
@@ -444,7 +473,35 @@ export default function SimplifiedBudgetForm({
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col xs={24} md={16}>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Prazo Médio (dias)"
+                name="prazo_medio"
+              >
+                <InputNumber 
+                  min={1}
+                  step={1}
+                  precision={0}
+                  style={{ width: '100%' }}
+                  placeholder="Ex: 30"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Outras Despesas Totais"
+                name="outras_despesas_totais"
+              >
+                <InputNumber 
+                  min={0}
+                  step={0.01}
+                  precision={2}
+                  style={{ width: '100%' }}
+                  placeholder="0,00"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
               <Form.Item
                 label="Observações"
                 name="notes"
@@ -457,7 +514,7 @@ export default function SimplifiedBudgetForm({
           {/* Alerta explicativo */}
           <Alert
             message="Campos Obrigatórios"
-            description="Preencha: Cliente, Descrição, Quantidade, Valor c/ICMS (Compra), % ICMS (Compra), Valor c/ICMS (Venda) e % ICMS (Venda). Os demais campos serão calculados automaticamente."
+            description="Preencha: Cliente, Descrição, Peso Compra (kg), Peso Venda (kg), Valor c/ICMS (Compra), % ICMS (Compra), Valor c/ICMS (Venda) e % ICMS (Venda). O cálculo é baseado no peso dos produtos conforme a planilha de negócio."
             type="info"
             icon={<InfoCircleOutlined />}
             style={{ marginBottom: '24px' }}
