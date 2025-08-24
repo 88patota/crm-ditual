@@ -48,8 +48,7 @@ class BudgetService:
             budget_item = BudgetItem(
                 budget_id=budget.id,
                 description=item_data['description'],
-                quantity=item_data['quantity'],
-                weight=item_data.get('weight'),
+                                weight=item_data.get('weight'),
                 purchase_value_with_icms=item_data['purchase_value_with_icms'],
                 purchase_icms_percentage=item_data['purchase_icms_percentage'],
                 purchase_other_expenses=item_data.get('purchase_other_expenses', 0),
@@ -155,8 +154,7 @@ class BudgetService:
         items_data = []
         for item in budget.items:
             items_data.append({
-                'quantity': item.quantity,
-                'purchase_value_with_icms': item.purchase_value_with_icms,
+                                'purchase_value_with_icms': item.purchase_value_with_icms,
                 'purchase_icms_percentage': item.purchase_icms_percentage,
                 'purchase_other_expenses': item.purchase_other_expenses,
                 'sale_value_with_icms': item.sale_value_with_icms,
@@ -205,8 +203,7 @@ class BudgetService:
         items_data = []
         for item in budget.items:
             items_data.append({
-                'quantity': item.quantity,
-                'purchase_value_with_icms': item.purchase_value_with_icms,
+                                'purchase_value_with_icms': item.purchase_value_with_icms,
                 'purchase_icms_percentage': item.purchase_icms_percentage,
                 'purchase_other_expenses': item.purchase_other_expenses,
                 'sale_value_with_icms': item.sale_value_with_icms,

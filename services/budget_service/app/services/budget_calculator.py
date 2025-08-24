@@ -145,7 +145,7 @@ class BudgetCalculatorService:
         return {
             # Dados de entrada preservados
             'description': item_input.description,
-            'quantity': item_input.quantity,
+            'quantity': 1.0,  # Default quantity since it's no longer required
             'weight': item_input.weight,
             'purchase_value_with_icms': item_input.purchase_value_with_icms,
             'purchase_icms_percentage': item_input.purchase_icms_percentage,
@@ -189,12 +189,9 @@ class BudgetCalculatorService:
             calculated_item = BudgetCalculatorService.calculate_simplified_item(item_input)
             calculated_items.append(calculated_item)
             
-            # Somar totais baseados na quantidade (não peso)
-            item_total_purchase = calculated_item['total_purchase'] * item_input.quantity
-            item_total_sale = calculated_item['total_sale'] * item_input.quantity
-            
-            total_purchase_value += item_total_purchase
-            total_sale_value += item_total_sale
+            # Somar totais baseados no peso (sem quantidade)
+            total_purchase_value += calculated_item['total_purchase']
+            total_sale_value += calculated_item['total_sale']
             total_commission += calculated_item['commission_value']
         
         # Calcular markup/rentabilidade resultante
@@ -254,9 +251,6 @@ class BudgetCalculatorService:
             
             if not item.get('description'):
                 errors.append(f"{item_prefix}Descrição é obrigatória")
-            
-            if not item.get('quantity') or item['quantity'] <= 0:
-                errors.append(f"{item_prefix}Quantidade deve ser maior que zero")
             
             if not item.get('purchase_value_with_icms') or item['purchase_value_with_icms'] <= 0:
                 errors.append(f"{item_prefix}Valor de compra deve ser maior que zero")

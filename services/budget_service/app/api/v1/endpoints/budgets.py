@@ -342,38 +342,73 @@ async def calculate_with_markup(
 async def calculate_simplified_budget(
     budget_data: BudgetSimplifiedCreate
 ):
-    """Calcular orçamento simplificado com apenas campos obrigatórios"""
+    """Calcular orçamento simplificado usando business rules calculator"""
     try:
-        # Validar dados
-        budget_dict = budget_data.dict()
-        errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
-        if errors:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Dados inválidos: {'; '.join(errors)}"
-            )
+        from app.services.business_rules_calculator import BusinessRulesCalculator
         
-        # Calcular usando função simplificada
-        calculation_result = BudgetCalculatorService.calculate_simplified_budget(budget_data.items)
+        # Converter dados para formato esperado pelo BusinessRulesCalculator
+        items_data = []
+        total_peso_pedido = 0.0
+        
+        for item in budget_data.items:
+            item_dict = item.dict()
+            total_peso_pedido += item_dict.get('peso_compra', 1.0)
+            items_data.append(item_dict)
+        
+        # Validar dados usando business rules
+        for i, item_data in enumerate(items_data):
+            errors = BusinessRulesCalculator.validate_item_data(item_data)
+            if errors:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Item {i+1}: {'; '.join(errors)}"
+                )
+        
+        # Calcular usando BusinessRulesCalculator
+        outras_despesas_totais = 0.0  # Pode ser adicionado ao schema se necessário
+        
+        calculated_items = []
+        total_purchase_value = 0.0
+        total_sale_value = 0.0
+        total_commission = 0.0
+        
+        for item_data in items_data:
+            calculated_item = BusinessRulesCalculator.calculate_complete_item(
+                item_data, outras_despesas_totais, total_peso_pedido
+            )
+            calculated_items.append(calculated_item)
+            
+            total_purchase_value += calculated_item['total_compra_item']
+            total_sale_value += calculated_item['total_venda_item']
+            total_commission += calculated_item['valor_comissao']
+        
+        # Calcular markup
+        if total_purchase_value > 0:
+            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value) * 100
+            profitability_percentage = markup_percentage
+        else:
+            markup_percentage = 0.0
+            profitability_percentage = 0.0
         
         # Preparar resposta
         items_calculations = []
-        for item in calculation_result['items']:
+        for item in calculated_items:
             items_calculations.append({
                 'description': item['description'],
-                'quantity': item['quantity'],
-                'total_purchase': item['total_purchase'],
-                'total_sale': item['total_sale'],
-                'profitability': item['profitability'],
-                'commission_value': item['commission_value']
+                'peso_compra': item['peso_compra'],
+                'peso_venda': item['peso_venda'],
+                'total_purchase': item['total_compra_item'],
+                'total_sale': item['total_venda_item'],
+                'profitability': item['rentabilidade_item'] * 100,  # Converter para percentual
+                'commission_value': item['valor_comissao']
             })
         
         return BudgetCalculation(
-            total_purchase_value=calculation_result['totals']['total_purchase_value'],
-            total_sale_value=calculation_result['totals']['total_sale_value'],
-            total_commission=calculation_result['totals']['total_commission'],
-            profitability_percentage=calculation_result['totals']['profitability_percentage'],
-            markup_percentage=calculation_result['totals']['markup_percentage'],
+            total_purchase_value=round(total_purchase_value, 2),
+            total_sale_value=round(total_sale_value, 2),
+            total_commission=round(total_commission, 2),
+            profitability_percentage=round(profitability_percentage, 2),
+            markup_percentage=round(markup_percentage, 2),
             items_calculations=items_calculations
         )
         
@@ -381,6 +416,11 @@ async def calculate_simplified_budget(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno no cálculo: {str(e)}"
         )
 
 
@@ -478,11 +518,11 @@ async def calculate_item_markup(
             "data": {
                 "markup_percentage": markup_percentage,
                 "breakdown": {
-                    "purchase_value_with_icms": purchase_value_with_icms,
+                    "valor_com_icms_compra": purchase_value_with_icms,
                     "purchase_value_without_taxes": round(purchase_without_taxes, 6),
                     "other_expenses": other_expenses,
                     "total_cost": round(total_cost, 6),
-                    "sale_value_with_icms": sale_value_with_icms,
+                    "valor_com_icms_venda": sale_value_with_icms,
                     "sale_value_without_taxes": round(sale_without_taxes, 6),
                     "profit": round(profit, 6),
                     "markup_percentage": markup_percentage,
@@ -596,8 +636,7 @@ async def calculate_dunamis_cost(
                     "purchase_value_with_icms": purchase_value_with_icms,
                     "sale_icms_percentage": sale_icms_percentage,
                     "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE,
-                    "quantity": quantity,
-                    "formula": "Valor Compra c/ICMS / (1 - %ICMS Venda) / (1 - %PIS/COFINS)",
+                                        "formula": "Valor Compra c/ICMS / (1 - %ICMS Venda) / (1 - %PIS/COFINS)",
                     "step1": f"{purchase_value_with_icms} / (1 - {sale_icms_percentage}%)",
                     "step2": f"/ (1 - {BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE}%)",
                     "result_per_unit": round(dunamis_cost_unit, 6)

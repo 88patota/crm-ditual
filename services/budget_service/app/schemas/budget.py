@@ -6,33 +6,40 @@ from app.models.budget import BudgetStatus
 
 # Schema simplificado - APENAS campos que o vendedor deve preencher
 class BudgetItemSimplified(BaseModel):
-    """Schema com apenas os campos obrigatórios conforme especificado"""
+    """Schema com apenas os campos obrigatórios conforme especificado (nomes em português)"""
     # Campos obrigatórios
     description: str
-    quantity: float
-    weight: Optional[float] = None
-    purchase_value_with_icms: float
-    purchase_icms_percentage: float = 17.0
-    purchase_other_expenses: Optional[float] = 0.0  # Opcional
-    sale_value_with_icms: float
-    sale_icms_percentage: float = 17.0
+    peso_compra: Optional[float] = 1.0  # Peso de compra, padrão 1.0
+    peso_venda: Optional[float] = None  # Se não fornecido, usa peso_compra
+    valor_com_icms_compra: float  # Valor de compra com ICMS
+    percentual_icms_compra: float = 0.18  # Percentual ICMS compra (formato decimal 0.18 = 18%)
+    outras_despesas_item: Optional[float] = 0.0  # Outras despesas do item
+    valor_com_icms_venda: float  # Valor de venda com ICMS
+    percentual_icms_venda: float = 0.18  # Percentual ICMS venda (formato decimal 0.18 = 18%)
 
-    @validator('quantity')
-    def validate_quantity(cls, v):
-        if v <= 0:
-            raise ValueError('Quantidade deve ser maior que zero')
+    @validator('peso_venda', always=True)
+    def validate_peso_venda(cls, v, values):
+        # Se peso_venda não fornecido, usa peso_compra
+        if v is None:
+            return values.get('peso_compra', 1.0)
         return v
 
-    @validator('purchase_value_with_icms', 'sale_value_with_icms')
+    @validator('valor_com_icms_compra', 'valor_com_icms_venda')
     def validate_positive_values(cls, v):
         if v <= 0:
             raise ValueError('Valores devem ser maiores que zero')
         return v
 
-    @validator('purchase_icms_percentage', 'sale_icms_percentage')
+    @validator('percentual_icms_compra', 'percentual_icms_venda')
     def validate_icms_percentage(cls, v):
-        if v < 0 or v > 100:
-            raise ValueError('Porcentagem de ICMS deve estar entre 0 e 100')
+        if v < 0 or v > 1:
+            raise ValueError('Percentual de ICMS deve estar entre 0 e 1 (formato decimal)')
+        return v
+
+    @validator('peso_compra')
+    def validate_peso_compra(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Peso de compra deve ser maior que zero')
         return v
 
 
