@@ -1,15 +1,19 @@
 import api from '../lib/api';
 
-// Tipos simplificados - APENAS campos obrigatórios
+// Tipos simplificados - APENAS campos obrigatórios (atualizados conforme novas regras de negócio)
 export interface BudgetItemSimplified {
   description: string;
-  quantity: number;
-  weight?: number;
-  purchase_value_with_icms: number;
-  purchase_icms_percentage: number;
-  purchase_other_expenses?: number;
-  sale_value_with_icms: number;
-  sale_icms_percentage: number;
+  
+  // Bloco Compras - Purchase data
+  peso_compra: number;
+  valor_com_icms_compra: number;
+  percentual_icms_compra: number;
+  outras_despesas_item?: number;
+  
+  // Bloco Vendas - Sale data  
+  peso_venda: number;
+  valor_com_icms_venda: number;
+  percentual_icms_venda: number;
 }
 
 export interface BudgetSimplified {
@@ -18,6 +22,11 @@ export interface BudgetSimplified {
   status?: string;
   expires_at?: string;
   notes?: string;
+  
+  // Novos campos conforme regras de negócio
+  prazo_medio?: number; // Prazo médio em dias
+  outras_despesas_totais?: number; // Outras despesas do pedido
+  
   items: BudgetItemSimplified[];
 }
 
