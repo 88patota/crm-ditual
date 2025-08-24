@@ -40,17 +40,17 @@ interface BudgetFormProps {
 
 const initialBudgetItem: BudgetItem = {
   description: '',
-  quantity: 1,
   weight: 0,
-  purchase_value_with_icms: 0,
   purchase_icms_percentage: 17,
   purchase_other_expenses: 0,
   purchase_value_without_taxes: 0,
-  sale_value_with_icms: 0,
   sale_icms_percentage: 17,
   sale_value_without_taxes: 0,
   commission_percentage: 5,
   dunamis_cost: 0,
+  quantity: 0,
+  purchase_value_with_icms: 0,
+  sale_value_with_icms: 0
 };
 
 export default function BudgetForm({ 
@@ -94,15 +94,15 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     
     // Auto-calculate purchase value without taxes
-    if (field === 'purchase_value_with_icms' || field === 'purchase_icms_percentage') {
-      const icmsValue = (newItems[index].purchase_value_with_icms * newItems[index].purchase_icms_percentage) / 100;
-      newItems[index].purchase_value_without_taxes = newItems[index].purchase_value_with_icms - icmsValue;
+    if (field === 'purchase_icms_percentage') {
+      const icmsValue = (newItems[index].purchase_icms_percentage) / 100;
+      newItems[index].purchase_value_without_taxes = -icmsValue;
     }
     
     // Auto-calculate sale value without taxes
-    if (field === 'sale_value_with_icms' || field === 'sale_icms_percentage') {
-      const icmsValue = (newItems[index].sale_value_with_icms * newItems[index].sale_icms_percentage) / 100;
-      newItems[index].sale_value_without_taxes = newItems[index].sale_value_with_icms - icmsValue;
+    if (field === 'sale_icms_percentage') {
+      const icmsValue = (newItems[index].sale_icms_percentage) / 100;
+      newItems[index].sale_value_without_taxes = -icmsValue;
     }
     
     setItems(newItems);
@@ -138,16 +138,42 @@ export default function BudgetForm({
     }
   };
 
+  // Função para mapear os itens para BudgetItemSimplified
+  const mapToSimplifiedItems = () => {
+    return items.map(item => ({
+      description: item.description,
+      peso_compra: item.weight ?? 0,
+      valor_com_icms_compra: item.purchase_value_with_icms ?? 0,
+      percentual_icms_compra: item.purchase_icms_percentage ?? 0,
+      outras_despesas_item: item.purchase_other_expenses ?? 0,
+      peso_venda: item.sale_weight ?? item.weight ?? 0,
+      valor_com_icms_venda: item.sale_value_with_icms ?? 0,
+      percentual_icms_venda: item.sale_icms_percentage ?? 0,
+    }));
+  };
+
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
-      const budgetData: Budget = {
-        ...formData,
-        items: items,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-      };
-      
-      await onSubmit(budgetData);
+
+      // Detecta se está usando endpoint simplificado (ajuste conforme sua lógica)
+      const isSimplified = true;
+
+      if (isSimplified) {
+        const budgetDataSimplified = {
+          ...formData,
+          items: mapToSimplifiedItems(),
+          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        };
+        await onSubmit(budgetDataSimplified);
+      } else {
+        const budgetData: Budget = {
+          ...formData,
+          items: items,
+          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        };
+        await onSubmit(budgetData);
+      }
     } catch (error) {
       console.error('Erro na validação do formulário:', error);
     }
@@ -168,22 +194,6 @@ export default function BudgetForm({
       ),
     },
     {
-      title: 'Qtd',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 80,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'quantity', val || 0)}
-          min={0.01}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
-        />
-      ),
-    },
-    {
       title: 'Peso (kg)',
       dataIndex: 'weight',
       key: 'weight',
@@ -195,41 +205,6 @@ export default function BudgetForm({
           min={0}
           step={0.001}
           precision={3}
-          style={{ width: '100%' }}
-        />
-      ),
-    },
-    {
-      title: 'Valor c/ICMS (Compra)',
-      dataIndex: 'purchase_value_with_icms',
-      key: 'purchase_value_with_icms',
-      width: 150,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
-          placeholder="0,00"
-        />
-      ),
-    },
-    {
-      title: '%ICMS (Compra)',
-      dataIndex: 'purchase_icms_percentage',
-      key: 'purchase_icms_percentage',
-      width: 120,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'purchase_icms_percentage', val || 0)}
-          min={0}
-          max={100}
-          step={0.1}
-          precision={1}
-          addonAfter="%"
           style={{ width: '100%' }}
         />
       ),
@@ -252,14 +227,14 @@ export default function BudgetForm({
       ),
     },
     {
-      title: 'Valor c/ICMS (Venda)',
-      dataIndex: 'sale_value_with_icms',
-      key: 'sale_value_with_icms',
+      title: 'ICMS Venda (%)',
+      dataIndex: 'sale_icms_percentage',
+      key: 'sale_icms_percentage',
       width: 150,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 0)}
           min={0}
           step={0.01}
           precision={2}
