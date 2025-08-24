@@ -78,7 +78,6 @@ class MarkupConfiguration(BaseModel):
 
 class BudgetItemBase(BaseModel):
     description: str
-    quantity: float
     weight: Optional[float] = None
     
     # Purchase data
@@ -99,11 +98,6 @@ class BudgetItemBase(BaseModel):
     commission_percentage: float = 0.0
     dunamis_cost: Optional[float] = None
 
-    @validator('quantity')
-    def validate_quantity(cls, v):
-        if v <= 0:
-            raise ValueError('Quantidade deve ser maior que zero')
-        return v
 
     @validator('purchase_value_with_icms', 'sale_value_with_icms')
     def validate_positive_values(cls, v):
@@ -118,7 +112,6 @@ class BudgetItemCreate(BudgetItemBase):
 
 class BudgetItemUpdate(BaseModel):
     description: Optional[str] = None
-    quantity: Optional[float] = None
     weight: Optional[float] = None
     purchase_value_with_icms: Optional[float] = None
     purchase_icms_percentage: Optional[float] = None

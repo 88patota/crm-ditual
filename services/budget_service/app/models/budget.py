@@ -50,7 +50,6 @@ class BudgetItem(Base):
     
     # Product information
     description = Column(String, nullable=False)
-    quantity = Column(Float, nullable=False)
     weight = Column(Float, nullable=True)
     
     # Purchase data

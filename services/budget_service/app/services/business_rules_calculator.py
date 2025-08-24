@@ -307,7 +307,7 @@ class BusinessRulesCalculator:
         if not item_data.get('description'):
             errors.append("Descrição não pode estar vazia")
         
-        
+        # Validar valores de compra e venda (usar nomes corretos dos campos)
         valor_com_icms_compra = item_data.get('valor_com_icms_compra', 0)
         if valor_com_icms_compra <= 0:
             errors.append("Valor de compra deve ser maior que zero")
@@ -316,12 +316,15 @@ class BusinessRulesCalculator:
         if valor_com_icms_venda <= 0:
             errors.append("Valor de venda deve ser maior que zero")
         
+        # Validar peso de compra
+        peso_compra = item_data.get('peso_compra', 0)
+        if peso_compra <= 0:
+            errors.append("Peso de compra deve ser maior que zero")
+        
         # Validar percentuais de ICMS (8.1.2)
         for field_name, field_label in [('percentual_icms_compra', 'ICMS compra'), ('percentual_icms_venda', 'ICMS venda')]:
             percentual = item_data.get(field_name, 0)
             if percentual < 0 or percentual > 1:
                 errors.append(f"Percentual de {field_label} deve estar entre 0 e 1")
-        
-        # Validações de consistência
         
         return errors

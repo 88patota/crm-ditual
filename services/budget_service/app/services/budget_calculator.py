@@ -95,25 +95,32 @@ class BudgetCalculatorService:
     def calculate_simplified_item(item_input: BudgetItemSimplified) -> dict:
         """
         Calcula todos os valores de um item baseado apenas nos campos obrigatórios
-        Segue as fórmulas da planilha fornecida e regras de negócio
+        Usa os nomes corretos dos campos em português
         """
         
+        # Usar campos do schema simplificado correto
+        purchase_value_with_icms = item_input.valor_com_icms_compra
+        purchase_icms_percentage = item_input.percentual_icms_compra * 100  # Converter decimal para percentual
+        sale_value_with_icms = item_input.valor_com_icms_venda
+        sale_icms_percentage = item_input.percentual_icms_venda * 100  # Converter decimal para percentual
+        
         # REGRA 1: Valor s/Impostos (Compra) = [Valor c/ICMS (Compra) * (1 - % ICMS (Compra))] * (1 - Taxa PIS/COFINS) - Outras Despesas
-        purchase_value_without_taxes = (item_input.purchase_value_with_icms * (1 - item_input.purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        if item_input.purchase_other_expenses:
-            purchase_value_without_taxes -= (item_input.purchase_other_expenses / (item_input.weight or 1))  # Proporcionalmente ao peso
+        purchase_value_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
+        if item_input.outras_despesas_item:
+            purchase_value_without_taxes -= (item_input.outras_despesas_item / (item_input.peso_compra or 1))  # Proporcionalmente ao peso
         
         # REGRA 2: Valor c/Difer. Peso (Compra) = Valor s/Impostos (Compra) * (Peso (Compra) / Peso (Venda))
-        sale_weight = item_input.weight  # Por simplicidade, assumindo peso igual
-        purchase_value_with_weight_diff = purchase_value_without_taxes * ((item_input.weight or 1) / (sale_weight or 1))
+        peso_compra = item_input.peso_compra or 1.0
+        peso_venda = item_input.peso_venda or peso_compra
+        purchase_value_with_weight_diff = purchase_value_without_taxes * (peso_compra / peso_venda)
         
         # REGRA 3: Valor s/Impostos (Venda) = [Valor c/ICMS (Venda) * (1 - % ICMS (Venda))] * (1 - Taxa PIS/COFINS)
-        sale_value_without_taxes = (item_input.sale_value_with_icms * (1 - item_input.sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
+        sale_value_without_taxes = (sale_value_with_icms * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
         
         # REGRA 4: Diferença de Peso = (Peso (Venda) - Peso (Compra)) / Peso (Compra)
         weight_difference = 0.0
-        if item_input.weight and sale_weight:
-            weight_difference = (sale_weight - item_input.weight) / item_input.weight
+        if peso_compra and peso_venda:
+            weight_difference = (peso_venda - peso_compra) / peso_compra
         
         # REGRA 5: Rentabilidade = [Valor s/Impostos (Venda) / Valor c/Difer. Peso (Compra)] - 1
         if purchase_value_with_weight_diff > 0:
@@ -122,14 +129,14 @@ class BudgetCalculatorService:
             profitability = 0.0
         
         # REGRA 6: Total Compra = Peso (Compra) * Valor s/Impostos (Compra)
-        total_purchase = (item_input.weight or 1) * purchase_value_without_taxes
+        total_purchase = peso_compra * purchase_value_without_taxes
         
         # REGRA 7: Total Venda = Peso (Venda) * Valor s/Impostos (Venda)
-        total_sale = (sale_weight or 1) * sale_value_without_taxes
+        total_sale = peso_venda * sale_value_without_taxes
         
         # REGRA 8: Valor Total = Peso (Venda) * Valor Unitário (Venda com ICMS)
-        unit_value = item_input.sale_value_with_icms  # COM ICMS para o usuário ver
-        total_value_with_icms = (sale_weight or 1) * item_input.sale_value_with_icms  # COM ICMS para exibição
+        unit_value = sale_value_with_icms  # COM ICMS para o usuário ver
+        total_value_with_icms = peso_venda * sale_value_with_icms  # COM ICMS para exibição
         
         # REGRA 9: Valor Comissão = Valor Total * % Comissão
         commission_percentage = BudgetCalculatorService.DEFAULT_COMMISSION_PERCENTAGE
@@ -137,26 +144,25 @@ class BudgetCalculatorService:
         
         # REGRA 10: Custo a ser lançado no Dunamis = Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
         dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
-            purchase_value_with_icms=item_input.purchase_value_with_icms,
-            sale_icms_percentage=item_input.sale_icms_percentage
+            purchase_value_with_icms=purchase_value_with_icms,
+            sale_icms_percentage=sale_icms_percentage
         )
-        dunamis_cost = dunamis_cost * (item_input.weight or 1)  # Multiplicar pelo peso para totalizar
+        dunamis_cost = dunamis_cost * peso_compra  # Multiplicar pelo peso para totalizar
         
         return {
             # Dados de entrada preservados
             'description': item_input.description,
-            'quantity': 1.0,  # Default quantity since it's no longer required
-            'weight': item_input.weight,
-            'purchase_value_with_icms': item_input.purchase_value_with_icms,
-            'purchase_icms_percentage': item_input.purchase_icms_percentage,
-            'purchase_other_expenses': item_input.purchase_other_expenses or 0,
+            'weight': peso_compra,
+            'purchase_value_with_icms': purchase_value_with_icms,
+            'purchase_icms_percentage': purchase_icms_percentage,
+            'purchase_other_expenses': item_input.outras_despesas_item or 0,
             
             # Valores calculados
             'purchase_value_without_taxes': round(purchase_value_without_taxes, 6),  # Regra 1
             'purchase_value_with_weight_diff': round(purchase_value_with_weight_diff, 6),  # Regra 2
-            'sale_weight': sale_weight,
-            'sale_value_with_icms': item_input.sale_value_with_icms,
-            'sale_icms_percentage': item_input.sale_icms_percentage,
+            'sale_weight': peso_venda,
+            'sale_value_with_icms': sale_value_with_icms,
+            'sale_icms_percentage': sale_icms_percentage,
             'sale_value_without_taxes': round(sale_value_without_taxes, 6),  # Regra 3
             'weight_difference': round(weight_difference, 6),  # Regra 4
             
@@ -238,6 +244,7 @@ class BudgetCalculatorService:
     def validate_simplified_budget_data(budget_data: dict) -> List[str]:
         """
         Valida dados do orçamento simplificado
+        Usa os nomes corretos dos campos em português
         """
         errors = []
         
@@ -252,17 +259,19 @@ class BudgetCalculatorService:
             if not item.get('description'):
                 errors.append(f"{item_prefix}Descrição é obrigatória")
             
-            if not item.get('purchase_value_with_icms') or item['purchase_value_with_icms'] <= 0:
+            # Usar os nomes corretos dos campos em português
+            if not item.get('valor_com_icms_compra') or item['valor_com_icms_compra'] <= 0:
                 errors.append(f"{item_prefix}Valor de compra deve ser maior que zero")
                 
-            if not item.get('sale_value_with_icms') or item['sale_value_with_icms'] <= 0:
+            if not item.get('valor_com_icms_venda') or item['valor_com_icms_venda'] <= 0:
                 errors.append(f"{item_prefix}Valor de venda deve ser maior que zero")
             
-            # Validar porcentagens
-            for field, name in [('purchase_icms_percentage', 'ICMS compra'), ('sale_icms_percentage', 'ICMS venda')]:
+            # Validar porcentagens usando nomes corretos
+            for field, name in [('percentual_icms_compra', 'ICMS compra'), ('percentual_icms_venda', 'ICMS venda')]:
                 if field in item:
-                    if item[field] < 0 or item[field] > 100:
-                        errors.append(f"{item_prefix}{name} deve estar entre 0 e 100%")
+                    # As porcentagens vêm em formato decimal (0.18 = 18%)
+                    if item[field] < 0 or item[field] > 1:
+                        errors.append(f"{item_prefix}{name} deve estar entre 0 e 1 (formato decimal)")
         
         return errors
 
@@ -277,17 +286,18 @@ class BudgetCalculatorService:
         # REGRA 3: Cálculo do valor sem impostos de venda  
         sale_value_without_taxes = (item_data['sale_value_with_icms'] * (1 - item_data['sale_icms_percentage'] / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
         
-        # REGRA 6: Total purchase (including other expenses)
-        total_purchase = (purchase_value_without_taxes + item_data.get('purchase_other_expenses', 0)) * item_data['quantity']
+        # REGRA 6: Total purchase (including other expenses) - usar weight ao invés de quantity
+        weight = item_data.get('weight', 1.0)
+        total_purchase = (purchase_value_without_taxes + item_data.get('purchase_other_expenses', 0)) * weight
         
-        # REGRA 7: Total sale
-        total_sale = sale_value_without_taxes * item_data['quantity']
+        # REGRA 7: Total sale - usar weight ao invés de quantity
+        total_sale = sale_value_without_taxes * weight
         
         # Unit value (sale price per unit with ICMS for user display)
         unit_value = item_data['sale_value_with_icms']
         
-        # Total value (with ICMS for user display) - REGRA 8
-        total_value = item_data['sale_value_with_icms'] * item_data['quantity']
+        # Total value (with ICMS for user display) - REGRA 8 - usar weight ao invés de quantity
+        total_value = item_data['sale_value_with_icms'] * weight
         
         # REGRA 5: Profitability calculation
         if total_purchase > 0:
@@ -435,8 +445,7 @@ class BudgetCalculatorService:
             if not item.get('description'):
                 errors.append(f"{item_prefix}Descrição é obrigatória")
             
-            if not item.get('quantity') or item['quantity'] <= 0:
-                errors.append(f"{item_prefix}Quantidade deve ser maior que zero")
+            # Validação removida: quantity não existe mais na tabela
             
             if not item.get('purchase_value_with_icms') or item['purchase_value_with_icms'] < 0:
                 errors.append(f"{item_prefix}Valor de compra deve ser informado")

@@ -260,7 +260,7 @@ async def calculate_budget(
             calculations = BudgetCalculatorService.calculate_item_totals(item_data)
             items_calculations.append({
                 'description': item_data['description'],
-                'quantity': item_data['quantity'],
+                'weight': item_data.get('weight', 1.0),
                 'total_purchase': calculations['total_purchase'],
                 'total_sale': calculations['total_sale'],
                 'profitability': calculations['profitability'],
@@ -314,7 +314,7 @@ async def calculate_with_markup(
         for item in result['adjusted_items']:
             items_calculations.append({
                 'description': item['description'],
-                'quantity': item['quantity'],
+                'weight': item.get('weight', 1.0),
                 'adjusted_sale_price': item['sale_value_with_icms'],
                 'total_purchase': item['total_purchase'],
                 'total_sale': item['total_sale'],
@@ -613,7 +613,7 @@ async def suggest_sale_price_from_markup(
 async def calculate_dunamis_cost(
     purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
     sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
-    quantity: float = Query(1.0, description="Quantidade do item")
+    weight: float = Query(1.0, description="Peso do item")
 ):
     """
     Calcular custo a ser lançado no Dunamis conforme Regra 10
@@ -625,7 +625,7 @@ async def calculate_dunamis_cost(
             sale_icms_percentage=sale_icms_percentage
         )
         
-        dunamis_cost_total = dunamis_cost_unit * quantity
+        dunamis_cost_total = dunamis_cost_unit * weight
         
         return {
             "success": True,

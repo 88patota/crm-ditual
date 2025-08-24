@@ -176,56 +176,56 @@ export default function BudgetView() {
       dataIndex: 'quantity',
       key: 'quantity',
       width: 80,
-      render: (value: number) => value.toFixed(2),
+      render: (value: number) => value ? value.toFixed(2) : '0.00',
     },
     {
       title: 'Peso (kg)',
       dataIndex: 'weight',
       key: 'weight',
       width: 100,
-      render: (value: number) => value?.toFixed(3) || '-',
+      render: (value: number) => value ? value.toFixed(3) : '-',
     },
     {
       title: 'Compra c/ICMS',
       dataIndex: 'purchase_value_with_icms',
       key: 'purchase_value_with_icms',
       width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
     },
     {
       title: 'ICMS Compra',
       dataIndex: 'purchase_icms_percentage',
       key: 'purchase_icms_percentage',
       width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
+      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
     },
     {
       title: 'Outras Despesas',
       dataIndex: 'purchase_other_expenses',
       key: 'purchase_other_expenses',
       width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
     },
     {
       title: 'Venda c/ICMS',
       dataIndex: 'sale_value_with_icms',
       key: 'sale_value_with_icms',
       width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
     },
     {
       title: 'ICMS Venda',
       dataIndex: 'sale_icms_percentage',
       key: 'sale_icms_percentage',
       width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
+      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
     },
     {
       title: 'Comissão',
       dataIndex: 'commission_percentage',
       key: 'commission_percentage',
       width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
+      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
     },
     {
       title: 'Custo Dunamis',
@@ -381,7 +381,7 @@ export default function BudgetView() {
                 </Descriptions.Item>
               )}
               <Descriptions.Item label="% Markup">
-                <Text>{budget.markup_percentage?.toFixed(1)}%</Text>
+                <Text>{budget.markup_percentage ? budget.markup_percentage.toFixed(1) : '0.0'}%</Text>
               </Descriptions.Item>
             </Descriptions>
             {budget.notes && (
