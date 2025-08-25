@@ -30,15 +30,18 @@ import {
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
 import { formatCurrency } from '../../lib/utils';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 
 interface SimplifiedBudgetFormProps {
+  initialData?: BudgetSimplified;
   onSubmit: (data: BudgetSimplified) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  isEdit?: boolean;
 }
 
 const initialBudgetItem: BudgetItemSimplified = {
@@ -53,16 +56,18 @@ const initialBudgetItem: BudgetItemSimplified = {
 };
 
 export default function SimplifiedBudgetForm({ 
+  initialData,
   onSubmit, 
   onCancel, 
-  isLoading = false 
+  isLoading = false,
+  isEdit = false
 }: SimplifiedBudgetFormProps) {
   const [form] = Form.useForm();
   const [items, setItems] = useState<BudgetItemSimplified[]>([{ ...initialBudgetItem }]);
   const [calculating, setCalculating] = useState(false);
   const [preview, setPreview] = useState<BudgetCalculation | null>(null);
   const [orderNumber, setOrderNumber] = useState<string>('');
-  const [loadingOrderNumber, setLoadingOrderNumber] = useState(true);
+  const [loadingOrderNumber, setLoadingOrderNumber] = useState(!isEdit);
 
   const loadNextOrderNumber = useCallback(async () => {
     try {
@@ -78,10 +83,22 @@ export default function SimplifiedBudgetForm({
     }
   }, [form]);
 
-  // Carregar número do pedido ao inicializar o componente
+  // Inicializar com dados existentes ou carregar novo número do pedido
   useEffect(() => {
-    loadNextOrderNumber();
-  }, [loadNextOrderNumber]);
+    if (isEdit && initialData) {
+      // Modo edição - usar dados iniciais
+      form.setFieldsValue({
+        ...initialData,
+        expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
+      });
+      setItems(initialData.items || [{ ...initialBudgetItem }]);
+      setOrderNumber(initialData.order_number || '');
+      setLoadingOrderNumber(false);
+    } else {
+      // Modo criação - carregar novo número
+      loadNextOrderNumber();
+    }
+  }, [initialData, isEdit, form, loadNextOrderNumber]);
 
   const addItem = () => {
     setItems([...items, { ...initialBudgetItem }]);
@@ -349,7 +366,7 @@ export default function SimplifiedBudgetForm({
             <Col>
               <Space direction="vertical" size={4}>
                 <Title level={3} style={{ margin: 0 }}>
-                  Novo Orçamento Simplificado 💼
+                  {isEdit ? 'Editar Orçamento' : 'Novo Orçamento Simplificado'} 💼
                 </Title>
                 <div style={{ 
                   display: 'flex', 

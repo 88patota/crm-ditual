@@ -88,7 +88,7 @@ export interface DashboardStats {
 export interface BudgetItem {
   id?: number;
   description: string;
-  quantity: number;
+  quantity?: number;
   weight?: number;
   
   // Purchase data
@@ -113,7 +113,7 @@ export interface BudgetItem {
   total_value?: number;
   
   // Commission
-  commission_percentage: number;
+  commission_percentage?: number;  // Now calculated dynamically based on profitability
   commission_value?: number;
   dunamis_cost?: number;
 }

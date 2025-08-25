@@ -4,6 +4,7 @@ from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 from app.models.budget import Budget, BudgetItem, BudgetStatus
 from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetItemCreate, BudgetItemUpdate
+from app.services.business_rules_calculator import BusinessRulesCalculator
 from app.services.budget_calculator import BudgetCalculatorService
 
 
@@ -15,13 +16,28 @@ class BudgetService:
         
         # Validate budget data
         budget_dict = budget_data.dict()
-        errors = BudgetCalculatorService.validate_budget_data(budget_dict)
-        if errors:
-            raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
-        
-        # Calculate totals
         items_data = [item.dict() for item in budget_data.items]
-        totals = BudgetCalculatorService.calculate_budget_totals(items_data)
+        
+        # Validate items using business rules
+        for item_data in items_data:
+            errors = BusinessRulesCalculator.validate_item_data(item_data)
+            if errors:
+                raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
+        
+        # Calculate totals using business rules calculator
+        soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
+        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+        
+        budget_result = BusinessRulesCalculator.calculate_complete_budget(
+            items_data, outras_despesas_totais, soma_pesos_pedido
+        )
+        
+        totals = {
+            'total_purchase_value': budget_result['totals']['soma_total_compra'],
+            'total_sale_value': budget_result['totals']['soma_total_venda'],
+            'total_commission': sum(item['valor_comissao'] for item in budget_result['items']),
+            'profitability_percentage': budget_result['totals']['markup_pedido']
+        }
         
         # Create budget
         budget = Budget(
@@ -41,31 +57,30 @@ class BudgetService:
         db.add(budget)
         await db.flush()  # Get the budget ID
         
-        # Create items with calculations
-        for item_data in items_data:
-            calculations = BudgetCalculatorService.calculate_item_totals(item_data)
+        # Create items with calculations from business rules
+        for i, item_data in enumerate(items_data):
+            calculated_item = budget_result['items'][i]
             
             budget_item = BudgetItem(
                 budget_id=budget.id,
-                description=item_data['description'],
-                                weight=item_data.get('weight'),
-                purchase_value_with_icms=item_data['purchase_value_with_icms'],
-                purchase_icms_percentage=item_data['purchase_icms_percentage'],
-                purchase_other_expenses=item_data.get('purchase_other_expenses', 0),
-                purchase_value_without_taxes=calculations['purchase_value_without_taxes'],
-                purchase_value_with_weight_diff=item_data.get('purchase_value_with_weight_diff'),
-                sale_weight=item_data.get('sale_weight'),
-                sale_value_with_icms=item_data['sale_value_with_icms'],
-                sale_icms_percentage=item_data['sale_icms_percentage'],
-                sale_value_without_taxes=calculations['sale_value_without_taxes'],
-                weight_difference=calculations['weight_difference'],
-                profitability=calculations['profitability'],
-                total_purchase=calculations['total_purchase'],
-                total_sale=calculations['total_sale'],
-                unit_value=calculations['unit_value'],
-                total_value=calculations['total_value'],
-                commission_percentage=item_data.get('commission_percentage', 0),
-                commission_value=calculations['commission_value'],
+                description=calculated_item['description'],
+                weight=calculated_item['peso_compra'],
+                purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
+                purchase_icms_percentage=calculated_item['percentual_icms_compra'],
+                purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
+                purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
+                sale_weight=calculated_item['peso_venda'],
+                sale_value_with_icms=calculated_item['valor_com_icms_venda'],
+                sale_icms_percentage=calculated_item['percentual_icms_venda'],
+                sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
+                weight_difference=calculated_item['diferenca_peso'],
+                profitability=calculated_item['rentabilidade_item'] * 100,  # Convert to percentage
+                total_purchase=calculated_item['total_compra_item'],
+                total_sale=calculated_item['total_venda_item'],
+                unit_value=calculated_item['valor_unitario_venda'],
+                total_value=calculated_item['total_venda_item'],
+                commission_value=calculated_item['valor_comissao'],
                 dunamis_cost=item_data.get('dunamis_cost')
             )
             db.add(budget_item)
@@ -124,9 +139,65 @@ class BudgetService:
         if not budget:
             return None
         
-        # Update fields
-        for field, value in budget_data.dict(exclude_unset=True).items():
+        budget_dict = budget_data.dict(exclude_unset=True)
+        
+        # Handle items update separately if provided
+        items_data = budget_dict.pop('items', None)
+        
+        # Update budget fields (excluding items)
+        for field, value in budget_dict.items():
             setattr(budget, field, value)
+        
+        # Update items if provided
+        if items_data is not None:
+            # Validate items data
+            items_list = [item.dict() if hasattr(item, 'dict') else item for item in items_data]
+            errors = BudgetCalculatorService.validate_budget_data({'items': items_list})
+            if errors:
+                raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
+            
+            # Remove existing items
+            for item in budget.items:
+                await db.delete(item)
+            await db.flush()
+            
+            # Create new items with calculations
+            for item_data in items_list:
+                calculations = BudgetCalculatorService.calculate_item_totals(item_data)
+                
+                budget_item = BudgetItem(
+                    budget_id=budget.id,
+                    description=item_data['description'],
+                    weight=item_data.get('weight'),
+                    purchase_value_with_icms=item_data['purchase_value_with_icms'],
+                    purchase_icms_percentage=item_data['purchase_icms_percentage'],
+                    purchase_other_expenses=item_data.get('purchase_other_expenses', 0),
+                    purchase_value_without_taxes=calculations['purchase_value_without_taxes'],
+                    purchase_value_with_weight_diff=item_data.get('purchase_value_with_weight_diff'),
+                    sale_weight=item_data.get('sale_weight'),
+                    sale_value_with_icms=item_data['sale_value_with_icms'],
+                    sale_icms_percentage=item_data['sale_icms_percentage'],
+                    sale_value_without_taxes=calculations['sale_value_without_taxes'],
+                    weight_difference=calculations['weight_difference'],
+                    profitability=calculations['profitability'],
+                    total_purchase=calculations['total_purchase'],
+                    total_sale=calculations['total_sale'],
+                    unit_value=calculations['unit_value'],
+                    total_value=calculations['total_value'],
+                    commission_value=calculations['commission_value'],
+                    dunamis_cost=item_data.get('dunamis_cost')
+                )
+                db.add(budget_item)
+            
+            # Recalculate budget totals
+            totals = BudgetCalculatorService.calculate_budget_totals(items_list)
+            budget.total_purchase_value = totals['total_purchase_value']
+            budget.total_sale_value = totals['total_sale_value']
+            budget.total_commission = totals['total_commission']
+            budget.profitability_percentage = totals['profitability_percentage']
+            # Update markup_percentage if it wasn't explicitly set
+            if 'markup_percentage' not in budget_dict:
+                budget.markup_percentage = totals['markup_percentage']
         
         await db.commit()
         await db.refresh(budget)
@@ -154,12 +225,11 @@ class BudgetService:
         items_data = []
         for item in budget.items:
             items_data.append({
-                                'purchase_value_with_icms': item.purchase_value_with_icms,
+                'purchase_value_with_icms': item.purchase_value_with_icms,
                 'purchase_icms_percentage': item.purchase_icms_percentage,
                 'purchase_other_expenses': item.purchase_other_expenses,
                 'sale_value_with_icms': item.sale_value_with_icms,
                 'sale_icms_percentage': item.sale_icms_percentage,
-                'commission_percentage': item.commission_percentage,
                 'weight': item.weight,
                 'sale_weight': item.sale_weight
             })

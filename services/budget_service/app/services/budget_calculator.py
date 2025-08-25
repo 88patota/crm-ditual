@@ -1,5 +1,6 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.schemas.budget import BudgetItemCreate, BudgetItemResponse, BudgetItemSimplified
+from app.services.commission_service import CommissionService
 
 
 class BudgetCalculatorService:
@@ -138,9 +139,9 @@ class BudgetCalculatorService:
         unit_value = sale_value_with_icms  # COM ICMS para o usuário ver
         total_value_with_icms = peso_venda * sale_value_with_icms  # COM ICMS para exibição
         
-        # REGRA 9: Valor Comissão = Valor Total * % Comissão
-        commission_percentage = BudgetCalculatorService.DEFAULT_COMMISSION_PERCENTAGE
-        commission_value = total_value_with_icms * (commission_percentage / 100)
+        # REGRA 9: Valor Comissão = Valor Total * % Comissão baseado na rentabilidade
+        # Use the profitability already calculated for commission calculation
+        commission_value = CommissionService.calculate_commission_value(total_value_with_icms, profitability)
         
         # REGRA 10: Custo a ser lançado no Dunamis = Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
         dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
@@ -174,7 +175,6 @@ class BudgetCalculatorService:
             'total_value': round(total_value_with_icms, 2),  # Regra 8
             
             # Comissão
-            'commission_percentage': commission_percentage,
             'commission_value': round(commission_value, 2),  # Regra 9
             'dunamis_cost': round(dunamis_cost, 2)  # Regra 10
         }
@@ -220,7 +220,7 @@ class BudgetCalculatorService:
         }
     
     @staticmethod
-    def calculate_dunamis_cost(purchase_value_with_icms: float, sale_icms_percentage: float = None) -> float:
+    def calculate_dunamis_cost(purchase_value_with_icms: float, sale_icms_percentage: Optional[float] = None) -> float:
         """
         REGRA 10: Calcula o custo a ser lançado no Dunamis
         Fórmula: Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
@@ -260,17 +260,25 @@ class BudgetCalculatorService:
                 errors.append(f"{item_prefix}Descrição é obrigatória")
             
             # Usar os nomes corretos dos campos em português
-            if not item.get('valor_com_icms_compra') or item['valor_com_icms_compra'] <= 0:
+            valor_compra = item.get('valor_com_icms_compra', 0)
+            if not valor_compra or valor_compra <= 0:
                 errors.append(f"{item_prefix}Valor de compra deve ser maior que zero")
                 
-            if not item.get('valor_com_icms_venda') or item['valor_com_icms_venda'] <= 0:
+            valor_venda = item.get('valor_com_icms_venda', 0)  
+            if not valor_venda or valor_venda <= 0:
                 errors.append(f"{item_prefix}Valor de venda deve ser maior que zero")
+            
+            # Validar peso de compra
+            peso_compra = item.get('peso_compra', 0)
+            if not peso_compra or peso_compra <= 0:
+                errors.append(f"{item_prefix}Peso de compra deve ser maior que zero")
             
             # Validar porcentagens usando nomes corretos
             for field, name in [('percentual_icms_compra', 'ICMS compra'), ('percentual_icms_venda', 'ICMS venda')]:
                 if field in item:
                     # As porcentagens vêm em formato decimal (0.18 = 18%)
-                    if item[field] < 0 or item[field] > 1:
+                    percentual = item[field]
+                    if percentual < 0 or percentual > 1:
                         errors.append(f"{item_prefix}{name} deve estar entre 0 e 1 (formato decimal)")
         
         return errors
@@ -301,12 +309,13 @@ class BudgetCalculatorService:
         
         # REGRA 5: Profitability calculation
         if total_purchase > 0:
-            profitability = ((total_sale - total_purchase) / total_purchase) * 100
+            profitability = ((total_sale - total_purchase) / total_purchase)
         else:
             profitability = 0.0
         
-        # REGRA 9: Commission calculation (on total value with ICMS)
-        commission_value = total_value * (item_data.get('commission_percentage', BudgetCalculatorService.DEFAULT_COMMISSION_PERCENTAGE) / 100)
+        # REGRA 9: Commission calculation based on profitability using CommissionService
+        # Calculate commission based on item profitability, not fixed percentage
+        commission_value = CommissionService.calculate_commission_value(total_value, profitability)
         
         # REGRA 4: Weight difference calculation
         weight_difference = 0.0
@@ -320,7 +329,7 @@ class BudgetCalculatorService:
             'total_sale': round(total_sale, 2),
             'unit_value': round(unit_value, 2),
             'total_value': round(total_value, 2),
-            'profitability': round(profitability, 2),
+            'profitability': round(profitability * 100, 2),  # Convert to percentage for display
             'commission_value': round(commission_value, 2),
             'weight_difference': round(weight_difference, 6)
         }
@@ -404,27 +413,43 @@ class BudgetCalculatorService:
         }
     
     @staticmethod
-    def calculate_commission_summary(items: List[dict]) -> Dict[str, float]:
+    def calculate_commission_summary(items: List[dict]) -> Dict[str, Any]:
         """
-        Calculate commission summary for the budget
+        Calculate commission summary for the budget using dynamic commission calculation
         """
         total_commission = 0.0
-        commission_by_percentage = {}
+        commission_by_profitability_range = {}
         
         for item in items:
             calculations = BudgetCalculatorService.calculate_item_totals(item)
             commission_value = calculations['commission_value']
-            commission_percentage = item.get('commission_percentage', 0)
+            profitability = calculations['profitability']
             
             total_commission += commission_value
             
-            if commission_percentage not in commission_by_percentage:
-                commission_by_percentage[commission_percentage] = 0.0
-            commission_by_percentage[commission_percentage] += commission_value
+            # Group by profitability ranges for better reporting
+            if profitability < 20:
+                range_key = "< 20%"
+            elif profitability < 30:
+                range_key = "20-30%"
+            elif profitability < 40:
+                range_key = "30-40%"
+            elif profitability < 50:
+                range_key = "40-50%"
+            elif profitability < 60:
+                range_key = "50-60%"
+            elif profitability < 80:
+                range_key = "60-80%"
+            else:
+                range_key = ">= 80%"
+            
+            if range_key not in commission_by_profitability_range:
+                commission_by_profitability_range[range_key] = 0.0
+            commission_by_profitability_range[range_key] += commission_value
         
         return {
             'total_commission': total_commission,
-            'commission_by_percentage': commission_by_percentage
+            'commission_by_profitability_range': commission_by_profitability_range
         }
     
     @staticmethod

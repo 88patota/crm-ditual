@@ -454,17 +454,46 @@ async def create_simplified_budget(
                     detail="Número do pedido já existe"
                 )
         
-        # Calcular todos os valores baseados nos dados de entrada
-        calculation_result = BudgetCalculatorService.calculate_simplified_budget(budget_data.items)
+        # Usar BusinessRulesCalculator para calcular valores corretos
+        from app.services.business_rules_calculator import BusinessRulesCalculator
+        
+        # Converter dados para formato do BusinessRulesCalculator
+        items_data = [item.dict() for item in budget_data.items]
+        soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
+        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+        
+        # Calcular usando BusinessRulesCalculator
+        budget_result = BusinessRulesCalculator.calculate_complete_budget(
+            items_data, outras_despesas_totais, soma_pesos_pedido
+        )
+        
+        # Converter resultados para formato BudgetItemCreate
+        items_for_creation = []
+        for calculated_item in budget_result['items']:
+            items_for_creation.append(BudgetItemCreate(
+                description=calculated_item['description'],
+                weight=calculated_item['peso_compra'],
+                purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
+                purchase_icms_percentage=calculated_item['percentual_icms_compra'],
+                purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
+                purchase_value_with_weight_diff=calculated_item.get('valor_corrigido_peso'),
+                sale_weight=calculated_item['peso_venda'],
+                sale_value_with_icms=calculated_item['valor_com_icms_venda'],
+                sale_icms_percentage=calculated_item['percentual_icms_venda'],
+                sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
+                weight_difference=calculated_item.get('diferenca_peso'),
+                commission_percentage=0  # Será calculado pela rentabilidade
+            ))
         
         # Criar orçamento completo para salvar
         complete_budget_data = BudgetCreate(
             order_number=order_number,
             client_name=budget_data.client_name,
-            markup_percentage=calculation_result['totals']['markup_percentage'],
+            markup_percentage=budget_result['totals']['markup_pedido'],
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
-            items=[BudgetItemCreate(**item_data) for item_data in calculation_result['items']]
+            items=items_for_creation
         )
         
         budget = await BudgetService.create_budget(db, complete_budget_data, current_user.username)

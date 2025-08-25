@@ -314,7 +314,7 @@ class PDFExportService:
         footer_data = [
             [f'Data de geração: {datetime.now().strftime("%d/%m/%Y %H:%M")}'],
             [f'Criado por: {budget.created_by}'],
-            [f'Status: {self._get_status_text(budget.status.value)}'],
+            [f'Status: {self._get_status_text(budget.status)}'],
         ]
         
         if budget.expires_at:
@@ -391,10 +391,12 @@ class PDFExportService:
         simple_data = [simple_headers]
         
         for i, item in enumerate(budget.items, 1):
+            # Use weight as quantity since the model doesn't have a quantity field
+            quantity = item.weight if item.weight is not None else 1.0
             row = [
                 str(i),
                 item.description,
-                f'{item.quantity:.0f}',
+                f'{quantity:.0f}',
                 f'R$ {item.unit_value:.2f}',
                 f'R$ {item.total_value:.2f}'
             ]

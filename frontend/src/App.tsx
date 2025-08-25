@@ -15,7 +15,7 @@ import Users from './pages/Users';
 import Budgets from './pages/Budgets';
 import BudgetCreate from './pages/BudgetCreate';
 import SimplifiedBudgetCreate from './pages/AutoMarkupBudgetCreate';
-import BudgetEdit from './pages/BudgetEdit';
+import BudgetEditSimplified from './pages/BudgetEditSimplified';
 import BudgetView from './pages/BudgetView';
 
 // Create a client
@@ -132,7 +132,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AntLayout>
-              <BudgetEdit />
+              <BudgetEditSimplified />
             </AntLayout>
           </ProtectedRoute>
         }

@@ -175,6 +175,7 @@ class BudgetUpdate(BaseModel):
     status: Optional[BudgetStatus] = None
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
+    items: Optional[List[BudgetItemCreate]] = None
 
 
 class BudgetResponse(BudgetBase):

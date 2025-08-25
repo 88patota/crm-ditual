@@ -172,13 +172,6 @@ export default function BudgetView() {
       width: 200,
     },
     {
-      title: 'Qtd',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 80,
-      render: (value: number) => value ? value.toFixed(2) : '0.00',
-    },
-    {
       title: 'Peso (kg)',
       dataIndex: 'weight',
       key: 'weight',
@@ -221,11 +214,30 @@ export default function BudgetView() {
       render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
     },
     {
-      title: 'Comissão',
-      dataIndex: 'commission_percentage',
-      key: 'commission_percentage',
+      title: 'Comissão %',
+      dataIndex: 'profitability',
+      key: 'commission_percentage_calculated',
       width: 100,
-      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
+      render: (profitability: number) => {
+        // Calculate commission percentage based on profitability ranges
+        let commissionPercentage = 0;
+        if (profitability >= 80) commissionPercentage = 5.0;
+        else if (profitability >= 60) commissionPercentage = 4.0;
+        else if (profitability >= 50) commissionPercentage = 3.0;
+        else if (profitability >= 40) commissionPercentage = 2.5;
+        else if (profitability >= 30) commissionPercentage = 1.5;
+        else if (profitability >= 20) commissionPercentage = 1.0;
+        else commissionPercentage = 0.0;
+        
+        return `${commissionPercentage.toFixed(1)}%`;
+      },
+    },
+    {
+      title: 'Valor Comissão',
+      dataIndex: 'commission_value',
+      key: 'commission_value',
+      width: 130,
+      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
     },
     {
       title: 'Custo Dunamis',
@@ -446,7 +458,7 @@ export default function BudgetView() {
           columns={itemColumns}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1350 }}
           size="small"
         />
       </Card>

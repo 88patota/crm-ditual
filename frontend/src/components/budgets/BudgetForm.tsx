@@ -46,9 +46,7 @@ const initialBudgetItem: BudgetItem = {
   purchase_value_without_taxes: 0,
   sale_icms_percentage: 17,
   sale_value_without_taxes: 0,
-  commission_percentage: 5,
   dunamis_cost: 0,
-  quantity: 0,
   purchase_value_with_icms: 0,
   sale_value_with_icms: 0
 };
@@ -262,22 +260,13 @@ export default function BudgetForm({
       ),
     },
     {
-      title: '%Comissão',
-      dataIndex: 'commission_percentage',
-      key: 'commission_percentage',
-      width: 100,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'commission_percentage', val || 0)}
-          min={0}
-          max={100}
-          step={0.1}
-          precision={1}
-          addonAfter="%"
-          style={{ width: '100%' }}
-        />
-      ),
+      title: 'Comissão Calculada',
+      dataIndex: 'commission_value',
+      key: 'commission_value',
+      width: 120,
+      render: (value: number) => {
+        return value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00';
+      },
     },
     {
       title: 'Custo Dunamis',
