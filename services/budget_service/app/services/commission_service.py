@@ -49,9 +49,80 @@ class CommissionService:
         return 0.05
     
     @staticmethod
+    def calculate_commission_value_with_quantity_adjustment(total_venda_item: float, total_compra_item: float, peso_venda: float, peso_compra: float, valor_sem_impostos_venda: float, valor_sem_impostos_compra: float) -> float:
+        """
+        Calcula o valor da comissão considerando diferenças de quantidade entre venda e compra
+        
+        Esta nova regra considera que quando se vende uma quantidade maior que a comprada,
+        a comissão deve refletir o valor real da operação, não apenas a rentabilidade unitária.
+        
+        Args:
+            total_venda_item: Valor total de venda do item
+            total_compra_item: Valor total de compra do item  
+            peso_venda: Quantidade/peso vendido
+            peso_compra: Quantidade/peso comprado
+            valor_sem_impostos_venda: Valor unitário de venda sem impostos
+            valor_sem_impostos_compra: Valor unitário de compra sem impostos
+            
+        Returns:
+            float: Valor da comissão considerando ajuste de quantidade
+        """
+        
+        # Se não há diferença de peso, usar cálculo tradicional
+        if peso_venda == peso_compra:
+            rentabilidade_unitaria = CommissionService._calculate_unit_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
+            return CommissionService.calculate_commission_value(total_venda_item, rentabilidade_unitaria)
+        
+        # Para casos com diferença de peso, calcular rentabilidade baseada nos totais reais
+        rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item, total_compra_item)
+        
+        # Aplicar comissão sobre o valor total de venda
+        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
+        valor_comissao = total_venda_item * percentual_comissao
+        
+        return round(valor_comissao, 2)
+    
+    @staticmethod
+    def _calculate_unit_profitability(valor_sem_impostos_venda: float, valor_sem_impostos_compra: float) -> float:
+        """
+        Calcula rentabilidade unitária (valor por kg/unidade)
+        
+        Args:
+            valor_sem_impostos_venda: Valor unitário de venda sem impostos
+            valor_sem_impostos_compra: Valor unitário de compra sem impostos
+            
+        Returns:
+            float: Rentabilidade unitária em decimal
+        """
+        if valor_sem_impostos_compra == 0:
+            return 0.0
+        
+        return (valor_sem_impostos_venda / valor_sem_impostos_compra) - 1
+    
+    @staticmethod
+    def _calculate_total_profitability(total_venda_item: float, total_compra_item: float) -> float:
+        """
+        Calcula rentabilidade baseada nos valores totais da operação
+        
+        Esta abordagem considera o valor real da operação completa,
+        incluindo diferenças de quantidade vendida vs comprada.
+        
+        Args:
+            total_venda_item: Valor total de venda do item
+            total_compra_item: Valor total de compra do item
+            
+        Returns:
+            float: Rentabilidade total da operação em decimal
+        """
+        if total_compra_item == 0:
+            return 0.0
+        
+        return (total_venda_item / total_compra_item) - 1
+    
+    @staticmethod
     def calculate_commission_value(total_venda_item: float, rentabilidade: float) -> float:
         """
-        Calcula o valor da comissão para um item
+        Calcula o valor da comissão para um item (método original)
         
         Formula conforme documento (Regra 6.2.3):
         R7*S7 = valor_total_venda_item * percentual_comissao

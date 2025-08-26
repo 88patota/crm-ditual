@@ -1,6 +1,6 @@
 import pytest
 from decimal import Decimal
-from services.budget_service.app.services.business_rules_calculator import BusinessRulesCalculator
+from app.services.business_rules_calculator import BusinessRulesCalculator
 
 def test_calculate_purchase_value_with_weight_correction():
     result = BusinessRulesCalculator.calculate_purchase_value_with_weight_correction(100.0, 50.0, 10.0)

@@ -39,13 +39,13 @@ interface AutoMarkupBudgetFormProps {
 
 const initialBudgetItem: BudgetItemSimplified = {
   description: '',
-  quantity: 1,
-  weight: 0,
-  purchase_value_with_icms: 0,
-  purchase_icms_percentage: 17, // ICMS padrão Brasil
-  purchase_other_expenses: 0,
-  sale_value_with_icms: 0,
-  sale_icms_percentage: 18
+  peso_compra: 1,
+  peso_venda: 1,
+  valor_com_icms_compra: 0,
+  percentual_icms_compra: 0.17, // Decimal format (17%)
+  outras_despesas_item: 0,
+  valor_com_icms_venda: 0,
+  percentual_icms_venda: 0.18 // Decimal format (18%)
 };
 
 export default function AutoMarkupBudgetForm({ 
@@ -133,48 +133,50 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
-      title: 'Quantidade *',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      title: 'Peso Compra (kg) *',
+      dataIndex: 'peso_compra',
+      key: 'peso_compra',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'quantity', val || 1)}
+          onChange={(val) => updateItem(index, 'peso_compra', val || 1)}
           min={0.01}
-          step={0.01}
-          precision={2}
+          step={0.001}
+          precision={3}
           style={{ width: '100%' }}
+          placeholder="0,000"
           required
         />
       ),
     },
     {
-      title: 'Peso (kg)',
-      dataIndex: 'weight',
-      key: 'weight',
+      title: 'Peso Venda (kg) *',
+      dataIndex: 'peso_venda',
+      key: 'peso_venda',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'weight', val || 0)}
-          min={0}
+          onChange={(val) => updateItem(index, 'peso_venda', val || 1)}
+          min={0.01}
           step={0.001}
           precision={3}
           style={{ width: '100%' }}
           placeholder="0,000"
+          required
         />
       ),
     },
     {
       title: 'Valor c/ICMS (Compra) *',
-      dataIndex: 'purchase_value_with_icms',
-      key: 'purchase_value_with_icms',
+      dataIndex: 'valor_com_icms_compra',
+      key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
           min={0.01}
           step={0.01}
           precision={2}
@@ -186,13 +188,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: '% ICMS Compra *',
-      dataIndex: 'purchase_icms_percentage',
-      key: 'purchase_icms_percentage',
+      dataIndex: 'percentual_icms_compra',
+      key: 'percentual_icms_compra',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'purchase_icms_percentage', val || 17)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 17) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -206,13 +208,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: 'Outras Despesas',
-      dataIndex: 'purchase_other_expenses',
-      key: 'purchase_other_expenses',
+      dataIndex: 'outras_despesas_item',
+      key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
+          onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
           min={0}
           step={0.01}
           precision={2}
@@ -223,13 +225,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: 'Valor c/ICMS (Venda) *',
-      dataIndex: 'sale_value_with_icms',
-      key: 'sale_value_with_icms',
+      dataIndex: 'valor_com_icms_venda',
+      key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
           min={0}
           step={0.01}
           precision={2}
@@ -240,13 +242,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: '% ICMS Venda *',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
+      dataIndex: 'percentual_icms_venda',
+      key: 'percentual_icms_venda',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 18)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}

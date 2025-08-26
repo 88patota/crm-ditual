@@ -190,7 +190,7 @@ export default function BudgetView() {
       dataIndex: 'purchase_icms_percentage',
       key: 'purchase_icms_percentage',
       width: 100,
-      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
+      render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0.0%',
     },
     {
       title: 'Outras Despesas',
@@ -211,7 +211,7 @@ export default function BudgetView() {
       dataIndex: 'sale_icms_percentage',
       key: 'sale_icms_percentage',
       width: 100,
-      render: (value: number) => value ? `${value.toFixed(1)}%` : '0.0%',
+      render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0.0%',
     },
     {
       title: 'Comissão %',

@@ -32,11 +32,11 @@ export default function BudgetEditSimplified() {
           weight: item.peso_compra,
           sale_weight: item.peso_venda,
           purchase_value_with_icms: item.valor_com_icms_compra,
-          purchase_icms_percentage: item.percentual_icms_compra * 100,
+          purchase_icms_percentage: item.percentual_icms_compra, // Keep as decimal (0.18 for 18%)
           purchase_other_expenses: item.outras_despesas_item || 0,
           purchase_value_without_taxes: 0, // Será calculado
           sale_value_with_icms: item.valor_com_icms_venda,
-          sale_icms_percentage: item.percentual_icms_venda * 100,
+          sale_icms_percentage: item.percentual_icms_venda, // Keep as decimal (0.18 for 18%)
           sale_value_without_taxes: 0, // Será calculado
           dunamis_cost: 0,
         })),
@@ -82,10 +82,10 @@ export default function BudgetEditSimplified() {
         peso_compra: item.weight || 0,
         peso_venda: item.sale_weight || item.weight || 0,
         valor_com_icms_compra: item.purchase_value_with_icms || 0,
-        percentual_icms_compra: item.purchase_icms_percentage ? item.purchase_icms_percentage / 100 : 0.18,
+        percentual_icms_compra: item.purchase_icms_percentage || 0.18, // Keep as decimal (0.18 for 18%)
         outras_despesas_item: item.purchase_other_expenses || 0,
         valor_com_icms_venda: item.sale_value_with_icms || 0,
-        percentual_icms_venda: item.sale_icms_percentage ? item.sale_icms_percentage / 100 : 0.18,
+        percentual_icms_venda: item.sale_icms_percentage || 0.18, // Keep as decimal (0.18 for 18%)
       })) || [],
     };
   };

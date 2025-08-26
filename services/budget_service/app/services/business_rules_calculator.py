@@ -8,21 +8,28 @@ from app.services.commission_service import CommissionService
 
 class BusinessRulesCalculator:
     @staticmethod
-    def calculate_purchase_value_with_weight_correction(purchase_value: float, weight: float, correction_factor: float) -> float:
+    def calculate_purchase_value_with_weight_correction(valor_sem_impostos_compra: float, peso_compra: float, peso_venda: float) -> float:
         """
-        Calculate the purchase value with weight correction.
-
+        REGRA 3.2.3: Valor Corrigido por Peso (Compra)
+        Formula Sistema: valor_sem_impostos_compra * (peso_compra / peso_venda)
+        
         Args:
-            purchase_value (float): The initial purchase value.
-            weight (float): The weight associated with the purchase.
-            correction_factor (float): The correction factor to apply.
-
+            valor_sem_impostos_compra (float): Valor de compra sem impostos
+            peso_compra (float): Peso de compra
+            peso_venda (float): Peso de venda
+            
         Returns:
-            float: The corrected purchase value.
+            float: Valor corrigido por peso
         """
-        if weight <= 0:
-            raise ValueError("Weight must be greater than zero.")
-        return purchase_value * (1 + (correction_factor / weight))
+        valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_sem_impostos_compra)
+        peso_compra_dec = BusinessRulesCalculator._to_decimal(peso_compra)
+        peso_venda_dec = BusinessRulesCalculator._to_decimal(peso_venda)
+        
+        if peso_venda_dec == 0:
+            return 0.0
+            
+        valor_corrigido = valor_compra_dec * (peso_compra_dec / peso_venda_dec)
+        return float(valor_corrigido.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
     """
     Implementa todas as fórmulas e regras de negócio para cálculo de orçamentos
     Seguindo exatamente as especificações do documento de regras
@@ -64,10 +71,12 @@ class BusinessRulesCalculator:
         Formula Sistema: valor_com_icms * (1 - percentual_icms) * (1 - 0.0925) + outras_despesas_distribuidas
         """
         valor_com_icms_dec = BusinessRulesCalculator._to_decimal(valor_com_icms)
+        # Convert decimal format (0.18) to actual percentage calculation
         percentual_icms_dec = BusinessRulesCalculator._to_decimal(percentual_icms)
         outras_despesas_dec = BusinessRulesCalculator._to_decimal(outras_despesas_distribuidas)
         
         # Aplicar descontos sequenciais: primeiro ICMS, depois PIS/COFINS
+        # Note: percentual_icms is already in decimal format (0.18 for 18%)
         valor_sem_icms = valor_com_icms_dec * (Decimal('1') - percentual_icms_dec)
         valor_sem_impostos = valor_sem_icms * (Decimal('1') - BusinessRulesCalculator.PIS_COFINS_PERCENTAGE)
         
@@ -84,9 +93,11 @@ class BusinessRulesCalculator:
         Formula Sistema: valor_com_icms * (1 - percentual_icms) * (1 - 0.0925)
         """
         valor_com_icms_dec = BusinessRulesCalculator._to_decimal(valor_com_icms)
+        # Convert decimal format (0.18) to actual percentage calculation
         percentual_icms_dec = BusinessRulesCalculator._to_decimal(percentual_icms)
         
         # Aplicar descontos sequenciais
+        # Note: percentual_icms is already in decimal format (0.18 for 18%)
         valor_sem_icms = valor_com_icms_dec * (Decimal('1') - percentual_icms_dec)
         valor_sem_impostos = valor_sem_icms * (Decimal('1') - BusinessRulesCalculator.PIS_COFINS_PERCENTAGE)
         
@@ -235,10 +246,20 @@ class BusinessRulesCalculator:
 
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
 
-        total_venda_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_venda, valor_sem_impostos_venda)
+        # IMPORTANTE: Total de venda deve usar valor COM ICMS para cálculo correto de comissão
+        # Conforme regras de negócio: comissão é sobre o valor real pago pelo cliente
+        total_venda_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_venda, valor_com_icms_venda)
 
         try:
-            valor_comissao = CommissionService.calculate_commission_value(total_venda_item, rentabilidade_item)
+            # Usar nova regra de comissão que considera diferenças de quantidade
+            valor_comissao = CommissionService.calculate_commission_value_with_quantity_adjustment(
+                total_venda_item, 
+                total_compra_item, 
+                peso_venda, 
+                peso_compra,
+                valor_sem_impostos_venda,
+                valor_sem_impostos_compra
+            )
         except Exception as e:
             valor_comissao = 0.0
             print(f"Erro ao calcular comissão: {e}")

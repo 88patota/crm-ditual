@@ -41,10 +41,10 @@ interface BudgetFormProps {
 const initialBudgetItem: BudgetItem = {
   description: '',
   weight: 0,
-  purchase_icms_percentage: 17,
+  purchase_icms_percentage: 0.17, // Decimal format (17%)
   purchase_other_expenses: 0,
   purchase_value_without_taxes: 0,
-  sale_icms_percentage: 17,
+  sale_icms_percentage: 0.17, // Decimal format (17%)
   sale_value_without_taxes: 0,
   dunamis_cost: 0,
   purchase_value_with_icms: 0,
@@ -90,19 +90,6 @@ export default function BudgetForm({
   const updateItem = (index: number, field: keyof BudgetItem, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
-    
-    // Auto-calculate purchase value without taxes
-    if (field === 'purchase_icms_percentage') {
-      const icmsValue = (newItems[index].purchase_icms_percentage) / 100;
-      newItems[index].purchase_value_without_taxes = -icmsValue;
-    }
-    
-    // Auto-calculate sale value without taxes
-    if (field === 'sale_icms_percentage') {
-      const icmsValue = (newItems[index].sale_icms_percentage) / 100;
-      newItems[index].sale_value_without_taxes = -icmsValue;
-    }
-    
     setItems(newItems);
   };
 
@@ -231,8 +218,8 @@ export default function BudgetForm({
       width: 150,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 0)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
           min={0}
           step={0.01}
           precision={2}
@@ -248,8 +235,8 @@ export default function BudgetForm({
       width: 120,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 0)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
