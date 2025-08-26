@@ -91,6 +91,16 @@ export default function BudgetForm({
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
+    
+    // Auto-recalculate when critical fields change (especially ICMS percentages)
+    if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
+        field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
+        field === 'weight' || field === 'sale_weight') {
+      // Debounce the auto-calculation to avoid too many API calls
+      setTimeout(() => {
+        autoCalculateBudget(newItems);
+      }, 300);
+    }
   };
 
   const calculateBudget = async () => {
@@ -120,6 +130,50 @@ export default function BudgetForm({
       message.error('Erro ao calcular orçamento');
     } finally {
       setCalculating(false);
+    }
+  };
+
+  // Auto-calculation function for real-time updates when ICMS changes
+  const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
+    try {
+      const formData = form.getFieldsValue();
+      
+      // Only auto-calculate if we have basic required data
+      if (!formData.client_name || updatedItems.length === 0) {
+        return;
+      }
+      
+      // Check if all items have minimum required fields for calculation
+      const hasValidItems = updatedItems.every(item => 
+        item.description && 
+        (item.weight ?? 0) > 0 &&
+        (item.purchase_value_with_icms ?? 0) > 0 &&
+        (item.sale_value_with_icms ?? 0) > 0
+      );
+      
+      if (!hasValidItems) {
+        return; // Skip auto-calculation if items are incomplete
+      }
+      
+      const budgetData: Budget = {
+        ...formData,
+        items: updatedItems,
+        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+      };
+      
+      const calculation = await budgetService.calculateBudget(budgetData);
+      
+      // Update form with calculated values (without showing success message)
+      form.setFieldsValue({
+        total_purchase_value: calculation.total_purchase_value,
+        total_sale_value: calculation.total_sale_value,
+        total_commission: calculation.total_commission,
+        profitability_percentage: calculation.profitability_percentage,
+      });
+      
+    } catch (error) {
+      // Silently handle errors in auto-calculation to avoid spamming user
+      console.warn('Auto-calculation failed:', error);
     }
   };
 

@@ -49,20 +49,22 @@ class CommissionService:
         return 0.05
     
     @staticmethod
-    def calculate_commission_value_with_quantity_adjustment(total_venda_item: float, total_compra_item: float, peso_venda: float, peso_compra: float, valor_sem_impostos_venda: float, valor_sem_impostos_compra: float) -> float:
+    def calculate_commission_value_with_quantity_adjustment(total_venda_item_com_icms: float, total_compra_item_com_icms: float, peso_venda: float, peso_compra: float, valor_com_icms_venda: float, valor_com_icms_compra: float) -> float:
         """
         Calcula o valor da comissão considerando diferenças de quantidade entre venda e compra
         
         Esta nova regra considera que quando se vende uma quantidade maior que a comprada,
         a comissão deve refletir o valor real da operação, não apenas a rentabilidade unitária.
         
+        CORREÇÃO: Agora usa valores COM ICMS consistentemente para cálculo correto de rentabilidade.
+        
         Args:
-            total_venda_item: Valor total de venda do item
-            total_compra_item: Valor total de compra do item  
+            total_venda_item_com_icms: Valor total de venda do item COM ICMS
+            total_compra_item_com_icms: Valor total de compra do item COM ICMS
             peso_venda: Quantidade/peso vendido
             peso_compra: Quantidade/peso comprado
-            valor_sem_impostos_venda: Valor unitário de venda sem impostos
-            valor_sem_impostos_compra: Valor unitário de compra sem impostos
+            valor_com_icms_venda: Valor unitário de venda COM ICMS
+            valor_com_icms_compra: Valor unitário de compra COM ICMS
             
         Returns:
             float: Valor da comissão considerando ajuste de quantidade
@@ -70,22 +72,39 @@ class CommissionService:
         
         # Se não há diferença de peso, usar cálculo tradicional
         if peso_venda == peso_compra:
-            rentabilidade_unitaria = CommissionService._calculate_unit_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
-            return CommissionService.calculate_commission_value(total_venda_item, rentabilidade_unitaria)
+            rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
+            return CommissionService.calculate_commission_value(total_venda_item_com_icms, rentabilidade_unitaria)
         
-        # Para casos com diferença de peso, calcular rentabilidade baseada nos totais reais
-        rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item, total_compra_item)
+        # Para casos com diferença de peso, calcular rentabilidade baseada nos totais reais COM ICMS
+        rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item_com_icms, total_compra_item_com_icms)
         
-        # Aplicar comissão sobre o valor total de venda
+        # Aplicar comissão sobre o valor total de venda COM ICMS
         percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
-        valor_comissao = total_venda_item * percentual_comissao
+        valor_comissao = total_venda_item_com_icms * percentual_comissao
         
         return round(valor_comissao, 2)
     
     @staticmethod
+    def _calculate_unit_profitability_with_icms(valor_com_icms_venda: float, valor_com_icms_compra: float) -> float:
+        """
+        Calcula rentabilidade unitária usando valores COM ICMS
+        
+        Args:
+            valor_com_icms_venda: Valor unitário de venda COM ICMS
+            valor_com_icms_compra: Valor unitário de compra COM ICMS
+            
+        Returns:
+            float: Rentabilidade unitária em decimal
+        """
+        if valor_com_icms_compra == 0:
+            return 0.0
+        
+        return (valor_com_icms_venda / valor_com_icms_compra) - 1
+    
+    @staticmethod
     def _calculate_unit_profitability(valor_sem_impostos_venda: float, valor_sem_impostos_compra: float) -> float:
         """
-        Calcula rentabilidade unitária (valor por kg/unidade)
+        Calcula rentabilidade unitária (valor por kg/unidade) - MÉTODO ORIGINAL
         
         Args:
             valor_sem_impostos_venda: Valor unitário de venda sem impostos

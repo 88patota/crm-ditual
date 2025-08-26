@@ -369,7 +369,8 @@ async def calculate_simplified_budget(
         
         calculated_items = []
         total_purchase_value = 0.0
-        total_sale_value = 0.0
+        total_sale_value = 0.0  # SEM impostos - agora muda quando ICMS muda
+        total_sale_with_icms = 0.0  # COM ICMS - para cálculo de impostos
         total_commission = 0.0
         
         for item_data in items_data:
@@ -379,8 +380,13 @@ async def calculate_simplified_budget(
             calculated_items.append(calculated_item)
             
             total_purchase_value += calculated_item['total_compra_item']
-            total_sale_value += calculated_item['total_venda_item']
+            total_sale_value += calculated_item['total_venda_item']  # SEM impostos
+            total_sale_with_icms += calculated_item['total_venda_item_com_icms']  # COM ICMS
             total_commission += calculated_item['valor_comissao']
+        
+        # Calcular impostos totais usando valores COM ICMS
+        total_net_revenue = total_sale_value  # SEM impostos
+        total_taxes = total_sale_with_icms - total_net_revenue
         
         # Calcular markup
         if total_purchase_value > 0:
@@ -400,12 +406,15 @@ async def calculate_simplified_budget(
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
                 'profitability': item['rentabilidade_item'] * 100,  # Converter para percentual
-                'commission_value': item['valor_comissao']
+                'commission_value': item['valor_comissao'],
+                'commission_percentage_actual': item['commission_percentage_actual']  # Actual percentage used
             })
         
         return BudgetCalculation(
             total_purchase_value=round(total_purchase_value, 2),
-            total_sale_value=round(total_sale_value, 2),
+            total_sale_value=round(total_sale_value, 2),  # SEM impostos - muda quando ICMS muda
+            total_net_revenue=round(total_net_revenue, 2),  # SEM impostos (mesmo que total_sale_value)
+            total_taxes=round(total_taxes, 2),  # Impostos totais
             total_commission=round(total_commission, 2),
             profitability_percentage=round(profitability_percentage, 2),
             markup_percentage=round(markup_percentage, 2),

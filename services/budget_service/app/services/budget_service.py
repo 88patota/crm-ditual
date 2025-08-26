@@ -102,6 +102,7 @@ class BudgetService:
                 total_value=calculated_item['total_venda_item'],
                 commission_value=calculated_item['valor_comissao'],
                 commission_percentage=calculated_item.get('percentual_comissao', 0.0),
+                commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
                 dunamis_cost=item_data.get('dunamis_cost')
             )
             db.add(budget_item)
@@ -234,6 +235,7 @@ class BudgetService:
                     total_value=calculated_item['total_venda_item'],
                     commission_value=calculated_item['valor_comissao'],
                     commission_percentage=calculated_item.get('percentual_comissao', 0.0),
+                    commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
                     dunamis_cost=item_data.get('dunamis_cost')
                 )
                 db.add(budget_item)
@@ -313,6 +315,7 @@ class BudgetService:
             item.total_value = calculated_item['total_venda_item']
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)
+            item.commission_percentage_actual = calculated_item.get('commission_percentage_actual', 0.0)
         
         await db.commit()
         await db.refresh(budget)
@@ -366,6 +369,7 @@ class BudgetService:
             item.profitability = calculated_item['rentabilidade_item'] * 100  # Convert to percentage
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)
+            item.commission_percentage_actual = calculated_item.get('commission_percentage_actual', 0.0)
         
         await db.commit()
         await db.refresh(budget)

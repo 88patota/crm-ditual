@@ -3,8 +3,10 @@ from decimal import Decimal
 from app.services.business_rules_calculator import BusinessRulesCalculator
 
 def test_calculate_purchase_value_with_weight_correction():
+    # Formula: valor_sem_impostos_compra * (peso_compra / peso_venda)
+    # 100.0 * (50.0 / 10.0) = 100.0 * 5.0 = 500.0
     result = BusinessRulesCalculator.calculate_purchase_value_with_weight_correction(100.0, 50.0, 10.0)
-    assert result == 120.0
+    assert result == 500.0
 
 def test_calculate_distributed_other_expenses():
     result = BusinessRulesCalculator.calculate_distributed_other_expenses(10.0, 100.0, 50.0)

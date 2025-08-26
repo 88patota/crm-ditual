@@ -133,6 +133,7 @@ class BudgetCalculatorService:
         total_purchase = peso_compra * purchase_value_without_taxes
         
         # REGRA 7: Total Venda = Peso (Venda) * Valor s/Impostos (Venda)
+        # CORREÇÃO PM: Deve usar valor SEM impostos para que mude quando ICMS muda (igual ao Total Compra)
         total_sale = peso_venda * sale_value_without_taxes
         
         # REGRA 8: Valor Total = Peso (Venda) * Valor Unitário (Venda com ICMS)
@@ -299,7 +300,8 @@ class BudgetCalculatorService:
         total_purchase = (purchase_value_without_taxes + item_data.get('purchase_other_expenses', 0)) * weight
         
         # REGRA 7: Total sale - usar weight ao invés de quantity
-        total_sale = sale_value_without_taxes * weight
+        # CORREÇÃO PM: Deve usar valor SEM impostos para que mude quando ICMS muda (igual ao Total Compra)
+        total_sale = item_data['sale_value_without_taxes'] * weight
         
         # Unit value (sale price per unit with ICMS for user display)
         unit_value = item_data['sale_value_with_icms']

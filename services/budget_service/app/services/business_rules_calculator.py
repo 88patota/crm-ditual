@@ -133,14 +133,17 @@ class BusinessRulesCalculator:
         return float(valor_unitario.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
     
     @staticmethod
-    def calculate_item_profitability(valor_sem_impostos_venda: float, valor_sem_impostos_compra: float) -> float:
+    def calculate_item_profitability(valor_venda: float, valor_compra: float) -> float:
         """
         REGRA 5.2.1: Rentabilidade por Item
         Formula Excel: IFERROR(K7/G7-1,0)
-        Formula Sistema: IF valor_sem_impostos_compra = 0 THEN 0 ELSE (valor_sem_impostos_venda / valor_sem_impostos_compra) - 1
+        Formula Sistema: IF valor_compra = 0 THEN 0 ELSE (valor_venda / valor_compra) - 1
+        
+        NOTA: Para cálculo correto de markup/rentabilidade, usar valores COM ICMS
+        tanto para compra quanto para venda para comparação consistente.
         """
-        valor_venda_dec = BusinessRulesCalculator._to_decimal(valor_sem_impostos_venda)
-        valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_sem_impostos_compra)
+        valor_venda_dec = BusinessRulesCalculator._to_decimal(valor_venda)
+        valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_compra)
         
         if valor_compra_dec == 0:
             return 0.0
@@ -205,6 +208,22 @@ class BusinessRulesCalculator:
         return float(total_compra.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
     
     @staticmethod
+    def calculate_total_sale_item_with_icms(peso_venda: float, valor_com_icms_venda: float) -> float:
+        """
+        REGRA 5.2.3: Total Venda do Item (COM ICMS)
+        Formula Sistema: peso_venda * valor_com_icms_venda
+        
+        IMPORTANTE: Usa valor COM ICMS porque:
+        - Representa o valor real pago pelo cliente
+        - Base para cálculo de comissões
+        - Reflete o faturamento real da empresa
+        """
+        peso_venda_dec = BusinessRulesCalculator._to_decimal(peso_venda)
+        valor_venda_dec = BusinessRulesCalculator._to_decimal(valor_com_icms_venda)
+        total_venda = peso_venda_dec * valor_venda_dec
+        return float(total_venda.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
+    
+    @staticmethod
     def calculate_complete_item(item_data: Dict, outras_despesas_totais: float, soma_pesos_pedido: float) -> Dict[str, Any]:
         """
         Calcula todos os valores de um item aplicando todas as regras de negócio sequencialmente
@@ -242,24 +261,45 @@ class BusinessRulesCalculator:
 
         valor_unitario_venda = BusinessRulesCalculator.calculate_unit_sale_value(valor_sem_impostos_venda, peso_venda)
 
-        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_corrigido_peso)
+        # CORREÇÃO: Para comissão, usar rentabilidade baseada em valores SEM impostos
+        # Isso reflete a verdadeira rentabilidade operacional da empresa
+        # Valores COM ICMS são apenas para markup/comparação de faturamento
+        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
 
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
 
-        # IMPORTANTE: Total de venda deve usar valor COM ICMS para cálculo correto de comissão
-        # Conforme regras de negócio: comissão é sobre o valor real pago pelo cliente
-        total_venda_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_venda, valor_com_icms_venda)
+        # IMPORTANTE: Total de venda deve usar valor SEM ICMS para que mude quando percentual ICMS muda
+        # Conforme regras de negócio originais: total venda = peso * valor_sem_impostos_venda
+        total_venda_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_venda, valor_sem_impostos_venda)
+        
+        # Para cálculo de markup/rentabilidade: usar valores COM ICMS tanto para compra quanto venda
+        total_compra_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_compra, valor_com_icms_compra)
+        total_venda_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_venda, valor_com_icms_venda)
 
         try:
-            # Usar nova regra de comissão que considera diferenças de quantidade
-            valor_comissao = CommissionService.calculate_commission_value_with_quantity_adjustment(
-                total_venda_item, 
-                total_compra_item, 
-                peso_venda, 
-                peso_compra,
-                valor_sem_impostos_venda,
-                valor_sem_impostos_compra
-            )
+            # IMPORTANTE: Para cálculo correto de comissão quando há diferença de peso:
+            # - Se peso_venda = peso_compra: usa rentabilidade unitária
+            # - Se peso_venda ≠ peso_compra: usa rentabilidade total (reflete operação completa)
+            # Porém, sempre calculamos a rentabilidade com valores SEM impostos primeiro
+            
+            # Calcular totais SEM impostos para rentabilidade total correta
+            total_compra_sem_impostos = peso_compra * valor_sem_impostos_compra
+            total_venda_sem_impostos = peso_venda * valor_sem_impostos_venda
+            
+            if peso_venda == peso_compra:
+                # Mesma quantidade: usar rentabilidade unitária (SEM impostos)
+                percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_item)
+            else:
+                # Quantidade diferente: usar rentabilidade total (SEM impostos) 
+                if total_compra_sem_impostos == 0:
+                    rentabilidade_total = 0.0
+                else:
+                    rentabilidade_total = (total_venda_sem_impostos / total_compra_sem_impostos) - 1
+                percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
+            
+            # Aplicar comissão sobre valor COM ICMS (faturamento real)
+            valor_comissao = total_venda_item_com_icms * percentual_comissao
+            valor_comissao = round(valor_comissao, 2)
         except Exception as e:
             valor_comissao = 0.0
             print(f"Erro ao calcular comissão: {e}")
@@ -281,7 +321,10 @@ class BusinessRulesCalculator:
             'rentabilidade_item': rentabilidade_item,
             'total_compra_item': total_compra_item,
             'total_venda_item': total_venda_item,
+            'total_compra_item_com_icms': total_compra_item_com_icms,
+            'total_venda_item_com_icms': total_venda_item_com_icms,
             'valor_comissao': valor_comissao,
+            'commission_percentage_actual': percentual_comissao,  # Actual percentage used
         }
     
     @staticmethod
@@ -292,6 +335,9 @@ class BusinessRulesCalculator:
         total_compra = 0.0
         total_venda = 0.0
         total_comissao = 0.0
+        # Para cálculo de markup correto: usar valores COM ICMS
+        total_compra_com_icms = 0.0
+        total_venda_com_icms = 0.0
         resultados_itens = []
 
         for item_data in items_data:
@@ -301,10 +347,14 @@ class BusinessRulesCalculator:
             total_compra += resultado_item['total_compra_item']
             total_venda += resultado_item['total_venda_item']
             total_comissao += resultado_item['valor_comissao']
+            # Acumular valores COM ICMS para cálculo correto de markup
+            total_compra_com_icms += resultado_item['total_compra_item_com_icms']
+            total_venda_com_icms += resultado_item['total_venda_item_com_icms']
             resultados_itens.append(resultado_item)
 
         items_count = len(resultados_itens)
-        markup_pedido = ((total_venda / total_compra) - 1) * 100 if total_compra > 0 else 0.0
+        # CORREÇÃO: Usar valores COM ICMS para markup (compra com ICMS vs venda com ICMS)
+        markup_pedido = ((total_venda_com_icms / total_compra_com_icms) - 1) * 100 if total_compra_com_icms > 0 else 0.0
 
         return {
             'totals': {
@@ -312,6 +362,8 @@ class BusinessRulesCalculator:
                 'soma_pesos_pedido': soma_pesos_pedido,
                 'soma_total_compra': total_compra,
                 'soma_total_venda': total_venda,
+                'soma_total_compra_com_icms': total_compra_com_icms,
+                'soma_total_venda_com_icms': total_venda_com_icms,
                 'markup_pedido': markup_pedido,
             },
             'items': resultados_itens,

@@ -16,7 +16,8 @@ import {
   Modal,
   message,
   Divider,
-  Tooltip
+  Tooltip,
+  Alert
 } from 'antd';
 import {
   EditOutlined,
@@ -36,10 +37,48 @@ import {
   FilePdfOutlined,
   DownloadOutlined
 } from '@ant-design/icons';
-import { budgetService } from '../services/budgetService';
+import { budgetService, type Budget, type BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
+
+// Helper functions to calculate net revenue and taxes
+const calculateSaleValueWithoutTaxes = (valueWithIcms: number, icmsPercentage: number): number => {
+  // Formula: value_with_icms * (1 - icms_percentage) * (1 - 0.0925)
+  const PIS_COFINS_PERCENTAGE = 0.0925;
+  return valueWithIcms * (1 - icmsPercentage) * (1 - PIS_COFINS_PERCENTAGE);
+};
+
+const calculateBudgetFinancials = (budget: Budget) => {
+  if (!budget.items || budget.items.length === 0) {
+    return {
+      totalNetRevenue: 0,
+      totalTaxes: 0,
+      taxPercentage: 0
+    };
+  }
+
+  let totalNetRevenue = 0;
+  
+  budget.items.forEach((item: BudgetItem) => {
+    const saleWeight = item.sale_weight || item.weight || 0;
+    const valueWithoutTaxes = calculateSaleValueWithoutTaxes(
+      item.sale_value_with_icms, 
+      item.sale_icms_percentage
+    );
+    totalNetRevenue += saleWeight * valueWithoutTaxes;
+  });
+
+  const totalSaleValue = budget.total_sale_value || 0;
+  const totalTaxes = totalSaleValue - totalNetRevenue;
+  const taxPercentage = totalSaleValue > 0 ? (totalTaxes / totalSaleValue) * 100 : 0;
+
+  return {
+    totalNetRevenue,
+    totalTaxes,
+    taxPercentage
+  };
+};
 
 export default function BudgetView() {
   const { id } = useParams<{ id: string }>();
@@ -51,6 +90,13 @@ export default function BudgetView() {
     queryFn: () => budgetService.getBudgetById(Number(id)),
     enabled: !!id,
   });
+
+  // Calculate net revenue and taxes dynamically
+  const financialData = budget ? calculateBudgetFinancials(budget) : {
+    totalNetRevenue: 0,
+    totalTaxes: 0,
+    taxPercentage: 0
+  };
 
   const deleteBudgetMutation = useMutation({
     mutationFn: budgetService.deleteBudget,
@@ -215,21 +261,12 @@ export default function BudgetView() {
     },
     {
       title: 'Comissão %',
-      dataIndex: 'profitability',
-      key: 'commission_percentage_calculated',
+      dataIndex: 'commission_percentage_actual',
+      key: 'commission_percentage_actual',
       width: 100,
-      render: (profitability: number) => {
-        // Calculate commission percentage based on profitability ranges
-        let commissionPercentage = 0;
-        if (profitability >= 80) commissionPercentage = 5.0;
-        else if (profitability >= 60) commissionPercentage = 4.0;
-        else if (profitability >= 50) commissionPercentage = 3.0;
-        else if (profitability >= 40) commissionPercentage = 2.5;
-        else if (profitability >= 30) commissionPercentage = 1.5;
-        else if (profitability >= 20) commissionPercentage = 1.0;
-        else commissionPercentage = 0.0;
-        
-        return `${commissionPercentage.toFixed(1)}%`;
+      render: (value: number) => {
+        // Display the actual commission percentage used by the backend
+        return value ? `${(value * 100).toFixed(1)}%` : '0.0%';
       },
     },
     {
@@ -413,7 +450,7 @@ export default function BudgetView() {
             <Col span={24}>
               <Card>
                 <Statistic
-                  title="Total de Venda"
+                  title="Total de Venda (c/ ICMS)"
                   value={budget.total_sale_value}
                   prefix={<DollarCircleOutlined style={{ color: '#52c41a' }} />}
                   formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
@@ -424,11 +461,22 @@ export default function BudgetView() {
             <Col span={24}>
               <Card>
                 <Statistic
+                  title="Receita Líquida (s/ impostos)"
+                  value={financialData.totalNetRevenue}
+                  prefix={<DollarCircleOutlined style={{ color: '#1890ff' }} />}
+                  formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                  valueStyle={{ color: '#1890ff', fontSize: '20px' }}
+                />
+              </Card>
+            </Col>
+            <Col span={24}>
+              <Card>
+                <Statistic
                   title="Total de Comissão"
                   value={budget.total_commission}
                   prefix={<TrophyOutlined style={{ color: '#fa541c' }} />}
                   formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                  valueStyle={{ color: '#fa541c', fontSize: '24px' }}
+                  valueStyle={{ color: '#fa541c', fontSize: '20px' }}
                 />
               </Card>
             </Col>
@@ -442,7 +490,7 @@ export default function BudgetView() {
                   valueStyle={{ 
                     color: Number(budget.profitability_percentage) > 20 ? '#52c41a' : 
                            Number(budget.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f',
-                    fontSize: '24px'
+                    fontSize: '20px'
                   }}
                 />
               </Card>
@@ -465,26 +513,56 @@ export default function BudgetView() {
 
       {/* Summary */}
       <Card title="Resumo Financeiro" style={{ marginTop: '24px' }}>
-        <Row gutter={[16, 16]}>
+        <Alert
+          message="💰 Detalhamento Financeiro"
+          description="Total Venda (c/ ICMS): Valor que o cliente paga. Receita Líquida (s/ impostos): Valor após dedução de impostos. Esta seção mostra o impacto real dos impostos na receita."
+          type="info"
+          style={{ marginBottom: '16px' }}
+          showIcon
+        />
+        
+        <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={12} md={6}>
             <Statistic
               title="Total Compra"
               value={budget.total_purchase_value}
               formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              valueStyle={{ color: '#ff4d4f' }}
             />
           </Col>
           <Col xs={12} md={6}>
             <Statistic
-              title="Total Venda"
+              title="Total Venda (c/ ICMS)"
               value={budget.total_sale_value}
               formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              valueStyle={{ color: '#52c41a' }}
             />
           </Col>
+          <Col xs={12} md={6}>
+            <Statistic
+              title="Receita Líquida (s/ impostos)"
+              value={financialData.totalNetRevenue}
+              formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Statistic
+              title="Impostos Totais"
+              value={financialData.totalTaxes}
+              formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Col>
+        </Row>
+        
+        <Row gutter={[16, 16]}>
           <Col xs={12} md={6}>
             <Statistic
               title="Total Comissão"
               value={budget.total_commission}
               formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Col>
           <Col xs={12} md={6}>
@@ -492,6 +570,26 @@ export default function BudgetView() {
               title="Rentabilidade"
               value={budget.profitability_percentage}
               formatter={(value) => `${Number(value).toFixed(1)}%`}
+              valueStyle={{ 
+                color: Number(budget.profitability_percentage) > 20 ? '#52c41a' : 
+                       Number(budget.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f'
+              }}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Statistic
+              title="% Impostos"
+              value={financialData.taxPercentage}
+              formatter={(value) => `${Number(value).toFixed(1)}%`}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Col>
+          <Col xs={12} md={6}>
+            <Statistic
+              title="Markup"
+              value={budget.markup_percentage}
+              formatter={(value) => `${Number(value).toFixed(1)}%`}
+              valueStyle={{ color: '#13c2c2' }}
             />
           </Col>
         </Row>

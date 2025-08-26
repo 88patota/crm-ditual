@@ -135,6 +135,7 @@ class BudgetItemResponse(BudgetItemBase):
     unit_value: float
     total_value: float
     commission_value: float
+    commission_percentage_actual: float  # Actual commission percentage used (for display)
     
     created_at: datetime
     updated_at: datetime
@@ -216,7 +217,9 @@ class BudgetSummary(BaseModel):
 class BudgetCalculation(BaseModel):
     """Response model for budget calculations"""
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # COM ICMS - valor real pago pelo cliente
+    total_net_revenue: float  # SEM impostos - receita líquida após impostos
+    total_taxes: float  # Impostos totais = total_sale_value - total_net_revenue
     total_commission: float
     profitability_percentage: float
     markup_percentage: float

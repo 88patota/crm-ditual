@@ -114,6 +114,7 @@ export interface BudgetItem {
   
   // Commission
   commission_percentage?: number;  // Now calculated dynamically based on profitability
+  commission_percentage_actual?: number;  // Actual percentage used by backend
   commission_value?: number;
   dunamis_cost?: number;
 }
@@ -155,7 +156,9 @@ export interface BudgetSummary {
 
 export interface BudgetCalculation {
   total_purchase_value: number;
-  total_sale_value: number;
+  total_sale_value: number;  // SEM impostos - valor que muda quando ICMS muda
+  total_net_revenue: number;  // SEM impostos - receita líquida que muda com ICMS (mesmo que total_sale_value)
+  total_taxes: number;  // Impostos totais
   total_commission: number;
   profitability_percentage: number;
   markup_percentage: number;

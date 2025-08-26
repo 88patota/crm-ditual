@@ -75,6 +75,7 @@ class BudgetItem(Base):
     
     # Commission
     commission_percentage = Column(Float, default=0.0)
+    commission_percentage_actual = Column(Float, default=0.0)  # Actual percentage used by backend
     commission_value = Column(Float, default=0.0)
     
     # Cost reference for external system (Dunamis)
