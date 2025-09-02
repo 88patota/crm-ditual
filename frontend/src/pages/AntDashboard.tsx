@@ -80,7 +80,7 @@ const AntDashboard: React.FC = () => {
     },
     {
       title: 'Taxa de Crescimento',
-      value: 18.2,
+      value: (18.2).toFixed(2),
       suffix: '%',
       prefix: <RiseOutlined className="stats-icon growth" />,
       trend: { value: 2, isPositive: false },
@@ -175,28 +175,36 @@ const AntDashboard: React.FC = () => {
                 value={stat.value}
                 suffix={stat.suffix}
                 prefix={stat.prefix}
-                valueStyle={{ fontSize: '28px', fontWeight: 'bold' }}
+                valueStyle={{ 
+                  fontSize: '20px', 
+                  fontWeight: 'bold', 
+                  lineHeight: '1.4', 
+                  paddingBottom: '2px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: '100%',
+                  display: 'block'
+                }}
               />
-              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Space size={4}>
-                  {stat.trend.isPositive ? (
-                    <ArrowUpOutlined style={{ color: '#52c41a', fontSize: '12px' }} />
-                  ) : (
-                    <ArrowDownOutlined style={{ color: '#ff4d4f', fontSize: '12px' }} />
-                  )}
-                  <Text 
-                    style={{ 
-                      fontSize: '12px',
-                      color: stat.trend.isPositive ? '#52c41a' : '#ff4d4f',
-                      fontWeight: 500
-                    }}
-                  >
-                    {stat.trend.value}%
-                  </Text>
-                  <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>
-                    {stat.description}
-                  </Text>
-                </Space>
+              <div style={{ marginTop: 8, fontSize: '11px', color: '#8c8c8c', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {stat.trend.isPositive ? (
+                  <ArrowUpOutlined style={{ color: '#52c41a', fontSize: '10px' }} />
+                ) : (
+                  <ArrowDownOutlined style={{ color: '#ff4d4f', fontSize: '10px' }} />
+                )}
+                <Text 
+                  style={{ 
+                    fontSize: '11px',
+                    color: stat.trend.isPositive ? '#52c41a' : '#ff4d4f',
+                    fontWeight: 500
+                  }}
+                >
+                  {stat.trend.value}%
+                </Text>
+                <Text style={{ fontSize: '11px', color: '#8c8c8c' }}>
+                  {stat.description}
+                </Text>
               </div>
             </Card>
           </Col>
@@ -236,44 +244,26 @@ const AntDashboard: React.FC = () => {
               </Col>
               
               <Col xs={24} md={16}>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Card size="small" style={{ textAlign: 'center' }}>
-                      <Statistic 
-                        title="Função"
-                        value={getRoleText(user?.role || '')}
-                        valueStyle={{ fontSize: '16px', color: '#1890ff' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card size="small" style={{ textAlign: 'center' }}>
-                      <Statistic 
-                        title="Status"
-                        value="Online"
-                        valueStyle={{ fontSize: '16px', color: '#52c41a' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card size="small" style={{ textAlign: 'center' }}>
-                      <Statistic 
-                        title="Última Atividade"
-                        value="Agora mesmo"
-                        valueStyle={{ fontSize: '16px' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card size="small" style={{ textAlign: 'center' }}>
-                      <Statistic 
-                        title="ID do Usuário"
-                        value={user?.id}
-                        valueStyle={{ fontSize: '16px' }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
+                <div className="card-info-grid">
+                  <div className="card-info-item">
+                    <div className="card-label">Função</div>
+                    <div className="card-value" style={{ color: '#1890ff' }}>
+                      {getRoleText(user?.role || '')}
+                    </div>
+                  </div>
+                  <div className="card-info-item">
+                    <div className="card-label">Status</div>
+                    <div className="card-value" style={{ color: '#52c41a' }}>Online</div>
+                  </div>
+                  <div className="card-info-item">
+                    <div className="card-label">Última Atividade</div>
+                    <div className="card-value">Agora</div>
+                  </div>
+                  <div className="card-info-item">
+                    <div className="card-label">ID</div>
+                    <div className="card-value">{user?.id}</div>
+                  </div>
+                </div>
               </Col>
             </Row>
           </Card>
@@ -339,7 +329,7 @@ const AntDashboard: React.FC = () => {
       {/* Progress Cards */}
       <Row gutter={[16, 16]}>
         <Col xs={24} md={8}>
-          <Card title="Meta Mensal de Usuários">
+          <Card title="Meta Mensal de Usuários" className="progress-card">
             <Progress 
               percent={75} 
               status="active"
@@ -355,7 +345,7 @@ const AntDashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} md={8}>
-          <Card title="Satisfação dos Usuários">
+          <Card title="Satisfação dos Usuários" className="progress-card">
             <Progress 
               percent={92} 
               status="success"
@@ -368,7 +358,7 @@ const AntDashboard: React.FC = () => {
         </Col>
         
         <Col xs={24} md={8}>
-          <Card title="Uptime do Sistema">
+          <Card title="Uptime do Sistema" className="progress-card">
             <Progress 
               percent={99.9} 
               status="success"

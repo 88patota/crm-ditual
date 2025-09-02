@@ -64,7 +64,7 @@ class BudgetService:
             order_number=budget_data.order_number,
             client_name=budget_data.client_name,
             client_id=budget_data.client_id,
-            markup_percentage=budget_data.markup_percentage,
+            markup_percentage=budget_result['totals']['markup_pedido'],  # Use calculated markup
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             created_by=created_by,
@@ -245,9 +245,8 @@ class BudgetService:
             setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
             setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
             setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
-            # Update markup_percentage if it wasn't explicitly set
-            if 'markup_percentage' not in budget_dict:
-                setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+            # Always set markup_percentage to the calculated value from business rules
+            setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
         
         await db.commit()
         await db.refresh(budget)

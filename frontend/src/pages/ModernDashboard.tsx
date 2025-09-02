@@ -61,7 +61,7 @@ const ModernDashboard: React.FC = () => {
     },
     {
       title: 'Taxa de Crescimento',
-      value: '18.2%',
+      value: '18.20%',
       change: '-2%',
       changeType: 'negative' as const,
       icon: TrendingUp,
@@ -113,27 +113,27 @@ const ModernDashboard: React.FC = () => {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card key={stat.title} className="hover:shadow-md transition-shadow min-h-[130px] flex flex-col overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground truncate">
                   {stat.title}
                 </CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
+                <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
+              <CardContent className="flex-1 flex flex-col justify-center pt-0 overflow-hidden">
+                <div className="text-xl font-bold mb-1 truncate overflow-hidden text-ellipsis whitespace-nowrap" style={{ lineHeight: '1.4', paddingBottom: '1px', minHeight: '24px' }}>{stat.value}</div>
+                <div className="flex items-center text-xs text-muted-foreground overflow-hidden">
                   {stat.changeType === 'positive' ? (
-                    <ArrowUpRight className="mr-1 h-3 w-3 text-green-600" />
+                    <ArrowUpRight className="mr-1 h-3 w-3 text-green-600 flex-shrink-0" />
                   ) : (
-                    <ArrowDownRight className="mr-1 h-3 w-3 text-red-600" />
+                    <ArrowDownRight className="mr-1 h-3 w-3 text-red-600 flex-shrink-0" />
                   )}
                   <span 
                     className={stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'}
                   >
                     {stat.change}
                   </span>
-                  <span className="ml-1">{stat.description}</span>
+                  <span className="ml-1 truncate overflow-hidden text-ellipsis">{stat.description}</span>
                 </div>
               </CardContent>
             </Card>
@@ -180,26 +180,26 @@ const ModernDashboard: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Shield className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Função</span>
+                <div className="rounded-lg border p-3 min-h-[70px] flex flex-col justify-center overflow-hidden">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-medium">Função</span>
                   </div>
-                  <p className="text-sm font-semibold capitalize">{user?.role}</p>
+                  <p className="text-xs font-semibold capitalize truncate">{user?.role}</p>
                 </div>
-                <div className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Última Atividade</span>
+                <div className="rounded-lg border p-3 min-h-[70px] flex flex-col justify-center overflow-hidden">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-medium">Última Atividade</span>
                   </div>
-                  <p className="text-sm font-semibold">Agora mesmo</p>
+                  <p className="text-xs font-semibold truncate">Agora mesmo</p>
                 </div>
-                <div className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Status</span>
+                <div className="rounded-lg border p-3 min-h-[70px] flex flex-col justify-center overflow-hidden">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Activity className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-medium">Status</span>
                   </div>
-                  <Badge variant="default">Online</Badge>
+                  <Badge variant="default" className="text-xs">Online</Badge>
                 </div>
               </div>
             </CardContent>
@@ -264,15 +264,15 @@ const ModernDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start min-h-[48px]">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Adicionar Usuário
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start min-h-[48px]">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Ver Relatórios
               </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="outline" className="w-full justify-start min-h-[48px]">
                 <DollarSign className="mr-2 h-4 w-4" />
                 Gerenciar Vendas
               </Button>

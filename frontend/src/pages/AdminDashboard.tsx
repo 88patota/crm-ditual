@@ -3,7 +3,6 @@ import {
   Card, 
   Row, 
   Col, 
-  Statistic, 
   Typography, 
   Space, 
   Button,
@@ -47,32 +46,45 @@ interface StatusCardProps {
 
 const StatusCard: React.FC<StatusCardProps> = ({ title, value, icon, color, description }) => (
   <Card className="status-card" hoverable>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: '100%' }}>
       <div 
         style={{ 
           backgroundColor: `${color}15`, 
           color: color, 
-          borderRadius: '12px',
-          padding: '12px',
-          fontSize: '24px',
+          borderRadius: '8px',
+          padding: '8px',
+          fontSize: '18px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minWidth: '48px',
-          minHeight: '48px'
+          minWidth: '36px',
+          minHeight: '36px',
+          flexShrink: 0
         }}
       >
         {icon}
       </div>
-      <div style={{ flex: 1 }}>
-        <Text type="secondary" style={{ fontSize: '14px', marginBottom: '4px', display: 'block' }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        <Text type="secondary" style={{ fontSize: '11px', marginBottom: '2px', display: 'block', lineHeight: 1.2 }}>
           {title}
         </Text>
-        <Title level={3} style={{ margin: 0, color: color }}>
+        <Title level={5} style={{ 
+          margin: 0, 
+          color: color, 
+          fontSize: '16px', 
+          lineHeight: 1.4, 
+          whiteSpace: 'nowrap', 
+          overflow: 'hidden', 
+          textOverflow: 'ellipsis',
+          paddingBottom: '1px',
+          minHeight: '20px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
           {value}
         </Title>
         {description && (
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type="secondary" style={{ fontSize: '10px', lineHeight: 1.2 }}>
             {description}
           </Text>
         )}
@@ -244,67 +256,84 @@ const AdminDashboard: React.FC = () => {
           <Row gutter={[24, 24]}>
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card" hoverable>
-                <Statistic
-                  title="Total de Orçamentos"
-                  value={dashboardStats?.total_budgets || 0}
-                  prefix={<FileTextOutlined style={{ color: '#1890ff' }} />}
-                  valueStyle={{ color: '#1890ff', fontSize: '28px', fontWeight: 'bold' }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    no período selecionado
-                  </Text>
+                <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <FileTextOutlined style={{ color: '#1890ff', fontSize: '24px' }} />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '6px', lineHeight: '1.2' }}>Total de Orçamentos</div>
+                    <div style={{ color: '#1890ff', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.4', paddingBottom: '2px' }}>
+                      {dashboardStats?.total_budgets || 0}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '4px' }}>
+                    <Text type="secondary" style={{ fontSize: '10px', lineHeight: '1.2' }}>
+                      no período
+                    </Text>
+                  </div>
                 </div>
               </Card>
             </Col>
             
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card" hoverable>
-                <Statistic
-                  title="Valor Total"
-                  value={formatCurrency(dashboardStats?.total_value || 0)}
-                  prefix={<DollarOutlined style={{ color: '#52c41a' }} />}
-                  valueStyle={{ color: '#52c41a', fontSize: '28px', fontWeight: 'bold' }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    em orçamentos
-                  </Text>
+                <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <DollarOutlined style={{ color: '#52c41a', fontSize: '24px' }} />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '6px', lineHeight: '1.2' }}>Valor Total</div>
+                    <div style={{ color: '#52c41a', fontSize: '16px', fontWeight: 'bold', lineHeight: '1.4', paddingBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', minHeight: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {formatCurrency(dashboardStats?.total_value || 0)}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '4px' }}>
+                    <Text type="secondary" style={{ fontSize: '10px', lineHeight: '1.2' }}>
+                      em orçamentos
+                    </Text>
+                  </div>
                 </div>
               </Card>
             </Col>
             
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card" hoverable>
-                <Statistic
-                  title="Aprovados"
-                  value={dashboardStats?.approved_budgets || 0}
-                  suffix={`(${formatCurrency(dashboardStats?.approved_value || 0)})`}
-                  prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                  valueStyle={{ color: '#52c41a', fontSize: '28px', fontWeight: 'bold' }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    orçamentos fechados
-                  </Text>
+                <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '24px' }} />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '6px', lineHeight: '1.2' }}>Aprovados</div>
+                    <div style={{ color: '#52c41a', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.4', paddingBottom: '2px' }}>
+                      {dashboardStats?.approved_budgets || 0}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '4px' }}>
+                    <Text type="secondary" style={{ fontSize: '10px', lineHeight: '1.2' }}>
+                      fechados
+                    </Text>
+                  </div>
                 </div>
               </Card>
             </Col>
             
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card" hoverable>
-                <Statistic
-                  title="Taxa de Conversão"
-                  value={dashboardStats?.conversion_rate || 0}
-                  precision={1}
-                  suffix="%"
-                  prefix={<TrophyOutlined style={{ color: '#fa8c16' }} />}
-                  valueStyle={{ color: '#fa8c16', fontSize: '28px', fontWeight: 'bold' }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    de aprovação
-                  </Text>
+                <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <TrophyOutlined style={{ color: '#fa8c16', fontSize: '24px' }} />
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '6px', lineHeight: '1.2' }}>Taxa Conversão</div>
+                    <div style={{ color: '#fa8c16', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.4', paddingBottom: '2px' }}>
+                      {(dashboardStats?.conversion_rate || 0).toFixed(2)}%
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '4px' }}>
+                    <Text type="secondary" style={{ fontSize: '10px', lineHeight: '1.2' }}>
+                      aprovação
+                    </Text>
+                  </div>
                 </div>
               </Card>
             </Col>

@@ -34,6 +34,11 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
       label: <Link to="/dashboard">Dashboard</Link>,
     },
     {
+      key: '/dashboard-example',
+      icon: <DashboardOutlined />,
+      label: <Link to="/dashboard-example">Componentes Cards</Link>,
+    },
+    {
       key: '/budgets',
       icon: <FileTextOutlined />,
       label: <Link to="/budgets">Orçamentos</Link>,
@@ -76,11 +81,17 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
     },
   ];
 
-  const getCurrentPageTitle = () => {
+  const getCurrentPageTitle = (): string => {
     const currentItem = navigationItems.find(item => item.key === location.pathname);
     if (currentItem) {
       // Extract text from Link component
-      return React.isValidElement(currentItem.label) && currentItem.label.props.children || 'Dashboard';
+      if (React.isValidElement(currentItem.label) && 
+          typeof currentItem.label.props === 'object' && 
+          currentItem.label.props !== null && 
+          'children' in currentItem.label.props &&
+          typeof currentItem.label.props.children === 'string') {
+        return currentItem.label.props.children;
+      }
     }
     return 'Dashboard';
   };

@@ -302,6 +302,7 @@ class BusinessRulesCalculator:
             valor_comissao = round(valor_comissao, 2)
         except Exception as e:
             valor_comissao = 0.0
+            percentual_comissao = 0.0  # Definir percentual de comissão como 0 em caso de erro
             print(f"Erro ao calcular comissão: {e}")
 
         return {

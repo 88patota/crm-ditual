@@ -42,38 +42,35 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 
-// Helper functions to calculate net revenue and taxes
-const calculateSaleValueWithoutTaxes = (valueWithIcms: number, icmsPercentage: number): number => {
-  // Formula: value_with_icms * (1 - icms_percentage) * (1 - 0.0925)
-  const PIS_COFINS_PERCENTAGE = 0.0925;
-  return valueWithIcms * (1 - icmsPercentage) * (1 - PIS_COFINS_PERCENTAGE);
-};
-
+// Helper function to calculate financial data from backend values
 const calculateBudgetFinancials = (budget: Budget) => {
   if (!budget.items || budget.items.length === 0) {
     return {
+      totalSaleWithIcms: 0,
       totalNetRevenue: 0,
       totalTaxes: 0,
       taxPercentage: 0
     };
   }
 
-  let totalNetRevenue = 0;
+  // Calcular total de venda COM ICMS (valor real que o cliente paga)
+  let totalSaleWithIcms = 0;
   
   budget.items.forEach((item: BudgetItem) => {
     const saleWeight = item.sale_weight || item.weight || 0;
-    const valueWithoutTaxes = calculateSaleValueWithoutTaxes(
-      item.sale_value_with_icms, 
-      item.sale_icms_percentage
-    );
-    totalNetRevenue += saleWeight * valueWithoutTaxes;
+    const saleValueWithIcms = item.sale_value_with_icms || 0;
+    totalSaleWithIcms += saleWeight * saleValueWithIcms;
   });
 
-  const totalSaleValue = budget.total_sale_value || 0;
-  const totalTaxes = totalSaleValue - totalNetRevenue;
-  const taxPercentage = totalSaleValue > 0 ? (totalTaxes / totalSaleValue) * 100 : 0;
+  // O total_sale_value do backend já é a receita líquida (SEM impostos)
+  const totalNetRevenue = budget.total_sale_value || 0;
+  
+  // Impostos = Valor COM ICMS - Valor SEM impostos
+  const totalTaxes = totalSaleWithIcms - totalNetRevenue;
+  const taxPercentage = totalSaleWithIcms > 0 ? (totalTaxes / totalSaleWithIcms) * 100 : 0;
 
   return {
+    totalSaleWithIcms,
     totalNetRevenue,
     totalTaxes,
     taxPercentage
@@ -93,6 +90,7 @@ export default function BudgetView() {
 
   // Calculate net revenue and taxes dynamically
   const financialData = budget ? calculateBudgetFinancials(budget) : {
+    totalSaleWithIcms: 0,
     totalNetRevenue: 0,
     totalTaxes: 0,
     taxPercentage: 0
@@ -515,7 +513,7 @@ export default function BudgetView() {
       <Card title="Resumo Financeiro" style={{ marginTop: '24px' }}>
         <Alert
           message="💰 Detalhamento Financeiro"
-          description="Total Venda (c/ ICMS): Valor que o cliente paga. Receita Líquida (s/ impostos): Valor após dedução de impostos. Esta seção mostra o impacto real dos impostos na receita."
+          description="Total Venda (c/ ICMS): Valor real que o cliente paga com impostos. Receita Líquida (s/ impostos): Valor após dedução de ICMS e PIS/COFINS. Esta seção mostra o impacto real dos impostos na receita."
           type="info"
           style={{ marginBottom: '16px' }}
           showIcon
@@ -533,7 +531,7 @@ export default function BudgetView() {
           <Col xs={12} md={6}>
             <Statistic
               title="Total Venda (c/ ICMS)"
-              value={budget.total_sale_value}
+              value={financialData.totalSaleWithIcms}
               formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               valueStyle={{ color: '#52c41a' }}
             />

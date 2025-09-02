@@ -448,10 +448,10 @@ export default function Budgets() {
               <div style={{ textAlign: 'right', marginLeft: 16 }}>
                 <Space direction="vertical" size={4} style={{ alignItems: 'flex-end' }}>
                   <Text strong style={{ fontSize: '18px', color: '#52c41a' }}>
-                    R$ {budget.total_commission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {budget.total_sale_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </Text>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Comissão
+                    Total Venda
                   </Text>
                   <Badge 
                     count={`${budget.profitability_percentage.toFixed(1)}%`}

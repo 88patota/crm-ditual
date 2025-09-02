@@ -17,6 +17,7 @@ import BudgetCreate from './pages/BudgetCreate';
 import SimplifiedBudgetCreate from './pages/AutoMarkupBudgetCreate';
 import BudgetEditSimplified from './pages/BudgetEditSimplified';
 import BudgetView from './pages/BudgetView';
+import DashboardExample from './pages/DashboardExample';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -133,6 +134,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <AntLayout>
               <BudgetEditSimplified />
+            </AntLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard-example"
+        element={
+          <ProtectedRoute>
+            <AntLayout>
+              <DashboardExample />
             </AntLayout>
           </ProtectedRoute>
         }
