@@ -28,6 +28,10 @@ class Budget(Base):
     markup_percentage = Column(Float, default=0.0)
     profitability_percentage = Column(Float, default=0.0)
     
+    # IPI totals
+    total_ipi_value = Column(Float, nullable=True)  # Total do IPI de todos os itens
+    total_final_value = Column(Float, nullable=True)  # Valor final incluindo IPI (valor que o cliente paga)
+    
     # Status and metadata
     status = Column(String, nullable=False, default=BudgetStatus.DRAFT.value)
     notes = Column(Text, nullable=True)
@@ -80,6 +84,11 @@ class BudgetItem(Base):
     
     # Cost reference for external system (Dunamis)
     dunamis_cost = Column(Float, nullable=True)
+    
+    # IPI (Imposto sobre Produtos Industrializados)
+    ipi_percentage = Column(Float, default=0.0)  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
+    ipi_value = Column(Float, nullable=True)  # Valor do IPI calculado
+    total_value_with_ipi = Column(Float, nullable=True)  # Valor total incluindo IPI
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

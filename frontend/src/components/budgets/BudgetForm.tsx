@@ -48,7 +48,8 @@ const initialBudgetItem: BudgetItem = {
   sale_value_without_taxes: 0,
   dunamis_cost: 0,
   purchase_value_with_icms: 0,
-  sale_value_with_icms: 0
+  sale_value_with_icms: 0,
+  ipi_percentage: 0.0 // 0% por padrão (formato decimal)
 };
 
 export default function BudgetForm({ 
@@ -64,11 +65,31 @@ export default function BudgetForm({
 
   useEffect(() => {
     if (initialData) {
+      console.log('=== DEBUG IPI - BudgetForm ===');
+      console.log('Initial data items:', initialData.items?.map(item => ({ 
+        desc: item.description, 
+        ipi_original: item.ipi_percentage 
+      })));
+      
       form.setFieldsValue({
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
       });
-      setItems(initialData.items || []);
+      
+      // CORREÇÃO: Preservar valores salvos do IPI ao invés de sempre usar 0.0
+      const itemsWithIpi = (initialData.items || []).map(item => ({
+        ...item,
+        // Só aplicar 0.0 se valor é realmente undefined/null, não quando é 0
+        ipi_percentage: item.ipi_percentage !== undefined ? item.ipi_percentage : 0.0
+      }));
+      
+      console.log('Items after processing:', itemsWithIpi.map(item => ({ 
+        desc: item.description, 
+        ipi_processed: item.ipi_percentage 
+      })));
+      console.log('================================');
+      
+      setItems(itemsWithIpi);
     } else {
       setItems([{ ...initialBudgetItem }]);
     }
@@ -92,10 +113,10 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages)
+    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
     if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
-        field === 'weight' || field === 'sale_weight') {
+        field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculateBudget(newItems);
@@ -122,6 +143,9 @@ export default function BudgetForm({
         total_sale_value: calculation.total_sale_value,
         total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
+        // Update IPI totals if available
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
       });
       
       message.success('Orçamento calculado com sucesso!');
@@ -169,6 +193,9 @@ export default function BudgetForm({
         total_sale_value: calculation.total_sale_value,
         total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
+        // Update IPI totals if available
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
       });
       
     } catch (error) {
@@ -188,6 +215,7 @@ export default function BudgetForm({
       peso_venda: item.sale_weight ?? item.weight ?? 0,
       valor_com_icms_venda: item.sale_value_with_icms ?? 0,
       percentual_icms_venda: item.sale_icms_percentage ?? 0,
+      percentual_ipi: item.ipi_percentage ?? 0.0, // Incluir IPI no mapeamento
     }));
   };
 
@@ -324,6 +352,24 @@ export default function BudgetForm({
           style={{ width: '100%' }}
           placeholder="0,00"
         />
+      ),
+    },
+    {
+      title: '% IPI',
+      dataIndex: 'ipi_percentage',
+      key: 'ipi_percentage',
+      width: 120,
+      render: (value: number, _: BudgetItem, index: number) => (
+        <Select
+          value={value ?? 0.0}
+          onChange={(val) => updateItem(index, 'ipi_percentage', val)}
+          style={{ width: '100%' }}
+          placeholder="Selecione"
+        >
+          <Option value={0.0}>0% (Isento)</Option>
+          <Option value={0.0325}>3,25%</Option>
+          <Option value={0.05}>5%</Option>
+        </Select>
       ),
     },
     {
@@ -521,6 +567,28 @@ export default function BudgetForm({
                 <InputNumber
                   readOnly
                   formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          {/* IPI Totals Section */}
+          <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+            <Col xs={24} md={6}>
+              <Form.Item label="Total IPI" name="total_ipi_value">
+                <InputNumber
+                  readOnly
+                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="Valor Final c/ IPI" name="total_final_value">
+                <InputNumber
+                  readOnly
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

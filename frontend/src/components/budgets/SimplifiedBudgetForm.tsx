@@ -53,6 +53,7 @@ const initialBudgetItem: BudgetItemSimplified = {
   outras_despesas_item: 0,
   valor_com_icms_venda: 0,
   percentual_icms_venda: 0.18, // 18% in decimal format
+  percentual_ipi: 0.0, // 0% por padrão (formato decimal)
 };
 
 export default function SimplifiedBudgetForm({ 
@@ -86,12 +87,32 @@ export default function SimplifiedBudgetForm({
   // Inicializar com dados existentes ou carregar novo número do pedido
   useEffect(() => {
     if (isEdit && initialData) {
+      console.log('=== DEBUG IPI - SimplifiedBudgetForm ===');
+      console.log('Initial data items:', initialData.items?.map(item => ({ 
+        desc: item.description, 
+        ipi_original: item.percentual_ipi 
+      })));
+      
       // Modo edição - usar dados iniciais
       form.setFieldsValue({
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
       });
-      setItems(initialData.items || [{ ...initialBudgetItem }]);
+      
+      // CORREÇÃO: Preservar valores salvos do IPI
+      const itemsWithIpi = (initialData.items || [{ ...initialBudgetItem }]).map(item => ({
+        ...item,
+        // Só aplicar 0.0 se valor é realmente undefined/null, não quando é 0
+        percentual_ipi: item.percentual_ipi !== undefined ? item.percentual_ipi : 0.0
+      }));
+      
+      console.log('Items after processing:', itemsWithIpi.map(item => ({ 
+        desc: item.description, 
+        ipi_processed: item.percentual_ipi 
+      })));
+      console.log('==========================================');
+      
+      setItems(itemsWithIpi);
       setOrderNumber(initialData.order_number || '');
       setLoadingOrderNumber(false);
     } else {
@@ -120,7 +141,7 @@ export default function SimplifiedBudgetForm({
     // Garantir conversão correta de números, especialmente com vírgulas
     if (field === 'peso_compra' || field === 'peso_venda' || 
         field === 'valor_com_icms_compra' || field === 'valor_com_icms_venda' ||
-        field === 'outras_despesas_item') {
+        field === 'outras_despesas_item' || field === 'percentual_ipi') {
       let numericValue = 0;
       
       if (typeof value === 'number') {
@@ -141,10 +162,10 @@ export default function SimplifiedBudgetForm({
     setItems(newItems);
     setPreview(null);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages)
+    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
     if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
         field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra') {
+        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculatePreview(newItems);
@@ -374,6 +395,24 @@ export default function SimplifiedBudgetForm({
           parser={(value) => parseFloat(value!.replace('%', '')) || 0}
           style={{ width: '100%' }}
         />
+      ),
+    },
+    {
+      title: '% IPI *',
+      dataIndex: 'percentual_ipi',
+      key: 'percentual_ipi',
+      width: 120,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
+        <Select
+          value={value}
+          onChange={(val) => updateItem(index, 'percentual_ipi', val)}
+          style={{ width: '100%' }}
+          placeholder="Selecione"
+        >
+          <Option value={0.0}>0% (Isento)</Option>
+          <Option value={0.0325}>3,25%</Option>
+          <Option value={0.05}>5%</Option>
+        </Select>
       ),
     },
     {
@@ -723,6 +762,52 @@ export default function SimplifiedBudgetForm({
                   </Card>
                 </Col>
               </Row>
+              
+              {/* Adicionar linha com campos de IPI (se houver) */}
+              {preview.total_ipi_value && preview.total_ipi_value > 0 && (
+                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="Total IPI"
+                        value={preview.total_ipi_value}
+                        formatter={(value) => formatCurrency(Number(value))}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="Valor Final c/ IPI"
+                        value={preview.total_final_value}
+                        formatter={(value) => formatCurrency(Number(value))}
+                        valueStyle={{ color: '#096dd9', fontWeight: 'bold' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="% IPI Médio"
+                        value={preview.total_ipi_value && preview.total_sale_value ? 
+                          (preview.total_ipi_value / preview.total_sale_value * 100) : 0}
+                        formatter={(value) => `${Number(value).toFixed(2)}%`}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Alert 
+                      message="Valor Final" 
+                      description="Este é o valor total que o cliente pagará, incluindo ICMS, PIS/COFINS e IPI." 
+                      type="info" 
+                      showIcon 
+                      style={{ height: '100%' }}
+                    />
+                  </Col>
+                </Row>
+              )}
             </>
           )}
         </Form>

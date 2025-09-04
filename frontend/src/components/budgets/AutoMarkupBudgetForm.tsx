@@ -15,7 +15,8 @@ import {
   Popconfirm,
   DatePicker,
   Alert,
-  Statistic
+  Statistic,
+  Select
 } from 'antd';
 import {
   PlusOutlined,
@@ -30,6 +31,7 @@ import { ErrorHandler } from '../../utils/errorHandler';
 import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 interface AutoMarkupBudgetFormProps {
   onSubmit: (data: BudgetSimplified) => Promise<void>;
@@ -45,7 +47,8 @@ const initialBudgetItem: BudgetItemSimplified = {
   percentual_icms_compra: 0.17, // Decimal format (17%)
   outras_despesas_item: 0,
   valor_com_icms_venda: 0,
-  percentual_icms_venda: 0.18 // Decimal format (18%)
+  percentual_icms_venda: 0.18, // Decimal format (18%)
+  percentual_ipi: 0.0 // 0% por padrão (formato decimal)
 };
 
 export default function AutoMarkupBudgetForm({ 
@@ -78,10 +81,10 @@ export default function AutoMarkupBudgetForm({
     setItems(newItems);
     setPreview(null); // Limpar preview quando alterar item
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages)
+    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
     if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
         field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra') {
+        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculatePreview(newItems);
@@ -310,6 +313,24 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
+      title: '% IPI *',
+      dataIndex: 'percentual_ipi',
+      key: 'percentual_ipi',
+      width: 120,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
+        <Select
+          value={value}
+          onChange={(val) => updateItem(index, 'percentual_ipi', val)}
+          style={{ width: '100%' }}
+          placeholder="Selecione"
+        >
+          <Option value={0.0}>0% (Isento)</Option>
+          <Option value={0.0325}>3,25%</Option>
+          <Option value={0.05}>5%</Option>
+        </Select>
+      ),
+    },
+    {
       title: 'Ações',
       key: 'actions',
       width: 80,
@@ -515,6 +536,52 @@ export default function AutoMarkupBudgetForm({
                   </Card>
                 </Col>
               </Row>
+              
+              {/* Adicionar linha com campos de IPI (se houver) */}
+              {preview.total_ipi_value && preview.total_ipi_value > 0 && (
+                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="Total IPI"
+                        value={preview.total_ipi_value}
+                        formatter={(value) => formatCurrency(Number(value))}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="Valor Final c/ IPI"
+                        value={preview.total_final_value}
+                        formatter={(value) => formatCurrency(Number(value))}
+                        valueStyle={{ color: '#096dd9', fontWeight: 'bold' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Card>
+                      <Statistic
+                        title="% IPI Médio"
+                        value={preview.total_ipi_value && preview.total_sale_value ? 
+                          (preview.total_ipi_value / preview.total_sale_value * 100) : 0}
+                        formatter={(value) => `${Number(value).toFixed(2)}%`}
+                        valueStyle={{ color: '#fa8c16' }}
+                      />
+                    </Card>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Alert 
+                      message="Valor Final" 
+                      description="Este é o valor total que o cliente pagará, incluindo ICMS, PIS/COFINS e IPI." 
+                      type="info" 
+                      showIcon 
+                      style={{ height: '100%' }}
+                    />
+                  </Col>
+                </Row>
+              )}
             </>
           )}
         </Form>

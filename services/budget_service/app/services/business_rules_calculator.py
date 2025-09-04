@@ -39,6 +39,9 @@ class BusinessRulesCalculator:
     PIS_COFINS_PERCENTAGE = Decimal('0.0925')  # 9.25% fixo
     ICMS_DEFAULT_PERCENTAGE = Decimal('0.18')  # 18% padrão
     
+    # Constantes IPI (Imposto sobre Produtos Industrializados)
+    IPI_VALID_PERCENTAGES = [Decimal('0.0'), Decimal('0.0325'), Decimal('0.05')]  # 0%, 3.25%, 5%
+    
     @staticmethod
     def _to_decimal(value: Any) -> Decimal:
         """Converte valor para Decimal para cálculos precisos"""
@@ -224,6 +227,77 @@ class BusinessRulesCalculator:
         return float(total_venda.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
     
     @staticmethod
+    def calculate_ipi_value(valor_com_icms: float, percentual_ipi: float) -> float:
+        """
+        REGRA IPI.1: Cálculo do Valor do IPI
+        Fórmula Sistema: valor_com_icms * percentual_ipi
+        
+        O IPI é calculado sobre o valor COM ICMS e somado ao valor final.
+        Não afeta cálculos de rentabilidade ou comissão.
+        
+        Args:
+            valor_com_icms (float): Valor base com ICMS
+            percentual_ipi (float): Percentual de IPI em formato decimal (0.0, 0.0325, 0.05)
+            
+        Returns:
+            float: Valor do IPI calculado
+        """
+        valor_base_dec = BusinessRulesCalculator._to_decimal(valor_com_icms)
+        percentual_ipi_dec = BusinessRulesCalculator._to_decimal(percentual_ipi)
+        
+        # Validar se o percentual é um dos valores válidos
+        if percentual_ipi_dec not in BusinessRulesCalculator.IPI_VALID_PERCENTAGES:
+            raise ValueError(f"Percentual de IPI inválido: {percentual_ipi}. Valores aceitos: 0%, 3.25%, 5%")
+        
+        valor_ipi = valor_base_dec * percentual_ipi_dec
+        return float(valor_ipi.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    @staticmethod
+    def calculate_total_value_with_ipi(valor_com_icms: float, percentual_ipi: float) -> float:
+        """
+        REGRA IPI.2: Cálculo do Valor Final com IPI
+        Fórmula Sistema: valor_com_icms + (valor_com_icms * percentual_ipi)
+        
+        Este é o valor final que o cliente pagará.
+        
+        Args:
+            valor_com_icms (float): Valor base com ICMS
+            percentual_ipi (float): Percentual de IPI em formato decimal
+            
+        Returns:
+            float: Valor final incluindo IPI
+        """
+        valor_base_dec = BusinessRulesCalculator._to_decimal(valor_com_icms)
+        valor_ipi = BusinessRulesCalculator.calculate_ipi_value(valor_com_icms, percentual_ipi)
+        valor_ipi_dec = BusinessRulesCalculator._to_decimal(valor_ipi)
+        
+        valor_final = valor_base_dec + valor_ipi_dec
+        return float(valor_final.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    
+    @staticmethod
+    def calculate_total_ipi_item(peso_venda: float, valor_com_icms_venda: float, percentual_ipi: float) -> float:
+        """
+        REGRA IPI.3: Cálculo do IPI Total do Item
+        Fórmula Sistema: peso_venda * valor_com_icms_venda * percentual_ipi
+        
+        Calcula o valor total de IPI para um item considerando seu peso/quantidade.
+        
+        Args:
+            peso_venda (float): Peso/quantidade de venda
+            valor_com_icms_venda (float): Valor unitário com ICMS
+            percentual_ipi (float): Percentual de IPI em formato decimal
+            
+        Returns:
+            float: Valor total do IPI para o item
+        """
+        peso_venda_dec = BusinessRulesCalculator._to_decimal(peso_venda)
+        valor_base_total = peso_venda_dec * BusinessRulesCalculator._to_decimal(valor_com_icms_venda)
+        
+        # Calcular IPI sobre o valor total com ICMS
+        valor_ipi_total = BusinessRulesCalculator.calculate_ipi_value(float(valor_base_total), percentual_ipi)
+        return valor_ipi_total
+    
+    @staticmethod
     def calculate_complete_item(item_data: Dict, outras_despesas_totais: float, soma_pesos_pedido: float) -> Dict[str, Any]:
         """
         Calcula todos os valores de um item aplicando todas as regras de negócio sequencialmente
@@ -240,6 +314,7 @@ class BusinessRulesCalculator:
         percentual_icms_compra = item_data.get('percentual_icms_compra', 0.18)
         valor_com_icms_venda = item_data.get('valor_com_icms_venda', 0)
         percentual_icms_venda = item_data.get('percentual_icms_venda', 0.18)
+        percentual_ipi = item_data.get('percentual_ipi', 0.0)  # IPI padrão 0%
 
         outras_despesas_distribuidas = BusinessRulesCalculator.calculate_distributed_other_expenses(
             peso_compra, soma_pesos_pedido, outras_despesas_totais
@@ -275,6 +350,12 @@ class BusinessRulesCalculator:
         # Para cálculo de markup/rentabilidade: usar valores COM ICMS tanto para compra quanto venda
         total_compra_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_compra, valor_com_icms_compra)
         total_venda_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_venda, valor_com_icms_venda)
+
+        # Cálculos de IPI (não afetam rentabilidade ou comissão)
+        valor_ipi_unitario = BusinessRulesCalculator.calculate_ipi_value(valor_com_icms_venda, percentual_ipi)
+        valor_ipi_total = BusinessRulesCalculator.calculate_total_ipi_item(peso_venda, valor_com_icms_venda, percentual_ipi)
+        valor_final_com_ipi = BusinessRulesCalculator.calculate_total_value_with_ipi(valor_com_icms_venda, percentual_ipi)
+        total_final_com_ipi = peso_venda * valor_final_com_ipi
 
         try:
             # IMPORTANTE: Para cálculo correto de comissão quando há diferença de peso:
@@ -313,6 +394,7 @@ class BusinessRulesCalculator:
             'percentual_icms_compra': percentual_icms_compra,
             'valor_com_icms_venda': valor_com_icms_venda,
             'percentual_icms_venda': percentual_icms_venda,
+            'percentual_ipi': percentual_ipi,  # Incluir percentual de IPI
             'outras_despesas_distribuidas': outras_despesas_distribuidas,
             'valor_sem_impostos_compra': valor_sem_impostos_compra,
             'valor_corrigido_peso': valor_corrigido_peso,
@@ -326,6 +408,11 @@ class BusinessRulesCalculator:
             'total_venda_item_com_icms': total_venda_item_com_icms,
             'valor_comissao': valor_comissao,
             'commission_percentage_actual': percentual_comissao,  # Actual percentage used
+            # Campos de IPI
+            'valor_ipi_unitario': valor_ipi_unitario,  # IPI por unidade
+            'valor_ipi_total': valor_ipi_total,  # IPI total do item
+            'valor_final_com_ipi': valor_final_com_ipi,  # Valor unitário final com IPI
+            'total_final_com_ipi': total_final_com_ipi,  # Valor total final com IPI
         }
     
     @staticmethod
@@ -339,6 +426,9 @@ class BusinessRulesCalculator:
         # Para cálculo de markup correto: usar valores COM ICMS
         total_compra_com_icms = 0.0
         total_venda_com_icms = 0.0
+        # Totais de IPI
+        total_ipi_orcamento = 0.0
+        total_final_com_ipi = 0.0
         resultados_itens = []
 
         for item_data in items_data:
@@ -351,6 +441,9 @@ class BusinessRulesCalculator:
             # Acumular valores COM ICMS para cálculo correto de markup
             total_compra_com_icms += resultado_item['total_compra_item_com_icms']
             total_venda_com_icms += resultado_item['total_venda_item_com_icms']
+            # Acumular IPI
+            total_ipi_orcamento += resultado_item.get('valor_ipi_total', 0.0)
+            total_final_com_ipi += resultado_item.get('total_final_com_ipi', resultado_item['total_venda_item_com_icms'])
             resultados_itens.append(resultado_item)
 
         items_count = len(resultados_itens)
@@ -366,6 +459,10 @@ class BusinessRulesCalculator:
                 'soma_total_compra_com_icms': total_compra_com_icms,
                 'soma_total_venda_com_icms': total_venda_com_icms,
                 'markup_pedido': markup_pedido,
+                # Totais de IPI
+                'total_ipi_orcamento': total_ipi_orcamento,
+                'total_final_com_ipi': total_final_com_ipi,
+                'total_comissao': total_comissao,
             },
             'items': resultados_itens,
         }

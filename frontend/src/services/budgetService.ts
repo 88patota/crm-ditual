@@ -14,6 +14,9 @@ export interface BudgetItemSimplified {
   peso_venda: number;
   valor_com_icms_venda: number;
   percentual_icms_venda: number;
+  
+  // IPI (Imposto sobre Produtos Industrializados)
+  percentual_ipi?: number; // 0%, 3.25% ou 5% (formato decimal: 0.0, 0.0325, 0.05)
 }
 
 export interface BudgetSimplified {
@@ -53,6 +56,10 @@ export interface BudgetPreviewCalculation {
   // NOVOS CAMPOS
   minimum_markup_applied: number;
   maximum_markup_applied: number;
+  
+  // IPI preview calculations
+  total_ipi_value?: number; // Total do IPI de todos os itens
+  total_final_value?: number; // Valor final incluindo IPI
 }
 
 export interface MarkupConfiguration {
@@ -117,6 +124,11 @@ export interface BudgetItem {
   commission_percentage_actual?: number;  // Actual percentage used by backend
   commission_value?: number;
   dunamis_cost?: number;
+  
+  // IPI (Imposto sobre Produtos Industrializados)
+  ipi_percentage?: number; // Percentual de IPI (formato decimal: 0.0, 0.0325, 0.05)
+  ipi_value?: number; // Valor do IPI calculado
+  total_value_with_ipi?: number; // Valor total incluindo IPI
 }
 
 export interface Budget {
@@ -133,6 +145,10 @@ export interface Budget {
   total_sale_value?: number;
   total_commission?: number;
   profitability_percentage?: number;
+  
+  // IPI totals
+  total_ipi_value?: number; // Total do IPI de todos os itens
+  total_final_value?: number; // Valor final incluindo IPI (valor que o cliente paga)
   
   status?: 'draft' | 'pending' | 'approved' | 'rejected' | 'expired';
   created_by?: string;
@@ -170,6 +186,10 @@ export interface BudgetCalculation {
     profitability: number;
     commission_value: number;
   }>;
+  
+  // IPI calculations
+  total_ipi_value?: number; // Total do IPI de todos os itens
+  total_final_value?: number; // Valor final incluindo IPI
 }
 
 export const budgetService = {

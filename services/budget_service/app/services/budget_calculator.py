@@ -104,6 +104,7 @@ class BudgetCalculatorService:
         purchase_icms_percentage = item_input.percentual_icms_compra * 100  # Converter decimal para percentual
         sale_value_with_icms = item_input.valor_com_icms_venda
         sale_icms_percentage = item_input.percentual_icms_venda * 100  # Converter decimal para percentual
+        ipi_percentage = item_input.percentual_ipi  # Já em formato decimal
         
         # REGRA 1: Valor s/Impostos (Compra) = [Valor c/ICMS (Compra) * (1 - % ICMS (Compra))] * (1 - Taxa PIS/COFINS) - Outras Despesas
         purchase_value_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
@@ -151,6 +152,13 @@ class BudgetCalculatorService:
         )
         dunamis_cost = dunamis_cost * peso_compra  # Multiplicar pelo peso para totalizar
         
+        # Cálculos de IPI (não afetam rentabilidade ou comissão)
+        from app.services.business_rules_calculator import BusinessRulesCalculator
+        ipi_value_per_unit = BusinessRulesCalculator.calculate_ipi_value(sale_value_with_icms, ipi_percentage)
+        total_ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(peso_venda, sale_value_with_icms, ipi_percentage)
+        final_value_with_ipi = BusinessRulesCalculator.calculate_total_value_with_ipi(sale_value_with_icms, ipi_percentage)
+        total_final_with_ipi = peso_venda * final_value_with_ipi
+        
         return {
             # Dados de entrada preservados
             'description': item_input.description,
@@ -177,7 +185,14 @@ class BudgetCalculatorService:
             
             # Comissão
             'commission_value': round(commission_value, 2),  # Regra 9
-            'dunamis_cost': round(dunamis_cost, 2)  # Regra 10
+            'dunamis_cost': round(dunamis_cost, 2),  # Regra 10
+            
+            # IPI (Imposto sobre Produtos Industrializados)
+            'ipi_percentage': ipi_percentage,  # Percentual de IPI
+            'ipi_value_per_unit': round(ipi_value_per_unit, 2),  # IPI por unidade
+            'total_ipi_value': round(total_ipi_value, 2),  # IPI total do item
+            'final_value_with_ipi': round(final_value_with_ipi, 2),  # Valor unitário final com IPI
+            'total_final_with_ipi': round(total_final_with_ipi, 2),  # Valor total final com IPI
         }
     
     @staticmethod
@@ -190,6 +205,8 @@ class BudgetCalculatorService:
         total_purchase_value = 0.0
         total_sale_value = 0.0
         total_commission = 0.0
+        total_ipi_value = 0.0  # Total de IPI do orçamento
+        total_final_value = 0.0  # Valor final com IPI
         
         for item_input in items_input:
             # Calcular valores do item usando as regras definidas
@@ -200,6 +217,8 @@ class BudgetCalculatorService:
             total_purchase_value += calculated_item['total_purchase']
             total_sale_value += calculated_item['total_sale']
             total_commission += calculated_item['commission_value']
+            total_ipi_value += calculated_item.get('total_ipi_value', 0.0)
+            total_final_value += calculated_item.get('total_final_with_ipi', calculated_item['total_value'])
         
         # Calcular markup/rentabilidade resultante
         if total_purchase_value > 0:
@@ -216,7 +235,10 @@ class BudgetCalculatorService:
                 'total_sale_value': round(total_sale_value, 2),
                 'total_commission': round(total_commission, 2),
                 'profitability_percentage': round(profitability_percentage, 2),
-                'markup_percentage': round(markup_percentage, 2)
+                'markup_percentage': round(markup_percentage, 2),
+                # Totais de IPI
+                'total_ipi_value': round(total_ipi_value, 2),
+                'total_final_value': round(total_final_value, 2),  # Valor final que o cliente pagará
             }
         }
     

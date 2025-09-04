@@ -258,6 +258,38 @@ export default function BudgetView() {
       render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0.0%',
     },
     {
+      title: 'IPI %',
+      dataIndex: 'ipi_percentage',
+      key: 'ipi_percentage',
+      width: 80,
+      render: (value: number) => {
+        if (!value || value === 0) return '0% (Isento)';
+        if (value === 0.0325) return '3,25%';
+        if (value === 0.05) return '5%';
+        return `${(value * 100).toFixed(2)}%`;
+      },
+    },
+    {
+      title: 'Valor IPI',
+      dataIndex: 'ipi_value',
+      key: 'ipi_value',
+      width: 100,
+      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+    },
+    {
+      title: 'Valor Final c/IPI',
+      dataIndex: 'total_value_with_ipi',
+      key: 'total_value_with_ipi',
+      width: 140,
+      render: (value: number, record: BudgetItem) => {
+        // Se não tiver valor com IPI, calcular baseado no valor com ICMS + IPI
+        const weight = record.weight || 1;
+        const unitValueWithIpi = (record.sale_value_with_icms || 0) * (1 + (record.ipi_percentage || 0));
+        const finalValue = value || (unitValueWithIpi * weight);
+        return finalValue ? `R$ ${finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00';
+      },
+    },
+    {
       title: 'Comissão %',
       dataIndex: 'commission_percentage_actual',
       key: 'commission_percentage_actual',
@@ -493,6 +525,33 @@ export default function BudgetView() {
                 />
               </Card>
             </Col>
+            {/* Adicionar cards de IPI se houver IPI no orçamento */}
+            {budget.total_ipi_value && budget.total_ipi_value > 0 && (
+              <>
+                <Col span={24}>
+                  <Card>
+                    <Statistic
+                      title="Total IPI"
+                      value={budget.total_ipi_value}
+                      prefix={<DollarCircleOutlined style={{ color: '#fa8c16' }} />}
+                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      valueStyle={{ color: '#fa8c16', fontSize: '18px' }}
+                    />
+                  </Card>
+                </Col>
+                <Col span={24}>
+                  <Card>
+                    <Statistic
+                      title="Valor Final c/ IPI"
+                      value={budget.total_final_value}
+                      prefix={<DollarCircleOutlined style={{ color: '#096dd9' }} />}
+                      formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      valueStyle={{ color: '#096dd9', fontSize: '18px', fontWeight: 'bold' }}
+                    />
+                  </Card>
+                </Col>
+              </>
+            )}
           </Row>
         </Col>
       </Row>
@@ -553,6 +612,46 @@ export default function BudgetView() {
             />
           </Col>
         </Row>
+        
+        {/* Segunda linha com campos de IPI (se houver) */}
+        {budget.total_ipi_value && budget.total_ipi_value > 0 && (
+          <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+            <Col xs={12} md={6}>
+              <Statistic
+                title="Total IPI"
+                value={budget.total_ipi_value}
+                formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                valueStyle={{ color: '#fa8c16' }}
+              />
+            </Col>
+            <Col xs={12} md={6}>
+              <Statistic
+                title="Valor Final c/ IPI"
+                value={budget.total_final_value}
+                formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                valueStyle={{ color: '#096dd9', fontWeight: 'bold' }}
+              />
+            </Col>
+            <Col xs={12} md={6}>
+              <Statistic
+                title="% IPI Médio"
+                value={budget.total_ipi_value && financialData.totalSaleWithIcms ? 
+                  (budget.total_ipi_value / financialData.totalSaleWithIcms * 100) : 0}
+                formatter={(value) => `${Number(value).toFixed(2)}%`}
+                valueStyle={{ color: '#fa8c16' }}
+              />
+            </Col>
+            <Col xs={12} md={6}>
+              <Alert 
+                message="Valor Final" 
+                description="Este é o valor total que o cliente pagará, incluindo ICMS, PIS/COFINS e IPI." 
+                type="info" 
+                showIcon 
+                style={{ height: '100%' }}
+              />
+            </Col>
+          </Row>
+        )}
         
         <Row gutter={[16, 16]}>
           <Col xs={12} md={6}>

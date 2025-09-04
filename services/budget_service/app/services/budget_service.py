@@ -34,6 +34,7 @@ class BudgetService:
                     'outras_despesas_item': item_data.get('purchase_other_expenses', 0),
                     'valor_com_icms_venda': item_data.get('sale_value_with_icms', 0),
                     'percentual_icms_venda': item_data.get('sale_icms_percentage', 0.18),
+                    'percentual_ipi': item_data.get('ipi_percentage', 0.0),  # IPI percentage
                     'dunamis_cost': item_data.get('dunamis_cost')
                 }
                 transformed_items.append(transformed_item)
@@ -71,7 +72,10 @@ class BudgetService:
             total_purchase_value=totals['total_purchase_value'],
             total_sale_value=totals['total_sale_value'],
             total_commission=totals['total_commission'],
-            profitability_percentage=totals['profitability_percentage']
+            profitability_percentage=totals['profitability_percentage'],
+            # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
+            total_ipi_value=budget_result['totals'].get('total_ipi_orcamento', 0.0),
+            total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0)
         )
         
         db.add(budget)
@@ -80,6 +84,19 @@ class BudgetService:
         # Create items with calculations from business rules
         for i, item_data in enumerate(transformed_items):
             calculated_item = budget_result['items'][i]
+            
+            # Ensure IPI values are properly calculated and set
+            ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+            sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+            sale_weight = calculated_item.get('peso_venda', 1.0)
+            
+            # Calculate IPI value explicitly to ensure it's correct
+            ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                sale_weight, sale_value_with_icms, ipi_percentage
+            )
+            
+            # Use correct IPI field names from BusinessRulesCalculator
+            total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
             
             budget_item = BudgetItem(
                 budget_id=budget.id,
@@ -103,6 +120,10 @@ class BudgetService:
                 commission_value=calculated_item['valor_comissao'],
                 commission_percentage=calculated_item.get('percentual_comissao', 0.0),
                 commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
+                # IPI fields - use values calculated by BusinessRulesCalculator
+                ipi_percentage=ipi_percentage,
+                ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
+                total_value_with_ipi=total_value_with_ipi,
                 dunamis_cost=item_data.get('dunamis_cost')
             )
             db.add(budget_item)
@@ -187,6 +208,7 @@ class BudgetService:
                     'outras_despesas_item': item_data.get('purchase_other_expenses', 0),
                     'valor_com_icms_venda': item_data.get('sale_value_with_icms', 0),
                     'percentual_icms_venda': item_data.get('sale_icms_percentage', 0.18),
+                    'percentual_ipi': item_data.get('ipi_percentage', 0.0),  # IPI percentage
                     'dunamis_cost': item_data.get('dunamis_cost')
                 }
                 transformed_items.append(transformed_item)
@@ -214,6 +236,19 @@ class BudgetService:
             for i, item_data in enumerate(transformed_items):
                 calculated_item = budget_result['items'][i]
                 
+                # Ensure IPI values are properly calculated and set
+                ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+                sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+                sale_weight = calculated_item.get('peso_venda', 1.0)
+                
+                # Calculate IPI value explicitly to ensure it's correct
+                ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                    sale_weight, sale_value_with_icms, ipi_percentage
+                )
+                
+                # Use correct IPI field names from BusinessRulesCalculator
+                total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+                
                 budget_item = BudgetItem(
                     budget_id=budget.id,
                     description=calculated_item['description'],
@@ -236,6 +271,10 @@ class BudgetService:
                     commission_value=calculated_item['valor_comissao'],
                     commission_percentage=calculated_item.get('percentual_comissao', 0.0),
                     commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
+                    # IPI fields - use values calculated by BusinessRulesCalculator
+                    ipi_percentage=ipi_percentage,
+                    ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
+                    total_value_with_ipi=total_value_with_ipi,
                     dunamis_cost=item_data.get('dunamis_cost')
                 )
                 db.add(budget_item)
@@ -247,6 +286,9 @@ class BudgetService:
             setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
             # Always set markup_percentage to the calculated value from business rules
             setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+            # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
+            setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
+            setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
         
         await db.commit()
         await db.refresh(budget)
@@ -281,7 +323,8 @@ class BudgetService:
                 'outras_despesas_item': item.purchase_other_expenses,
                 'peso_venda': item.sale_weight or item.weight,
                 'valor_com_icms_venda': item.sale_value_with_icms,
-                'percentual_icms_venda': item.sale_icms_percentage
+                'percentual_icms_venda': item.sale_icms_percentage,
+                'percentual_ipi': item.ipi_percentage or 0.0  # IPI percentage
             })
         
         # Recalculate using business rules
@@ -298,6 +341,9 @@ class BudgetService:
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
         setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
         setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+        # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
+        setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
+        setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
         
         # Recalculate each item
         for i, item in enumerate(budget.items):
@@ -315,6 +361,19 @@ class BudgetService:
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)
             item.commission_percentage_actual = calculated_item.get('commission_percentage_actual', 0.0)
+            # IPI fields - explicitly calculate to ensure correctness
+            ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+            sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+            sale_weight = calculated_item.get('peso_venda', item.sale_weight or item.weight or 1.0)
+            
+            # Calculate IPI value explicitly to ensure it's correct
+            ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                sale_weight, sale_value_with_icms, ipi_percentage
+            )
+            
+            item.ipi_percentage = ipi_percentage
+            item.ipi_value = ipi_value
+            item.total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
         
         await db.commit()
         await db.refresh(budget)
@@ -338,7 +397,8 @@ class BudgetService:
                 'outras_despesas_item': item.purchase_other_expenses,
                 'peso_venda': item.sale_weight or item.weight,
                 'valor_com_icms_venda': item.sale_value_with_icms,
-                'percentual_icms_venda': item.sale_icms_percentage
+                'percentual_icms_venda': item.sale_icms_percentage,
+                'percentual_ipi': item.ipi_percentage or 0.0  # IPI percentage
             })
         
         # Recalculate with existing values first
@@ -355,6 +415,9 @@ class BudgetService:
         setattr(budget, 'total_sale_value', result['totals']['soma_total_venda'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in result['items'])))
         setattr(budget, 'profitability_percentage', cast(float, markup_percentage))  # Set to desired markup
+        # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
+        setattr(budget, 'total_ipi_value', result['totals'].get('total_ipi_orcamento', 0.0))
+        setattr(budget, 'total_final_value', result['totals'].get('total_final_com_ipi', 0.0))
         
         # Update items with calculated values
         for i, item in enumerate(budget.items):
@@ -369,6 +432,19 @@ class BudgetService:
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)
             item.commission_percentage_actual = calculated_item.get('commission_percentage_actual', 0.0)
+            # IPI fields - explicitly calculate to ensure correctness
+            ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+            sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+            sale_weight = calculated_item.get('peso_venda', item.sale_weight or item.weight or 1.0)
+            
+            # Calculate IPI value explicitly to ensure it's correct
+            ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                sale_weight, sale_value_with_icms, ipi_percentage
+            )
+            
+            item.ipi_percentage = ipi_percentage
+            item.ipi_value = ipi_value
+            item.total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
         
         await db.commit()
         await db.refresh(budget)

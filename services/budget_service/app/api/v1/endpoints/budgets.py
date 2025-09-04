@@ -241,6 +241,8 @@ async def calculate_budget(
 ):
     """Calcular orçamento sem salvar (preview)"""
     try:
+        from app.services.business_rules_calculator import BusinessRulesCalculator
+
         # Validate data
         budget_dict = budget_data.dict()
         errors = BudgetCalculatorService.validate_budget_data(budget_dict)
@@ -249,37 +251,98 @@ async def calculate_budget(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Dados inválidos: {'; '.join(errors)}"
             )
-        
-        # Calculate
-        items_data = [item.dict() for item in budget_data.items]
-        totals = BudgetCalculatorService.calculate_budget_totals(items_data)
-        
-        # Calculate each item
-        items_calculations = []
-        for item_data in items_data:
-            calculations = BudgetCalculatorService.calculate_item_totals(item_data)
-            items_calculations.append({
-                'description': item_data['description'],
-                'weight': item_data.get('weight', 1.0),
-                'total_purchase': calculations['total_purchase'],
-                'total_sale': calculations['total_sale'],
-                'profitability': calculations['profitability'],
-                'commission_value': calculations['commission_value']
-            })
-        
-        return BudgetCalculation(
-            total_purchase_value=totals['total_purchase_value'],
-            total_sale_value=totals['total_sale_value'],
-            total_commission=totals['total_commission'],
-            profitability_percentage=totals['profitability_percentage'],
-            markup_percentage=totals['markup_percentage'],
-            items_calculations=items_calculations
+
+        # Convert items to BusinessRulesCalculator format
+        items_data = []
+        total_peso_pedido = 0.0
+
+        for item in budget_data.items:
+            item_dict = item.dict()
+            # Convert field names to Portuguese format expected by BusinessRulesCalculator
+            converted_item = {
+                'description': item_dict.get('description', ''),
+                'peso_compra': item_dict.get('weight', 1.0),
+                'peso_venda': item_dict.get('sale_weight', item_dict.get('weight', 1.0)),
+                'valor_com_icms_compra': item_dict.get('purchase_value_with_icms', 0),
+                'percentual_icms_compra': item_dict.get('purchase_icms_percentage', 0.18),
+                'outras_despesas_item': item_dict.get('purchase_other_expenses', 0),
+                'valor_com_icms_venda': item_dict.get('sale_value_with_icms', 0),
+                'percentual_icms_venda': item_dict.get('sale_icms_percentage', 0.17),
+                'percentual_ipi': item_dict.get('ipi_percentage', 0.0),
+                'dunamis_cost': item_dict.get('dunamis_cost')
+            }
+            total_peso_pedido += converted_item['peso_compra']
+            items_data.append(converted_item)
+
+        # Validate items using business rules
+        for i, item_data in enumerate(items_data):
+            errors = BusinessRulesCalculator.validate_item_data(item_data)
+            if errors:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Item {i+1}: {'; '.join(errors)}"
+                )
+
+        # Calculate using BusinessRulesCalculator
+        outras_despesas_totais = sum(item.get('purchase_other_expenses', 0) for item in items_data)
+
+        budget_result = BusinessRulesCalculator.calculate_complete_budget(
+            items_data, outras_despesas_totais, total_peso_pedido
         )
-        
+
+        calculated_items = budget_result['items']
+        total_purchase_value = budget_result['totals']['soma_total_compra']
+        total_sale_value = budget_result['totals']['soma_total_venda']
+        total_sale_with_icms = budget_result['totals']['soma_total_venda_com_icms']
+        total_commission = budget_result['totals']['total_comissao']
+        total_ipi_value = budget_result['totals']['total_ipi_orcamento']
+        total_final_value = budget_result['totals']['total_final_com_ipi']
+
+        # Calculate taxes
+        total_net_revenue = total_sale_value
+        total_taxes = total_sale_with_icms - total_net_revenue
+
+        # Calculate markup
+        markup_percentage = budget_result['totals']['markup_pedido']
+        profitability_percentage = markup_percentage
+
+        # Prepare response
+        items_calculations = []
+        for item in calculated_items:
+            items_calculations.append({
+                'description': item['description'],
+                'weight': item['peso_compra'],
+                'total_purchase': item['total_compra_item'],
+                'total_sale': item['total_venda_item'],
+                'profitability': item['rentabilidade_item'] * 100,
+                'commission_value': item['valor_comissao'],
+                'ipi_percentage': item['percentual_ipi'],
+                'ipi_value': item['valor_ipi_total'],
+                'total_value_with_ipi': item['total_final_com_ipi']
+            })
+
+        return BudgetCalculation(
+            total_purchase_value=round(total_purchase_value, 2),
+            total_sale_value=round(total_sale_value, 2),
+            total_net_revenue=round(total_net_revenue, 2),
+            total_taxes=round(total_taxes, 2),
+            total_commission=round(total_commission, 2),
+            profitability_percentage=round(profitability_percentage, 2),
+            markup_percentage=round(markup_percentage, 2),
+            items_calculations=items_calculations,
+            total_ipi_value=round(total_ipi_value, 2),
+            total_final_value=round(total_final_value, 2)
+        )
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno no cálculo: {str(e)}"
         )
 
 
@@ -367,34 +430,26 @@ async def calculate_simplified_budget(
         # Calcular usando BusinessRulesCalculator
         outras_despesas_totais = 0.0  # Pode ser adicionado ao schema se necessário
         
-        calculated_items = []
-        total_purchase_value = 0.0
-        total_sale_value = 0.0  # SEM impostos - agora muda quando ICMS muda
-        total_sale_with_icms = 0.0  # COM ICMS - para cálculo de impostos
-        total_commission = 0.0
+        # Calcular orçamento completo usando BusinessRulesCalculator
+        budget_result = BusinessRulesCalculator.calculate_complete_budget(
+            items_data, outras_despesas_totais, total_peso_pedido
+        )
         
-        for item_data in items_data:
-            calculated_item = BusinessRulesCalculator.calculate_complete_item(
-                item_data, outras_despesas_totais, total_peso_pedido
-            )
-            calculated_items.append(calculated_item)
-            
-            total_purchase_value += calculated_item['total_compra_item']
-            total_sale_value += calculated_item['total_venda_item']  # SEM impostos
-            total_sale_with_icms += calculated_item['total_venda_item_com_icms']  # COM ICMS
-            total_commission += calculated_item['valor_comissao']
+        calculated_items = budget_result['items']
+        total_purchase_value = budget_result['totals']['soma_total_compra']
+        total_sale_value = budget_result['totals']['soma_total_venda']  # SEM impostos
+        total_sale_with_icms = budget_result['totals']['soma_total_venda_com_icms']  # COM ICMS
+        total_commission = budget_result['totals']['total_comissao']
+        total_ipi_value = budget_result['totals']['total_ipi_orcamento']  # Total IPI
+        total_final_value = budget_result['totals']['total_final_com_ipi']  # Valor final com IPI
         
         # Calcular impostos totais usando valores COM ICMS
         total_net_revenue = total_sale_value  # SEM impostos
         total_taxes = total_sale_with_icms - total_net_revenue
         
         # Calcular markup
-        if total_purchase_value > 0:
-            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value) * 100
-            profitability_percentage = markup_percentage
-        else:
-            markup_percentage = 0.0
-            profitability_percentage = 0.0
+        markup_percentage = budget_result['totals']['markup_pedido']
+        profitability_percentage = markup_percentage
         
         # Preparar resposta
         items_calculations = []
@@ -407,7 +462,11 @@ async def calculate_simplified_budget(
                 'total_sale': item['total_venda_item'],
                 'profitability': item['rentabilidade_item'] * 100,  # Converter para percentual
                 'commission_value': item['valor_comissao'],
-                'commission_percentage_actual': item['commission_percentage_actual']  # Actual percentage used
+                'commission_percentage_actual': item['commission_percentage_actual'],  # Actual percentage used
+                # IPI fields
+                'ipi_percentage': item['percentual_ipi'],
+                'ipi_value': item['valor_ipi_total'],
+                'total_value_with_ipi': item['total_final_com_ipi']
             })
         
         return BudgetCalculation(
@@ -418,7 +477,10 @@ async def calculate_simplified_budget(
             total_commission=round(total_commission, 2),
             profitability_percentage=round(profitability_percentage, 2),
             markup_percentage=round(markup_percentage, 2),
-            items_calculations=items_calculations
+            items_calculations=items_calculations,
+            # IPI calculations
+            total_ipi_value=round(total_ipi_value, 2),
+            total_final_value=round(total_final_value, 2)
         )
         
     except ValueError as e:
@@ -492,6 +554,7 @@ async def create_simplified_budget(
                 sale_icms_percentage=calculated_item['percentual_icms_venda'],
                 sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                 weight_difference=calculated_item.get('diferenca_peso'),
+                ipi_percentage=calculated_item['percentual_ipi'],  # CORREÇÃO: Incluir IPI percentage
                 commission_percentage=0  # Será calculado pela rentabilidade
             ))
         
