@@ -76,20 +76,30 @@ export default function BudgetForm({
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
       });
       
-      // CORREÇÃO: Preservar valores salvos do IPI ao invés de sempre usar 0.0
-      const itemsWithIpi = (initialData.items || []).map(item => ({
-        ...item,
-        // Só aplicar 0.0 se valor é realmente undefined/null, não quando é 0
-        ipi_percentage: item.ipi_percentage !== undefined ? item.ipi_percentage : 0.0
-      }));
+      // CORREÇÃO FINAL: Usar os dados exatos como vieram do backend, sem modificar o IPI
+      const itemsWithPreservedIPI = (initialData.items || []).map(item => {
+        // Preservar TODOS os valores originais, especialmente o IPI
+        const preservedItem = {
+          ...item,
+          // Garantir que valores numéricos sejam preservados corretamente
+          ipi_percentage: typeof item.ipi_percentage === 'number' ? item.ipi_percentage : 0.0,
+          purchase_icms_percentage: typeof item.purchase_icms_percentage === 'number' ? item.purchase_icms_percentage : 0.17,
+          sale_icms_percentage: typeof item.sale_icms_percentage === 'number' ? item.sale_icms_percentage : 0.17,
+          weight: typeof item.weight === 'number' ? item.weight : 0,
+          purchase_value_with_icms: typeof item.purchase_value_with_icms === 'number' ? item.purchase_value_with_icms : 0,
+          sale_value_with_icms: typeof item.sale_value_with_icms === 'number' ? item.sale_value_with_icms : 0,
+          purchase_other_expenses: typeof item.purchase_other_expenses === 'number' ? item.purchase_other_expenses : 0
+        };
+        return preservedItem;
+      });
       
-      console.log('Items after processing:', itemsWithIpi.map(item => ({ 
+      console.log('Items after processing:', itemsWithPreservedIPI.map(item => ({ 
         desc: item.description, 
         ipi_processed: item.ipi_percentage 
       })));
       console.log('================================');
       
-      setItems(itemsWithIpi);
+      setItems(itemsWithPreservedIPI);
     } else {
       setItems([{ ...initialBudgetItem }]);
     }

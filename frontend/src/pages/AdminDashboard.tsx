@@ -117,12 +117,12 @@ const AdminDashboard: React.FC = () => {
 
   const handlePeriodChange = (value: string) => {
     if (value === 'custom') {
-      setCustomDateRange(null);
-      setFilterDays(30); // Reset to 30 days
+      setFilterDays(0); // 0 indica modo personalizado
+      // Não limpar customDateRange aqui, deixar o usuário selecionar
     } else {
       const days = parseInt(value);
       setFilterDays(days);
-      setCustomDateRange(null);
+      setCustomDateRange(null); // Limpar range personalizado
     }
   };
 
@@ -222,12 +222,16 @@ const AdminDashboard: React.FC = () => {
                 <Option value="custom">Personalizado</Option>
               </Select>
               
-              {!customDateRange && (
+              {filterDays === 0 && (
                 <RangePicker
                   placeholder={['Data inicial', 'Data final']}
                   onChange={handleCustomDateChange}
                   format="DD/MM/YYYY"
                   style={{ width: 250 }}
+                  value={customDateRange ? [
+                    dayjs(customDateRange[0]),
+                    dayjs(customDateRange[1])
+                  ] : null}
                 />
               )}
               

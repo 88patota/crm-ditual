@@ -206,6 +206,9 @@ export const budgetService = {
     status?: string;
     client_name?: string;
     created_by?: string;
+    days?: number;
+    custom_start?: string;
+    custom_end?: string;
   }): Promise<BudgetSummary[]> {
     const response = await api.get<BudgetSummary[]>('/budgets/', { params });
     return response.data;

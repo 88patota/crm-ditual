@@ -472,116 +472,83 @@ export default function AutoMarkupBudgetForm({
             />
           </div>
 
-          {/* Preview dos Cálculos */}
+          {/* Preview dos Cálculos - Layout Otimizado */}
           {preview && (
             <>
-              <Divider>Resumo Financeiro</Divider>
+              <Divider>✅ Orçamento Calculado</Divider>
               
-              <Alert
-                message="Cálculo Realizado"
-                description={`
-                  Markup aplicado: ${preview.markup_percentage.toFixed(1)}% 
-                  (Baseado nos valores de compra e venda informados)
-                `}
-                type="success"
-                icon={<InfoCircleOutlined />}
-                style={{ marginBottom: '16px' }}
-                showIcon
-              />
-
-              {/* Stats cards */}
-              <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Markup Calculado"
-                      value={preview.markup_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-                      prefix={<CalculatorOutlined />}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Compra"
-                      value={preview.total_purchase_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#ff4d4f' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Venda"
-                      value={preview.total_sale_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#52c41a' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Rentabilidade"
-                      value={preview.profitability_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ 
-                        color: Number(preview.profitability_percentage) > 20 ? '#52c41a' : 
-                               Number(preview.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f'
-                      }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              
-              {/* Adicionar linha com campos de IPI (se houver) */}
-              {preview.total_ipi_value && preview.total_ipi_value > 0 && (
-                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="Total IPI"
-                        value={preview.total_ipi_value}
-                        formatter={(value) => formatCurrency(Number(value))}
-                        valueStyle={{ color: '#fa8c16' }}
+              {/* Totais do Pedido - Design Integrado */}
+              <Card style={{ 
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                border: '1px solid #bae6fd',
+                marginBottom: '24px'
+              }}>
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} lg={16}>
+                    <div style={{ padding: '8px 0' }}>
+                      <Alert
+                        message="🎯 Markup Automático Aplicado"
+                        description={`Markup calculado: ${preview.markup_percentage.toFixed(1)}% baseado nos valores de compra e venda informados.`}
+                        type="success"
+                        showIcon
+                        style={{ marginBottom: '16px' }}
                       />
-                    </Card>
+                      
+                      <Row gutter={[16, 8]}>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
+                              {formatCurrency(preview.total_commission || 0)}
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
+                              {preview.markup_percentage.toFixed(1)}%
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
                   </Col>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="Valor Final c/ IPI"
-                        value={preview.total_final_value}
-                        formatter={(value) => formatCurrency(Number(value))}
-                        valueStyle={{ color: '#096dd9', fontWeight: 'bold' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="% IPI Médio"
-                        value={preview.total_ipi_value && preview.total_sale_value ? 
-                          (preview.total_ipi_value / preview.total_sale_value * 100) : 0}
-                        formatter={(value) => `${Number(value).toFixed(2)}%`}
-                        valueStyle={{ color: '#fa8c16' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Alert 
-                      message="Valor Final" 
-                      description="Este é o valor total que o cliente pagará, incluindo ICMS, PIS/COFINS e IPI." 
-                      type="info" 
-                      showIcon 
-                      style={{ height: '100%' }}
-                    />
+                  
+                  {/* Valor Total Destacado */}
+                  <Col xs={24} lg={8}>
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.9)',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '2px solid #52c41a'
+                    }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
+                        {formatCurrency(preview.total_ipi_value && preview.total_ipi_value > 0 ? 
+                          preview.total_final_value : (preview.total_sale_value + preview.total_taxes))}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {preview.total_ipi_value && preview.total_ipi_value > 0 ? 
+                          'ICMS + IPI' : 'COM ICMS'}
+                      </Text>
+                      
+                      {/* Nota informativa quando há IPI */}
+                      {preview.total_ipi_value && preview.total_ipi_value > 0 && (
+                        <Alert 
+                          message="IPI Aplicado" 
+                          description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
+                          type="warning" 
+                          showIcon 
+                          size="small"
+                          style={{ marginTop: '12px', fontSize: '11px' }}
+                        />
+                      )}
+                    </div>
                   </Col>
                 </Row>
-              )}
+              </Card>
             </>
           )}
         </Form>

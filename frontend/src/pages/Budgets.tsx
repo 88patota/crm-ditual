@@ -3,10 +3,9 @@ import {
   Card,
   Row,
   Col,
-  Statistic,
   Typography,
   Space,
-  List,
+  Table,
   Tag,
   Button,
   Modal,
@@ -15,9 +14,11 @@ import {
   Tooltip,
   Input,
   Select,
-  Dropdown
+  Dropdown,
+  DatePicker,
+  Divider
 } from 'antd';
-import type { MenuProps } from 'antd';
+import type { MenuProps, ColumnsType } from 'antd';
 import {
   FileTextOutlined,
   PlusOutlined,
@@ -34,29 +35,80 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   FilePdfOutlined,
-  DownloadOutlined
+  DownloadOutlined,
+  ReloadOutlined,
+  CalendarOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
+import { 
+  StatusCard 
+} from '../components/ui/DashboardCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
 import { Link } from 'react-router-dom';
+import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 export default function Budgets() {
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [clientFilter, setClientFilter] = useState('');
+  const [filterDays, setFilterDays] = useState<number>(30);
+  const [customDateRange, setCustomDateRange] = useState<[string, string] | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const { data: budgets = [], isLoading } = useQuery({
-    queryKey: ['budgets', searchText, statusFilter, clientFilter],
+  const { data: budgets = [], isLoading, refetch, isRefetching } = useQuery({
+    queryKey: ['budgets', searchText, statusFilter, clientFilter, filterDays, customDateRange],
     queryFn: () => budgetService.getBudgets({
       client_name: clientFilter || undefined,
-      status: statusFilter
+      status: statusFilter,
+      days: customDateRange ? undefined : (filterDays > 0 ? filterDays : undefined),
+      custom_start: customDateRange ? customDateRange[0] : undefined,
+      custom_end: customDateRange ? customDateRange[1] : undefined,
     }),
+    refetchInterval: 2 * 60 * 1000, // Refetch a cada 2 minutos
   });
+
+  const handlePeriodChange = (value: string) => {
+    if (value === 'custom') {
+      setFilterDays(0); // 0 indica modo personalizado
+      // Não limpar customDateRange aqui, deixar o usuário selecionar
+    } else {
+      const days = parseInt(value);
+      setFilterDays(days);
+      setCustomDateRange(null); // Limpar range personalizado
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleCustomDateChange = (dates: any) => {
+    if (dates && dates[0] && dates[1]) {
+      setCustomDateRange([
+        dates[0].format('YYYY-MM-DD'),
+        dates[1].format('YYYY-MM-DD')
+      ]);
+    } else {
+      setCustomDateRange(null);
+    }
+  };
+
+  const getPeriodText = () => {
+    if (customDateRange && customDateRange[0] && customDateRange[1]) {
+      return `Período personalizado: ${new Date(customDateRange[0]).toLocaleDateString('pt-BR')} até ${new Date(customDateRange[1]).toLocaleDateString('pt-BR')}`;
+    }
+    if (filterDays === 0) {
+      return 'Selecione um período personalizado';
+    }
+    if (filterDays === 1) {
+      return 'Hoje';
+    }
+    return `Últimos ${filterDays} dias`;
+  };
 
   const deleteBudgetMutation = useMutation({
     mutationFn: budgetService.deleteBudget,
@@ -163,39 +215,198 @@ export default function Budgets() {
     budget.order_number.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const stats = [
+  // Cards de estatísticas removidos conforme solicitado
+
+  // Dados para os StatusCards
+  const statusCounts = budgets.reduce((acc, budget) => {
+    acc[budget.status] = (acc[budget.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const statusData = [
     {
-      title: 'Total de Orçamentos',
-      value: budgets.length,
-      prefix: <FileTextOutlined className="stats-icon budgets" />,
-      color: '#1890ff',
-      bgColor: '#e6f7ff',
+      title: 'Rascunhos',
+      value: statusCounts.draft || 0,
+      icon: <FileTextOutlined />,
+      color: '#8c8c8c'
+    },
+    {
+      title: 'Pendentes',
+      value: statusCounts.pending || 0,
+      icon: <ClockCircleOutlined />,
+      color: '#1890ff'
+    },
+    {
+      title: 'Aprovados',
+      value: statusCounts.approved || 0,
+      icon: <CheckCircleOutlined />,
+      color: '#52c41a'
+    },
+    {
+      title: 'Rejeitados',
+      value: statusCounts.rejected || 0,
+      icon: <CloseCircleOutlined />,
+      color: '#ff4d4f'
+    },
+    {
+      title: 'Expirados',
+      value: statusCounts.expired || 0,
+      icon: <ExclamationCircleOutlined />,
+      color: '#faad14'
+    }
+  ];
+
+  // Configuração da tabela
+  const columns: ColumnsType<BudgetSummary> = [
+    {
+      title: 'Pedido',
+      dataIndex: 'order_number',
+      key: 'order_number',
+      width: 120,
+      fixed: 'left',
+      render: (text: string, record: BudgetSummary) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ color: '#1890ff' }}>
+            {text}
+          </Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            #{record.id}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Cliente',
+      dataIndex: 'client_name',
+      key: 'client_name',
+      ellipsis: true,
+      render: (text: string) => (
+        <Space>
+          <Text strong>{text}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      filters: [
+        { text: 'Rascunho', value: 'draft' },
+        { text: 'Pendente', value: 'pending' },
+        { text: 'Aprovado', value: 'approved' },
+        { text: 'Rejeitado', value: 'rejected' },
+        { text: 'Expirado', value: 'expired' },
+      ],
+      onFilter: (value: any, record: BudgetSummary) => record.status === value,
+      render: (status: string) => (
+        <Tag 
+          color={getStatusColor(status)}
+          icon={getStatusIcon(status)}
+        >
+          {getStatusText(status)}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Itens',
+      dataIndex: 'items_count',
+      key: 'items_count',
+      width: 80,
+      align: 'center',
+      render: (count: number) => (
+        <Badge count={count} style={{ backgroundColor: '#1890ff' }} />
+      ),
     },
     {
       title: 'Valor Total',
-      value: budgets.reduce((sum, budget) => sum + budget.total_sale_value, 0),
-      prefix: <DollarCircleOutlined className="stats-icon total-value" />,
-      color: '#52c41a',
-      bgColor: '#f6ffed',
-      formatter: (value: string | number) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      dataIndex: 'total_sale_value',
+      key: 'total_sale_value',
+      width: 140,
+      align: 'right',
+      sorter: (a: BudgetSummary, b: BudgetSummary) => a.total_sale_value - b.total_sale_value,
+      render: (value: number) => (
+        <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
+          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </Text>
+      ),
     },
     {
-      title: 'Comissões Totais',
-      value: budgets.reduce((sum, budget) => sum + budget.total_commission, 0),
-      prefix: <TrophyOutlined className="stats-icon commissions" />,
-      color: '#fa541c',
-      bgColor: '#fff2e8',
-      formatter: (value: string | number) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      title: 'Comissão',
+      dataIndex: 'total_commission',
+      key: 'total_commission',
+      width: 120,
+      align: 'right',
+      sorter: (a: BudgetSummary, b: BudgetSummary) => a.total_commission - b.total_commission,
+      render: (value: number) => (
+        <Text style={{ color: '#fa541c' }}>
+          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </Text>
+      ),
     },
     {
-      title: 'Rentabilidade Média',
-      value: budgets.length > 0 
-        ? budgets.reduce((sum, budget) => sum + budget.profitability_percentage, 0) / budgets.length 
-        : 0,
-      prefix: <CalculatorOutlined className="stats-icon profitability" />,
-      color: '#722ed1',
-      bgColor: '#f9f0ff',
-      formatter: (value: string | number) => `${Number(value).toFixed(1)}%`,
+      title: 'Markup',
+      dataIndex: 'profitability_percentage',
+      key: 'profitability_percentage',
+      width: 120,
+      align: 'center',
+      sorter: (a: BudgetSummary, b: BudgetSummary) => a.profitability_percentage - b.profitability_percentage,
+      render: (percentage: number) => (
+        <Badge 
+          count={`${percentage.toFixed(1)}%`}
+          style={{ 
+            backgroundColor: percentage > 20 ? '#52c41a' : 
+                          percentage > 10 ? '#faad14' : '#ff4d4f'
+          }}
+        />
+      ),
+    },
+    {
+      title: 'Data',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 100,
+      sorter: (a: BudgetSummary, b: BudgetSummary) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      render: (date: string) => (
+        <Text type="secondary" style={{ fontSize: '12px' }}>
+          {new Date(date).toLocaleDateString('pt-BR')}
+        </Text>
+      ),
+    },
+    {
+      title: 'Ações',
+      key: 'actions',
+      width: 120,
+      fixed: 'right',
+      render: (_, record: BudgetSummary) => (
+        <Space size="small">
+          <Tooltip title="Visualizar">
+            <Link to={`/budgets/${record.id}`}>
+              <Button
+                type="text"
+                icon={<EyeOutlined />}
+                size="small"
+              />
+            </Link>
+          </Tooltip>
+          <Tooltip title="Editar">
+            <Link to={`/budgets/${record.id}/edit`}>
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                size="small"
+              />
+            </Link>
+          </Tooltip>
+          <Dropdown
+            menu={{ items: getActionItems(record) }}
+            trigger={['click']}
+          >
+            <Button type="text" icon={<MoreOutlined />} size="small" />
+          </Dropdown>
+        </Space>
+      ),
     },
   ];
 
@@ -245,29 +456,43 @@ export default function Budgets() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      {/* Header */}
-      <div className="budgets-header">
+    <div style={{ padding: '24px' }}>
+      {/* Header com Filtros */}
+      <div style={{ marginBottom: '32px' }}>
         <Row justify="space-between" align="middle">
           <Col>
             <Space direction="vertical" size={4}>
-              <Title level={2} style={{ margin: 0 }}>
-                Orçamentos 📋
+              <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                📋 Orçamentos
               </Title>
-              <Text style={{ fontSize: '16px', color: '#8c8c8c' }}>
-                Gerencie orçamentos, cálculos de rentabilidade e comissões.
+              <Text type="secondary" style={{ fontSize: '16px' }}>
+                Gerencie seus orçamentos, rentabilidade e comissões • {getPeriodText()}
               </Text>
             </Space>
           </Col>
           <Col>
             <Space>
-              <Button icon={<FilterOutlined />}>
+              <Button 
+                icon={<FilterOutlined />}
+                onClick={() => setShowFilters(!showFilters)}
+                type={showFilters ? 'primary' : 'default'}
+              >
                 Filtros
               </Button>
+              
+              <Button 
+                icon={<ReloadOutlined spin={isRefetching} />} 
+                onClick={() => refetch()}
+                loading={isRefetching}
+              >
+                Atualizar
+              </Button>
+
               <Link to="/budgets/new">
                 <Button 
                   type="primary" 
                   icon={<PlusOutlined />}
+                  size="large"
                 >
                   Novo Orçamento
                 </Button>
@@ -277,195 +502,157 @@ export default function Budgets() {
         </Row>
       </div>
 
-      {/* Stats Cards */}
-      <Row gutter={[16, 16]}>
-        {stats.map((stat, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card className="stats-card" hoverable>
-              <Statistic
-                title={stat.title}
-                value={stat.value}
-                prefix={
-                  <div 
-                    style={{ 
-                      backgroundColor: stat.bgColor,
-                      color: stat.color,
-                      borderRadius: '8px',
-                      padding: '8px',
-                      display: 'inline-block',
-                      marginRight: '12px'
-                    }}
-                  >
-                    {stat.prefix}
-                  </div>
-                }
-                formatter={stat.formatter}
-                valueStyle={{ fontSize: '24px', fontWeight: 'bold', color: stat.color }}
-              />
-            </Card>
+
+      {/* Status Cards */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col span={24}>
+          <Title level={4} style={{ margin: '0 0 16px 0' }}>
+            <FileTextOutlined style={{ marginRight: '8px' }} />
+            Status dos Orçamentos
+          </Title>
+        </Col>
+        {statusData.map((status, index) => (
+          <Col xs={12} sm={8} lg={5} key={index}>
+            <StatusCard
+              title={status.title}
+              value={status.value}
+              icon={status.icon}
+              color={status.color}
+            />
           </Col>
         ))}
       </Row>
 
-      {/* Filters and Search */}
-      <Card>
-        <Row gutter={16} align="middle">
-          <Col flex="auto">
-            <Input.Search
-              placeholder="Buscar por cliente ou número do pedido..."
-              allowClear
-              onSearch={setSearchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </Col>
-          <Col>
-            <Select
-              placeholder="Status"
-              allowClear
-              value={statusFilter}
-              onChange={setStatusFilter}
-              style={{ width: 150 }}
-            >
-              <Option value="draft">Rascunho</Option>
-              <Option value="pending">Pendente</Option>
-              <Option value="approved">Aprovado</Option>
-              <Option value="rejected">Rejeitado</Option>
-              <Option value="expired">Expirado</Option>
-            </Select>
-          </Col>
-          <Col>
-            <Input
-              placeholder="Cliente"
-              allowClear
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              style={{ width: 200 }}
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* Filtros Avançados */}
+      {showFilters && (
+        <Card style={{ marginBottom: '24px' }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} md={8}>
+              <Input
+                placeholder="🔍 Buscar por cliente ou pedido..."
+                allowClear
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                prefix={<SearchOutlined />}
+              />
+            </Col>
+            <Col xs={12} md={4}>
+              <Select
+                placeholder="Status"
+                allowClear
+                value={statusFilter}
+                onChange={setStatusFilter}
+                style={{ width: '100%' }}
+              >
+                <Option value="draft">🗂️ Rascunho</Option>
+                <Option value="pending">⏳ Pendente</Option>
+                <Option value="approved">✅ Aprovado</Option>
+                <Option value="rejected">❌ Rejeitado</Option>
+                <Option value="expired">⚠️ Expirado</Option>
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Input
+                placeholder="Cliente"
+                allowClear
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+              />
+            </Col>
+            <Col xs={24} md={6}>
+              <Select
+                placeholder="Período"
+                allowClear
+                value={filterDays === 0 ? 'custom' : filterDays.toString()}
+                onChange={handlePeriodChange}
+                style={{ width: '100%' }}
+              >
+                <Option value="1">📅 Hoje</Option>
+                <Option value="3">📅 3 dias</Option>
+                <Option value="7">📅 7 dias</Option>
+                <Option value="15">📅 15 dias</Option>
+                <Option value="30">📅 30 dias</Option>
+                <Option value="90">📅 90 dias</Option>
+                <Option value="custom">📅 Personalizado</Option>
+              </Select>
+            </Col>
+            {filterDays === 0 && (
+              <Col xs={24} md={6}>
+                <RangePicker
+                  placeholder={['Data inicial', 'Data final']}
+                  onChange={handleCustomDateChange}
+                  format="DD/MM/YYYY"
+                  style={{ width: '100%' }}
+                  value={customDateRange ? [
+                    dayjs(customDateRange[0]),
+                    dayjs(customDateRange[1])
+                  ] : null}
+                />
+              </Col>
+            )}
+            <Col xs={24} md={2}>
+              <Button
+                icon={<CalendarOutlined />}
+                onClick={() => {
+                  setSearchText('');
+                  setStatusFilter(undefined);
+                  setClientFilter('');
+                  setFilterDays(30);
+                  setCustomDateRange(null);
+                }}
+                title="Limpar filtros"
+              >
+                Limpar
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+      )}
 
-      {/* Budgets List */}
+      {/* Tabela de Orçamentos */}
       <Card 
         title={
           <Space>
             <FileTextOutlined />
-            <span>Orçamentos ({filteredBudgets.length})</span>
+            <span>Lista de Orçamentos</span>
+            <Badge count={filteredBudgets.length} style={{ backgroundColor: '#1890ff' }} />
           </Space>
         }
         loading={isLoading}
+        extra={
+          <Space>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Total: R$ {filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </Text>
+          </Space>
+        }
       >
-        <List
-          itemLayout="horizontal"
+        <Table<BudgetSummary>
+          columns={columns}
           dataSource={filteredBudgets}
+          rowKey="id"
+          scroll={{ x: 1200 }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} de ${total} orçamentos`,
+            pageSizeOptions: ['10', '20', '50', '100'],
           }}
-          renderItem={(budget) => (
-            <List.Item
-              actions={[
-                <Tooltip title="Visualizar">
-                  <Link to={`/budgets/${budget.id}`}>
-                    <Button
-                      type="text"
-                      icon={<EyeOutlined />}
-                    />
-                  </Link>
-                </Tooltip>,
-                <Tooltip title="Editar">
-                  <Link to={`/budgets/${budget.id}/edit`}>
-                    <Button
-                      type="text"
-                      icon={<EditOutlined />}
-                    />
-                  </Link>
-                </Tooltip>,
-                <Dropdown
-                  menu={{ items: getActionItems(budget) }}
-                  trigger={['click']}
-                >
-                  <Button type="text" icon={<MoreOutlined />} />
-                </Dropdown>,
-              ]}
-            >
-              <List.Item.Meta
-                avatar={
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}>
-                    {getStatusIcon(budget.status)}
-                  </div>
-                }
-                title={
-                  <Space>
-                    <Text strong style={{ fontSize: '16px' }}>
-                      Pedido {budget.order_number}
-                    </Text>
-                    <Tag 
-                      color={getStatusColor(budget.status)}
-                      icon={getStatusIcon(budget.status)}
-                    >
-                      {getStatusText(budget.status)}
-                    </Tag>
-                  </Space>
-                }
-                description={
-                  <Space direction="vertical" size={4}>
-                    <Text type="secondary">
-                      🏢 {budget.client_name}
-                    </Text>
-                    <Space>
-                      <Text type="secondary">
-                        💰 R$ {budget.total_sale_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </Text>
-                      <Text type="secondary">
-                        📊 {budget.profitability_percentage.toFixed(1)}% rentabilidade
-                      </Text>
-                      <Text type="secondary">
-                        📦 {budget.items_count} itens
-                      </Text>
-                    </Space>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                      📅 Criado em {new Date(budget.created_at).toLocaleDateString('pt-BR')}
-                    </Text>
-                  </Space>
-                }
-              />
-              <div style={{ textAlign: 'right', marginLeft: 16 }}>
-                <Space direction="vertical" size={4} style={{ alignItems: 'flex-end' }}>
-                  <Text strong style={{ fontSize: '18px', color: '#52c41a' }}>
-                    R$ {budget.total_sale_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    Total Venda
-                  </Text>
-                  <Badge 
-                    count={`${budget.profitability_percentage.toFixed(1)}%`}
-                    style={{ 
-                      backgroundColor: budget.profitability_percentage > 20 ? '#52c41a' : 
-                                      budget.profitability_percentage > 10 ? '#faad14' : '#ff4d4f'
-                    }}
-                  />
-                </Space>
-              </div>
-            </List.Item>
-          )}
+          size="middle"
+          bordered={false}
+          rowClassName={(record, index) => 
+            index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
+          }
+          onRow={(record) => ({
+            onDoubleClick: () => {
+              window.open(`/budgets/${record.id}`, '_blank');
+            },
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
-    </Space>
+    </div>
   );
 }

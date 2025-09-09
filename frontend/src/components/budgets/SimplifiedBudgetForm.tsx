@@ -44,6 +44,40 @@ interface SimplifiedBudgetFormProps {
   isEdit?: boolean;
 }
 
+// Interface para mapear dados do backend que podem ter campos em inglês
+interface BackendBudgetItem {
+  description?: string;
+  weight?: number;
+  sale_weight?: number;
+  purchase_value_with_icms?: number;
+  purchase_icms_percentage?: number;
+  purchase_other_expenses?: number;
+  sale_value_with_icms?: number;
+  sale_icms_percentage?: number;
+  ipi_percentage?: number;
+  // Campos em português (caso já estejam convertidos)
+  peso_compra?: number;
+  peso_venda?: number;
+  valor_com_icms_compra?: number;
+  percentual_icms_compra?: number;
+  outras_despesas_item?: number;
+  valor_com_icms_venda?: number;
+  percentual_icms_venda?: number;
+  percentual_ipi?: number;
+}
+
+// Interface estendida para incluir campos do backend que podem não estar na interface principal
+interface BudgetItemWithBackendFields extends BudgetItemSimplified {
+  ipi_percentage?: number;
+  weight?: number;
+  sale_weight?: number;
+  purchase_value_with_icms?: number;
+  purchase_icms_percentage?: number;
+  purchase_other_expenses?: number;
+  sale_value_with_icms?: number;
+  sale_icms_percentage?: number;
+}
+
 const initialBudgetItem: BudgetItemSimplified = {
   description: '',
   peso_compra: 0,
@@ -99,20 +133,88 @@ export default function SimplifiedBudgetForm({
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
       });
       
-      // CORREÇÃO: Preservar valores salvos do IPI
-      const itemsWithIpi = (initialData.items || [{ ...initialBudgetItem }]).map(item => ({
-        ...item,
-        // Só aplicar 0.0 se valor é realmente undefined/null, não quando é 0
-        percentual_ipi: item.percentual_ipi !== undefined ? item.percentual_ipi : 0.0
-      }));
+        // CORREÇÃO FINAL: Mapear corretamente os dados do backend
+        const itemsWithPreservedIPI = (initialData.items || [{ ...initialBudgetItem }]).map(item => {
+          // Usar a interface BackendBudgetItem para acessar propriedades que podem vir do backend
+          const backendItem = item as BudgetItemSimplified & BackendBudgetItem & { [key: string]: unknown };
+          
+          console.log('🔍 Raw backend item:', backendItem);
+          console.log('🔍 Available keys:', Object.keys(backendItem));
+          console.log('🔍 IPI related fields:', Object.keys(backendItem).filter(k => k.toLowerCase().includes('ipi')));
+          
+          const preservedItem: BudgetItemSimplified = {
+            description: item.description || '',
+            // Mapear campos de peso corretamente
+            peso_compra: typeof backendItem.weight === 'number' ? backendItem.weight : 
+                        typeof item.peso_compra === 'number' ? item.peso_compra : 0,
+            peso_venda: typeof backendItem.sale_weight === 'number' ? backendItem.sale_weight : 
+                       typeof item.peso_venda === 'number' ? item.peso_venda : 
+                       typeof backendItem.weight === 'number' ? backendItem.weight :
+                       typeof item.peso_compra === 'number' ? item.peso_compra : 0,
+            
+            // Mapear campos de valor de compra
+            valor_com_icms_compra: typeof backendItem.purchase_value_with_icms === 'number' ? backendItem.purchase_value_with_icms :
+                                  typeof item.valor_com_icms_compra === 'number' ? item.valor_com_icms_compra : 0,
+            percentual_icms_compra: typeof backendItem.purchase_icms_percentage === 'number' ? backendItem.purchase_icms_percentage :
+                                   typeof item.percentual_icms_compra === 'number' ? item.percentual_icms_compra : 0.18,
+            outras_despesas_item: typeof backendItem.purchase_other_expenses === 'number' ? backendItem.purchase_other_expenses :
+                                 typeof item.outras_despesas_item === 'number' ? item.outras_despesas_item : 0,
+            
+            // Mapear campos de valor de venda
+            valor_com_icms_venda: typeof backendItem.sale_value_with_icms === 'number' ? backendItem.sale_value_with_icms :
+                                 typeof item.valor_com_icms_venda === 'number' ? item.valor_com_icms_venda : 0,
+            percentual_icms_venda: typeof backendItem.sale_icms_percentage === 'number' ? backendItem.sale_icms_percentage :
+                                  typeof item.percentual_icms_venda === 'number' ? item.percentual_icms_venda : 0.18,
+            
+            // CORREÇÃO CRÍTICA: Mapear IPI corretamente do backend para o frontend
+            // O backend retorna "ipi_percentage": 0.0325, precisa mapear para "percentual_ipi"
+            percentual_ipi: (() => {
+              // PRIMEIRO: Verificar se o item já tem o campo correto mapeado
+              if (typeof item.percentual_ipi === 'number' && !isNaN(item.percentual_ipi) && item.percentual_ipi > 0) {
+                console.log(`🎯 Found IPI already mapped: ${item.percentual_ipi}`);
+                return item.percentual_ipi;
+              }
+              
+              // SEGUNDO: O backend retorna "ipi_percentage", mapear diretamente
+              const itemWithBackend = item as BudgetItemWithBackendFields;
+              if (typeof itemWithBackend.ipi_percentage === 'number' && !isNaN(itemWithBackend.ipi_percentage)) {
+                console.log(`🎯 Mapping IPI from backend 'ipi_percentage': ${itemWithBackend.ipi_percentage}`);
+                return itemWithBackend.ipi_percentage;
+              }
+              
+              // TERCEIRO: Verificar através do backendItem (cast genérico)
+              if (typeof backendItem.ipi_percentage === 'number' && !isNaN(backendItem.ipi_percentage)) {
+                console.log(`🎯 Found IPI via backendItem: ${backendItem.ipi_percentage}`);
+                return backendItem.ipi_percentage;
+              }
+              
+              // QUARTO: Buscar em outros possíveis nomes de campo
+              const ipiFieldNames = ['percentual_ipi', 'ipi_value', 'ipi_percent'];
+              for (const fieldName of ipiFieldNames) {
+                const value = backendItem[fieldName];
+                if (typeof value === 'number' && !isNaN(value) && value > 0) {
+                  console.log(`🎯 Found IPI in fallback field '${fieldName}': ${value}`);
+                  return value;
+                }
+              }
+              
+              // Se não encontrou nenhum campo válido, retornar 0
+              console.log('⚠️ No valid IPI field found, defaulting to 0');
+              console.log('Available item keys:', Object.keys(item));
+              console.log('Available backendItem keys:', Object.keys(backendItem));
+              return 0.0;
+            })()
+          };
+          return preservedItem;
+        });
       
-      console.log('Items after processing:', itemsWithIpi.map(item => ({ 
+      console.log('Items after processing:', itemsWithPreservedIPI.map(item => ({ 
         desc: item.description, 
         ipi_processed: item.percentual_ipi 
       })));
       console.log('==========================================');
       
-      setItems(itemsWithIpi);
+      setItems(itemsWithPreservedIPI);
       setOrderNumber(initialData.order_number || '');
       setLoadingOrderNumber(false);
     } else {
@@ -253,6 +355,8 @@ export default function SimplifiedBudgetForm({
           peso_venda: parseFloat(item.peso_venda.toString().replace(',', '.')),
           valor_com_icms_compra: parseFloat(item.valor_com_icms_compra.toString().replace(',', '.')),
           valor_com_icms_venda: parseFloat(item.valor_com_icms_venda.toString().replace(',', '.')),
+          // CORREÇÃO: Garantir que o IPI seja incluído no salvamento
+          percentual_ipi: typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0
         })),
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -651,163 +755,83 @@ export default function SimplifiedBudgetForm({
             />
           </div>
 
-          {/* Preview dos Cálculos */}
+          {/* Preview dos Cálculos - Layout Otimizado */}
           {preview && (
             <>
-              <Divider>Cálculos Realizados</Divider>
+              <Divider>✅ Orçamento Calculado</Divider>
               
-              <Alert
-                message="Sucesso!"
-                description={`Todos os cálculos foram realizados com base nas fórmulas. Markup calculado: ${preview.markup_percentage.toFixed(1)}%`}
-                type="success"
-                icon={<InfoCircleOutlined />}
-                style={{ marginBottom: '16px' }}
-                showIcon
-              />
-              
-              <Alert
-                message="📊 Comportamento do Total Venda"
-                description={`Total Venda (s/ impostos): MUDA quando % ICMS muda - igual ao comportamento do Total Compra. Valor c/ ICMS: O que o cliente efetivamente paga (Total Venda + Impostos). Agora o Total Venda se comporta como a PM solicitou.`}
-                type="success"
-                style={{ marginBottom: '16px' }}
-                showIcon
-              />
-
-              <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Compra (s/ impostos)"
-                      value={preview.total_purchase_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#ff4d4f' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Venda (s/ impostos)"
-                      value={preview.total_sale_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#52c41a' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Valor c/ ICMS (Cliente Paga)"
-                      value={preview.total_sale_value + preview.total_taxes}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#1890ff' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Impostos Totais"
-                      value={preview.total_taxes}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#faad14' }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              
-              <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Markup Calculado"
-                      value={preview.markup_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ color: '#1890ff' }}
-                      prefix={<CalculatorOutlined />}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Rentabilidade"
-                      value={preview.profitability_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ 
-                        color: Number(preview.profitability_percentage) > 20 ? '#52c41a' : 
-                               Number(preview.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f'
-                      }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Comissão Total"
-                      value={preview.total_commission}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#722ed1' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="% Impostos"
-                      value={(preview.total_taxes / preview.total_sale_value) * 100}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ color: '#fa8c16' }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
-              
-              {/* Adicionar linha com campos de IPI (se houver) */}
-              {preview.total_ipi_value && preview.total_ipi_value > 0 && (
-                <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="Total IPI"
-                        value={preview.total_ipi_value}
-                        formatter={(value) => formatCurrency(Number(value))}
-                        valueStyle={{ color: '#fa8c16' }}
+              {/* Totais do Pedido - Design Integrado */}
+              <Card style={{ 
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                border: '1px solid #bae6fd',
+                marginBottom: '24px'
+              }}>
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} lg={16}>
+                    <div style={{ padding: '8px 0' }}>
+                      <Alert
+                        message="🎯 Cálculo Concluído"
+                        description={`Orçamento calculado com markup de ${preview.markup_percentage.toFixed(1)}%. Todos os valores estão prontos para revisão.`}
+                        type="success"
+                        showIcon
+                        style={{ marginBottom: '16px' }}
                       />
-                    </Card>
+                      
+                      <Row gutter={[16, 8]}>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
+                              {formatCurrency(preview.total_commission)}
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
+                              {preview.markup_percentage.toFixed(1)}%
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
                   </Col>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="Valor Final c/ IPI"
-                        value={preview.total_final_value}
-                        formatter={(value) => formatCurrency(Number(value))}
-                        valueStyle={{ color: '#096dd9', fontWeight: 'bold' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Card>
-                      <Statistic
-                        title="% IPI Médio"
-                        value={preview.total_ipi_value && preview.total_sale_value ? 
-                          (preview.total_ipi_value / preview.total_sale_value * 100) : 0}
-                        formatter={(value) => `${Number(value).toFixed(2)}%`}
-                        valueStyle={{ color: '#fa8c16' }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Alert 
-                      message="Valor Final" 
-                      description="Este é o valor total que o cliente pagará, incluindo ICMS, PIS/COFINS e IPI." 
-                      type="info" 
-                      showIcon 
-                      style={{ height: '100%' }}
-                    />
+                  
+                  {/* Valor Total Destacado */}
+                  <Col xs={24} lg={8}>
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.9)',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '2px solid #52c41a'
+                    }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
+                        {formatCurrency(preview.total_ipi_value && preview.total_ipi_value > 0 ? 
+                          preview.total_final_value : (preview.total_sale_value + preview.total_taxes))}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        {preview.total_ipi_value && preview.total_ipi_value > 0 ? 
+                          'ICMS + IPI' : 'COM ICMS'}
+                      </Text>
+                      
+                      {/* Nota informativa quando há IPI */}
+                      {preview.total_ipi_value && preview.total_ipi_value > 0 && (
+                        <Alert 
+                          message="IPI Aplicado" 
+                          description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
+                          type="warning" 
+                          showIcon 
+                          size="small"
+                          style={{ marginTop: '12px', fontSize: '11px' }}
+                        />
+                      )}
+                    </div>
                   </Col>
                 </Row>
-              )}
+              </Card>
             </>
           )}
         </Form>
