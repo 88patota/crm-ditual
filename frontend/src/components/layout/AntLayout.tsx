@@ -34,11 +34,6 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
       label: <Link to="/dashboard">Dashboard</Link>,
     },
     {
-      key: '/dashboard-example',
-      icon: <DashboardOutlined />,
-      label: <Link to="/dashboard-example">Componentes Cards</Link>,
-    },
-    {
       key: '/budgets',
       icon: <FileTextOutlined />,
       label: <Link to="/budgets">Orçamentos</Link>,

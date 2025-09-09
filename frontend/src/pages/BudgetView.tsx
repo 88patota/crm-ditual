@@ -125,7 +125,7 @@ export default function BudgetView() {
   });
 
   // Função para exportar PDF
-  const handleExportPdf = async (simplified: boolean = false) => {
+  const handleExportPdf = async () => {
     if (!budget) return;
     
     try {
@@ -133,8 +133,7 @@ export default function BudgetView() {
       
       await budgetService.exportAndDownloadPdf(
         budget.id!, 
-        simplified,
-        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${budget.order_number}.pdf`
+        `Proposta_${budget.order_number}.pdf`
       );
       
       loadingMessage();
@@ -393,20 +392,14 @@ export default function BudgetView() {
                 />
               </Tooltip>
               
-              <Tooltip title="PDF Completo">
+              <Tooltip title="Exportar PDF">
                 <Button
                   icon={<FilePdfOutlined />}
-                  onClick={() => handleExportPdf(false)}
+                  onClick={handleExportPdf}
                   style={{ color: '#dc2626' }}
-                />
-              </Tooltip>
-              
-              <Tooltip title="PDF Simplificado">
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={() => handleExportPdf(true)}
-                  style={{ color: '#059669' }}
-                />
+                >
+                  Exportar PDF
+                </Button>
               </Tooltip>
               
               <Link to={`/budgets/${id}/edit`}>
