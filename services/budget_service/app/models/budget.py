@@ -23,7 +23,8 @@ class Budget(Base):
     
     # Financial fields
     total_purchase_value = Column(Float, default=0.0)
-    total_sale_value = Column(Float, default=0.0)
+    total_sale_value = Column(Float, default=0.0)  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms = Column(Float, default=0.0)  # COM ICMS - valor real sem IPI
     total_commission = Column(Float, default=0.0)
     markup_percentage = Column(Float, default=0.0)
     profitability_percentage = Column(Float, default=0.0)

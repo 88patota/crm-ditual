@@ -319,14 +319,14 @@ export default function Budgets() {
     },
     {
       title: 'Valor Total',
-      dataIndex: 'total_sale_value',
-      key: 'total_sale_value',
+      dataIndex: 'total_sale_with_icms',
+      key: 'total_sale_with_icms',
       width: 140,
       align: 'right',
-      sorter: (a: BudgetSummary, b: BudgetSummary) => a.total_sale_value - b.total_sale_value,
+      sorter: (a: BudgetSummary, b: BudgetSummary) => (a.total_sale_with_icms || 0) - (b.total_sale_with_icms || 0),
       render: (value: number) => (
         <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          R$ {(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </Text>
       ),
     },

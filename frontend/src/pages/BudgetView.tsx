@@ -481,17 +481,14 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
-                      R$ {(budget.total_ipi_value && budget.total_ipi_value > 0 ? 
-                        budget.total_final_value : financialData.totalSaleWithIcms)
-                        .toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {financialData.totalSaleWithIcms.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                     <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {budget.total_ipi_value && budget.total_ipi_value > 0 ? 
-                        'ICMS + IPI' : 'COM ICMS'}
+                      COM ICMS
                     </Text>
                   </div>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
@@ -499,7 +496,15 @@ export default function BudgetView() {
                     </div>
                   </div>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>IPI</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa8c16' }}>
+                      R$ {(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </Col>
+                <Col span={8}>
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>

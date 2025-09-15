@@ -355,7 +355,17 @@ class BusinessRulesCalculator:
         valor_ipi_unitario = BusinessRulesCalculator.calculate_ipi_value(valor_com_icms_venda, percentual_ipi)
         valor_ipi_total = BusinessRulesCalculator.calculate_total_ipi_item(peso_venda, valor_com_icms_venda, percentual_ipi)
         valor_final_com_ipi = BusinessRulesCalculator.calculate_total_value_with_ipi(valor_com_icms_venda, percentual_ipi)
-        total_final_com_ipi = peso_venda * valor_final_com_ipi
+        
+        # CORREÇÃO BUG CENTAVOS: Calcular total final sem arredondamento intermediário
+        peso_venda_dec = BusinessRulesCalculator._to_decimal(peso_venda)
+        valor_com_icms_venda_dec = BusinessRulesCalculator._to_decimal(valor_com_icms_venda)
+        percentual_ipi_dec = BusinessRulesCalculator._to_decimal(percentual_ipi)
+        
+        # Calcular IPI total sem arredondamento intermediário
+        total_base = peso_venda_dec * valor_com_icms_venda_dec
+        total_ipi = total_base * percentual_ipi_dec
+        total_final_com_ipi_dec = total_base + total_ipi
+        total_final_com_ipi = float(total_final_com_ipi_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
         try:
             # IMPORTANTE: Para cálculo correto de comissão quando há diferença de peso:
@@ -426,11 +436,11 @@ class BusinessRulesCalculator:
         # Para cálculo de markup correto: usar valores COM ICMS
         total_compra_com_icms = 0.0
         total_venda_com_icms = 0.0
-        # Totais de IPI
-        total_ipi_orcamento = 0.0
-        total_final_com_ipi = 0.0
+        # Totais de IPI - CORREÇÃO BUG CENTAVOS: Usar Decimal para acumulação precisa dos totais
+        total_ipi_orcamento_dec = Decimal('0')
+        total_final_com_ipi_dec = Decimal('0')
         resultados_itens = []
-
+        
         for item_data in items_data:
             resultado_item = BusinessRulesCalculator.calculate_complete_item(
                 item_data, outras_despesas_totais, soma_pesos_pedido
@@ -441,10 +451,16 @@ class BusinessRulesCalculator:
             # Acumular valores COM ICMS para cálculo correto de markup
             total_compra_com_icms += resultado_item['total_compra_item_com_icms']
             total_venda_com_icms += resultado_item['total_venda_item_com_icms']
-            # Acumular IPI
-            total_ipi_orcamento += resultado_item.get('valor_ipi_total', 0.0)
-            total_final_com_ipi += resultado_item.get('total_final_com_ipi', resultado_item['total_venda_item_com_icms'])
+            # Acumular IPI com precisão decimal
+            item_ipi = resultado_item.get('valor_ipi_total', 0.0)
+            item_total_final = resultado_item.get('total_final_com_ipi', resultado_item['total_venda_item_com_icms'])
+            total_ipi_orcamento_dec += BusinessRulesCalculator._to_decimal(item_ipi)
+            total_final_com_ipi_dec += BusinessRulesCalculator._to_decimal(item_total_final)
             resultados_itens.append(resultado_item)
+        
+        # Converter de volta para float com precisão correta
+        total_ipi_orcamento = float(total_ipi_orcamento_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+        total_final_com_ipi = float(total_final_com_ipi_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
         items_count = len(resultados_itens)
         # CORREÇÃO: Usar valores COM ICMS para markup (compra com ICMS vs venda com ICMS)

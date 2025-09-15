@@ -809,12 +809,10 @@ export default function SimplifiedBudgetForm({
                     }}>
                       <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
                       <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
-                        {formatCurrency(preview.total_ipi_value && preview.total_ipi_value > 0 ? 
-                          preview.total_final_value : (preview.total_sale_value + preview.total_taxes))}
+                        {formatCurrency(preview.total_sale_value + preview.total_taxes)}
                       </div>
                       <Text type="secondary" style={{ fontSize: '11px' }}>
-                        {preview.total_ipi_value && preview.total_ipi_value > 0 ? 
-                          'ICMS + IPI' : 'COM ICMS'}
+                        COM ICMS
                       </Text>
                       
                       {/* Nota informativa quando há IPI */}

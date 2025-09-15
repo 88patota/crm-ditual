@@ -210,7 +210,8 @@ class BudgetResponse(BudgetBase):
     
     # Financial totals
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
     
@@ -233,7 +234,8 @@ class BudgetSummary(BaseModel):
     order_number: str
     client_name: str
     status: BudgetStatus
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
     items_count: int
@@ -262,7 +264,8 @@ class BudgetCalculation(BaseModel):
 class BudgetPreviewCalculation(BaseModel):
     """Response para cálculo de preview com entrada simplificada"""
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
     markup_percentage: float  # CALCULADO AUTOMATICAMENTE

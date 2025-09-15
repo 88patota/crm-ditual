@@ -77,6 +77,9 @@ async def get_budgets(
     status: Optional[BudgetStatus] = None,
     client_name: Optional[str] = None,
     created_by: Optional[str] = None,
+    days: Optional[int] = Query(None, description="Filtro de dias (1=hoje, 3, 7, 15, 30)"),
+    custom_start: Optional[str] = Query(None, description="Data inicial customizada (YYYY-MM-DD)"),
+    custom_end: Optional[str] = Query(None, description="Data final customizada (YYYY-MM-DD)"),
     db: AsyncSession = Depends(get_db),
     user_filter: Optional[str] = Depends(get_user_filter)
 ):
@@ -88,7 +91,8 @@ async def get_budgets(
     
     budgets = await BudgetService.get_budgets(
         db, skip=skip, limit=limit, status=status, 
-        client_name=client_name, created_by=created_by
+        client_name=client_name, created_by=created_by,
+        days=days, custom_start=custom_start, custom_end=custom_end
     )
     
     # Convert to summary format
@@ -100,6 +104,7 @@ async def get_budgets(
             client_name=budget.client_name,
             status=budget.status,
             total_sale_value=budget.total_sale_value,
+            total_sale_with_icms=budget.total_sale_with_icms or 0.0,
             total_commission=budget.total_commission,
             profitability_percentage=budget.profitability_percentage,
             items_count=len(budget.items),
@@ -755,11 +760,10 @@ async def calculate_dunamis_cost(
 @router.get("/{budget_id}/export-pdf")
 async def export_budget_as_pdf(
     budget_id: int,
-    simplified: bool = Query(False, description="Gerar versão simplificada da proposta"),
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user)
 ):
-    """Exportar orçamento como proposta em PDF"""
+    """Exportar orçamento como proposta em PDF usando template oficial da Ditual"""
     try:
         # Buscar orçamento
         budget = await BudgetService.get_budget_by_id(db, budget_id)
@@ -776,13 +780,9 @@ async def export_budget_as_pdf(
                 detail="Acesso negado: você só pode exportar seus próprios orçamentos"
             )
         
-        # Gerar PDF
-        if simplified:
-            pdf_content = pdf_export_service.generate_simplified_proposal_pdf(budget)
-            filename = f"Proposta_Simplificada_{budget.order_number}.pdf"
-        else:
-            pdf_content = pdf_export_service.generate_proposal_pdf(budget)
-            filename = f"Proposta_Completa_{budget.order_number}.pdf"
+        # Gerar PDF usando template oficial
+        pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+        filename = f"Proposta_{budget.order_number}.pdf"
         
         # Retornar PDF como resposta
         return Response(
@@ -804,10 +804,9 @@ async def export_budget_as_pdf(
 @router.get("/order/{order_number}/export-pdf")
 async def export_budget_by_order_as_pdf(
     order_number: str,
-    simplified: bool = Query(False, description="Gerar versão simplificada da proposta"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Exportar orçamento como proposta em PDF usando número do pedido"""
+    """Exportar orçamento como proposta em PDF pelo número do pedido"""
     try:
         # Buscar orçamento por número do pedido
         budget = await BudgetService.get_budget_by_order_number(db, order_number)
@@ -817,13 +816,9 @@ async def export_budget_by_order_as_pdf(
                 detail="Orçamento não encontrado"
             )
         
-        # Gerar PDF
-        if simplified:
-            pdf_content = pdf_export_service.generate_simplified_proposal_pdf(budget)
-            filename = f"Proposta_Simplificada_{budget.order_number}.pdf"
-        else:
-            pdf_content = pdf_export_service.generate_proposal_pdf(budget)
-            filename = f"Proposta_Completa_{budget.order_number}.pdf"
+        # Gerar PDF usando template oficial
+        pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+        filename = f"Proposta_{budget.order_number}.pdf"
         
         # Retornar PDF como resposta
         return Response(

@@ -35,7 +35,8 @@ export interface BudgetSimplified {
 
 export interface BudgetPreviewCalculation {
   total_purchase_value: number;
-  total_sale_value: number;
+  total_sale_value: number;  // SEM impostos - valor que muda quando ICMS muda
+  total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission: number;
   profitability_percentage: number;
   markup_percentage: number; // CALCULADO AUTOMATICAMENTE
@@ -142,7 +143,8 @@ export interface Budget {
   
   // Financial totals
   total_purchase_value?: number;
-  total_sale_value?: number;
+  total_sale_value?: number;  // SEM impostos - valor que muda quando ICMS muda
+  total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission?: number;
   profitability_percentage?: number;
   
@@ -163,7 +165,8 @@ export interface BudgetSummary {
   order_number: string;
   client_name: string;
   status: string;
-  total_sale_value: number;
+  total_sale_value: number;  // SEM impostos - valor que muda quando ICMS muda
+  total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission: number;
   profitability_percentage: number;
   items_count: number;

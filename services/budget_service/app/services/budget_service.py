@@ -71,6 +71,7 @@ class BudgetService:
             created_by=created_by,
             total_purchase_value=totals['total_purchase_value'],
             total_sale_value=totals['total_sale_value'],
+            total_sale_with_icms=budget_result['totals']['soma_total_venda_com_icms'],
             total_commission=totals['total_commission'],
             profitability_percentage=totals['profitability_percentage'],
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
@@ -154,9 +155,14 @@ class BudgetService:
         limit: int = 100,
         status: Optional[BudgetStatus] = None,
         client_name: Optional[str] = None,
-        created_by: Optional[str] = None
+        created_by: Optional[str] = None,
+        days: Optional[int] = None,
+        custom_start: Optional[str] = None,
+        custom_end: Optional[str] = None
     ) -> List[Budget]:
         """Get budgets with filtering"""
+        from datetime import datetime, timedelta
+        
         query = select(Budget).options(selectinload(Budget.items))
         
         # Apply filters
@@ -167,6 +173,26 @@ class BudgetService:
             conditions.append(Budget.client_name.ilike(f"%{client_name}%"))
         if created_by:
             conditions.append(Budget.created_by == created_by)
+        
+        # Date filtering
+        if custom_start and custom_end:
+            # Custom date range
+            start_date = datetime.strptime(custom_start, "%Y-%m-%d")
+            end_date = datetime.strptime(custom_end, "%Y-%m-%d")
+            # Adjust end_date to include the full day
+            end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+            conditions.append(Budget.created_at >= start_date)
+            conditions.append(Budget.created_at <= end_date)
+        elif days:
+            # Days-based filtering
+            end_date = datetime.now()
+            if days == 1:
+                # For "today", start from 00:00:00
+                start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                start_date = end_date - timedelta(days=days)
+            conditions.append(Budget.created_at >= start_date)
+            conditions.append(Budget.created_at <= end_date)
         
         if conditions:
             query = query.where(and_(*conditions))
@@ -282,6 +308,7 @@ class BudgetService:
             # Update budget totals from business rules result
             setattr(budget, 'total_purchase_value', budget_result['totals']['soma_total_compra'])
             setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
+            setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
             setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
             setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
             # Always set markup_percentage to the calculated value from business rules
@@ -338,6 +365,7 @@ class BudgetService:
         # Update budget totals
         setattr(budget, 'total_purchase_value', budget_result['totals']['soma_total_compra'])
         setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
+        setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
         setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
         setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
@@ -413,6 +441,7 @@ class BudgetService:
         setattr(budget, 'markup_percentage', cast(float, markup_percentage))
         setattr(budget, 'total_purchase_value', result['totals']['soma_total_compra'])
         setattr(budget, 'total_sale_value', result['totals']['soma_total_venda'])
+        setattr(budget, 'total_sale_with_icms', result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in result['items'])))
         setattr(budget, 'profitability_percentage', cast(float, markup_percentage))  # Set to desired markup
         # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
