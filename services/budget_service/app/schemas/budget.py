@@ -17,6 +17,7 @@ class BudgetItemSimplified(BaseModel):
     valor_com_icms_venda: float  # Valor de venda com ICMS
     percentual_icms_venda: float = 0.18  # Percentual ICMS venda (formato decimal 0.18 = 18%)
     percentual_ipi: float = 0.0  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
+    delivery_time: Optional[str] = "0"  # Prazo de entrega em dias (0 = imediato)
 
     @validator('peso_venda', always=True)
     def validate_peso_venda(cls, v, values):
@@ -60,6 +61,11 @@ class BudgetSimplifiedCreate(BaseModel):
     status: Optional[str] = "draft"
     expires_at: Optional[datetime] = None
     notes: Optional[str] = None
+    
+    # Campos de negócio
+    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
+    
     items: List[BudgetItemSimplified]
 
     @validator('items')
@@ -88,6 +94,7 @@ class MarkupConfiguration(BaseModel):
 class BudgetItemBase(BaseModel):
     description: str
     weight: Optional[float] = None
+    delivery_time: Optional[str] = None  # Prazo de entrega por item
     
     # Purchase data
     purchase_value_with_icms: float
@@ -176,6 +183,10 @@ class BudgetBase(BaseModel):
     markup_percentage: float = 0.0
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
+    
+    # Campos de negócio
+    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
 
     @validator('order_number')
     def validate_order_number(cls, v):

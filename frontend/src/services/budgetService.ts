@@ -3,6 +3,7 @@ import api from '../lib/api';
 // Tipos simplificados - APENAS campos obrigatórios (atualizados conforme novas regras de negócio)
 export interface BudgetItemSimplified {
   description: string;
+  delivery_time?: string; // Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
   
   // Bloco Compras - Purchase data
   peso_compra: number;
@@ -98,6 +99,7 @@ export interface BudgetItem {
   description: string;
   quantity?: number;
   weight?: number;
+  delivery_time?: string; // Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
   
   // Purchase data
   purchase_value_with_icms: number;

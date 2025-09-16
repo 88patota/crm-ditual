@@ -34,6 +34,7 @@ export default function BudgetEditSimplified() {
         markup_percentage: 0, // Será calculado automaticamente
         items: budgetData.items.map(item => ({
           description: item.description,
+          delivery_time: item.delivery_time || '0', // CORREÇÃO: Incluir prazo de entrega
           quantity: 1, // Valor padrão
           weight: item.peso_compra,
           sale_weight: item.peso_venda,
@@ -90,6 +91,12 @@ export default function BudgetEditSimplified() {
       ipi_backend: item.ipi_percentage 
     })));
     
+    // DEBUG: Log delivery_time values
+    console.log('🔍 DEBUG - Frontend conversion - delivery_time values:');
+    budget.items?.forEach((item, i) => {
+      console.log(`🔍 DEBUG - Item ${i}: delivery_time from backend = ${JSON.stringify(item.delivery_time)}`);
+    });
+    
     const result = {
       order_number: budget.order_number,
       client_name: budget.client_name,
@@ -100,6 +107,7 @@ export default function BudgetEditSimplified() {
       outras_despesas_totais: 0, // Valor padrão, pois não está no Budget original
       items: budget.items?.map((item) => ({
         description: item.description,
+        delivery_time: item.delivery_time || '0', // CORREÇÃO: Incluir prazo de entrega
         peso_compra: item.weight || 0,
         peso_venda: item.sale_weight || item.weight || 0,
         valor_com_icms_compra: item.purchase_value_with_icms || 0,
@@ -116,6 +124,12 @@ export default function BudgetEditSimplified() {
       desc: item.description, 
       ipi_converted: item.percentual_ipi 
     })));
+    
+    // DEBUG: Log converted delivery_time values
+    console.log('🔍 DEBUG - Frontend conversion result - delivery_time values:');
+    result.items.forEach((item, i) => {
+      console.log(`🔍 DEBUG - Item ${i}: delivery_time converted = ${JSON.stringify(item.delivery_time)}`);
+    });
     console.log('========================================');
     
     return result;

@@ -102,6 +102,7 @@ class BudgetService:
             budget_item = BudgetItem(
                 budget_id=budget.id,
                 description=calculated_item['description'],
+                delivery_time=item_data.get('delivery_time', '0'),  # CORREÇÃO: Usar delivery_time do item_data original
                 weight=calculated_item['peso_compra'],
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
@@ -139,7 +140,15 @@ class BudgetService:
         """Get budget by ID with items"""
         query = select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
         result = await db.execute(query)
-        return result.scalar_one_or_none()
+        budget = result.scalar_one_or_none()
+        
+        # DEBUG: Log delivery_time values from database (pode ser removido depois)
+        if budget and budget.items:
+            print(f"🔍 DEBUG - Budget {budget_id} retrieved from DB:")
+            for i, item in enumerate(budget.items):
+                print(f"🔍 DEBUG - Item {i}: delivery_time from DB = {repr(item.delivery_time)}")
+        
+        return budget
     
     @staticmethod
     async def get_budget_by_order_number(db: AsyncSession, order_number: str) -> Optional[Budget]:
@@ -227,6 +236,7 @@ class BudgetService:
             for item_data in items_list:
                 transformed_item = {
                     'description': item_data.get('description', ''),
+                    'delivery_time': item_data.get('delivery_time', '0'),  # CORREÇÃO: Incluir delivery_time
                     'peso_compra': item_data.get('weight', 1.0),
                     'peso_venda': item_data.get('sale_weight') or item_data.get('weight', 1.0),
                     'valor_com_icms_compra': item_data.get('purchase_value_with_icms', 0),
@@ -262,6 +272,10 @@ class BudgetService:
             for i, item_data in enumerate(transformed_items):
                 calculated_item = budget_result['items'][i]
                 
+                # DEBUG: Log delivery_time values
+                print(f"🔍 DEBUG - Item {i}: delivery_time from item_data = {item_data.get('delivery_time')}")
+                print(f"🔍 DEBUG - Item {i}: delivery_time from calculated_item = {calculated_item.get('delivery_time')}")
+                
                 # Ensure IPI values are properly calculated and set
                 ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
                 sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
@@ -278,6 +292,7 @@ class BudgetService:
                 budget_item = BudgetItem(
                     budget_id=budget.id,
                     description=calculated_item['description'],
+                    delivery_time=item_data.get('delivery_time', '0'),  # CORREÇÃO: Usar delivery_time do item_data original
                     weight=calculated_item['peso_compra'],
                     purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                     purchase_icms_percentage=calculated_item['percentual_icms_compra'],

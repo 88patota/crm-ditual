@@ -405,6 +405,7 @@ class BusinessRulesCalculator:
             'valor_com_icms_venda': valor_com_icms_venda,
             'percentual_icms_venda': percentual_icms_venda,
             'percentual_ipi': percentual_ipi,  # Incluir percentual de IPI
+            'delivery_time': item_data.get('delivery_time', '0'),  # Prazo de entrega em dias
             'outras_despesas_distribuidas': outras_despesas_distribuidas,
             'valor_sem_impostos_compra': valor_sem_impostos_compra,
             'valor_corrigido_peso': valor_corrigido_peso,
@@ -463,8 +464,9 @@ class BusinessRulesCalculator:
         total_final_com_ipi = float(total_final_com_ipi_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
 
         items_count = len(resultados_itens)
-        # CORREÇÃO: Usar valores COM ICMS para markup (compra com ICMS vs venda com ICMS)
-        markup_pedido = ((total_venda_com_icms / total_compra_com_icms) - 1) * 100 if total_compra_com_icms > 0 else 0.0
+        # CORREÇÃO PM: Usar valores SEM ICMS para markup correto quando ICMS compra ≠ ICMS venda
+        # Markup deve refletir a rentabilidade real da operação, não valores brutos com impostos
+        markup_pedido = ((total_venda / total_compra) - 1) * 100 if total_compra > 0 else 0.0
 
         return {
             'totals': {

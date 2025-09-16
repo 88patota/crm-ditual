@@ -38,6 +38,10 @@ class Budget(Base):
     notes = Column(Text, nullable=True)
     created_by = Column(String, nullable=False)  # Username who created
     
+    # Business fields
+    prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
+    outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
+    
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -56,6 +60,7 @@ class BudgetItem(Base):
     # Product information
     description = Column(String, nullable=False)
     weight = Column(Float, nullable=True)
+    delivery_time = Column(String, nullable=True)  # Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
     
     # Purchase data
     purchase_value_with_icms = Column(Float, nullable=False)

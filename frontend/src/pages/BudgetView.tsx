@@ -1,5 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDeliveryTime } from '../lib/formatters';
 import {
   Card,
   Row,
@@ -214,6 +215,13 @@ export default function BudgetView() {
       key: 'description',
       width: 220,
       fixed: 'left' as const,
+    },
+    {
+      title: 'Prazo',
+      dataIndex: 'delivery_time',
+      key: 'delivery_time',
+      width: 80,
+      render: (value: string) => formatDeliveryTime(value),
     },
     {
       title: 'Peso (kg)',

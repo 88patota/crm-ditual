@@ -234,6 +234,22 @@ class DitualPDFTemplate:
             # Placeholder para o logo
             return Paragraph("<b>LOGO<br/>DITUAL</b>", self.styles['CompanyInfo'])
     
+    def _format_delivery_time(self, delivery_time: str) -> str:
+        """Formata o prazo de entrega para exibição no PDF"""
+        if not delivery_time:
+            return "IMEDIATO"
+        
+        try:
+            days = int(delivery_time)
+            if days <= 0:
+                return "IMEDIATO"
+            elif days == 1:
+                return "1 dia"
+            else:
+                return f"{days} dias"
+        except (ValueError, TypeError):
+            return delivery_time or "IMEDIATO"
+    
     def _add_client_info(self, story: List, budget: Budget):
         """Adiciona informações do cliente e proposta"""
         
@@ -326,7 +342,7 @@ class DitualPDFTemplate:
                 f"{item.sale_icms_percentage * 100:,.2f}%".replace('.', ','),
                 f"{(item.ipi_percentage or 0) * 100:,.2f}%".replace('.', ','),
                 f"R$ {item.total_sale:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                "IMEDIATO"
+                self._format_delivery_time(item.delivery_time)  # Formatar prazo de entrega
             ])
         
         # Adicionar linhas vazias para completar o template (reduzido para caber em uma página)

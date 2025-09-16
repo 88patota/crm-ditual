@@ -134,6 +134,41 @@ async def get_next_order_number(db: AsyncSession = Depends(get_db)):
     return {"order_number": next_number}
 
 
+@router.get("/test-debug")
+async def test_debug_endpoint():
+    """Endpoint simples para testar se o debug está funcionando"""
+    return {"message": "Debug endpoint is working!", "timestamp": "2025-09-15"}
+
+
+@router.get("/debug-delivery/{budget_id}")
+async def debug_budget_delivery_time(
+    budget_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_active_user)
+):
+    """DEBUG: Verificar delivery_time diretamente do banco"""
+    try:
+        from sqlalchemy import text
+        
+        # Query direta no banco
+        result = await db.execute(text(
+            "SELECT id, description, delivery_time FROM budget_items WHERE budget_id = :budget_id"
+        ), {"budget_id": budget_id})
+        
+        items = []
+        for row in result:
+            items.append({
+                "id": row[0],
+                "description": row[1],
+                "delivery_time_raw": row[2],
+                "delivery_time_repr": repr(row[2])
+            })
+        
+        return {"budget_id": budget_id, "items": items, "status": "success"}
+    except Exception as e:
+        return {"budget_id": budget_id, "error": str(e), "status": "error"}
+
+
 @router.get("/{budget_id}", response_model=BudgetResponse)
 async def get_budget(
     budget_id: int,
@@ -154,6 +189,12 @@ async def get_budget(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado: você só pode visualizar seus próprios orçamentos"
         )
+    
+    # DEBUG: Log delivery_time before returning
+    if budget.items:
+        print(f"🔍 DEBUG - GET endpoint returning budget {budget_id}:")
+        for i, item in enumerate(budget.items):
+            print(f"🔍 DEBUG - Item {i}: delivery_time before response = {repr(item.delivery_time)}")
     
     return budget
 
@@ -549,6 +590,7 @@ async def create_simplified_budget(
             items_for_creation.append(BudgetItemCreate(
                 description=calculated_item['description'],
                 weight=calculated_item['peso_compra'],
+                delivery_time=calculated_item.get('delivery_time', '0'),  # CORREÇÃO: Incluir delivery_time
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
                 purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
@@ -570,6 +612,9 @@ async def create_simplified_budget(
             markup_percentage=budget_result['totals']['markup_pedido'],
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
+            # CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
+            prazo_medio=budget_data.prazo_medio,
+            outras_despesas_totais=budget_data.outras_despesas_totais,
             items=items_for_creation
         )
         

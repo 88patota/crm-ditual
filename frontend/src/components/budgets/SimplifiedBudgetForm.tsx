@@ -47,6 +47,7 @@ interface SimplifiedBudgetFormProps {
 // Interface para mapear dados do backend que podem ter campos em inglês
 interface BackendBudgetItem {
   description?: string;
+  delivery_time?: string;
   weight?: number;
   sale_weight?: number;
   purchase_value_with_icms?: number;
@@ -80,6 +81,7 @@ interface BudgetItemWithBackendFields extends BudgetItemSimplified {
 
 const initialBudgetItem: BudgetItemSimplified = {
   description: '',
+  delivery_time: '0', // Prazo padrão em dias (0 = imediato)
   peso_compra: 0,
   peso_venda: 0,
   valor_com_icms_compra: 0,
@@ -144,6 +146,8 @@ export default function SimplifiedBudgetForm({
           
           const preservedItem: BudgetItemSimplified = {
             description: item.description || '',
+            // CORREÇÃO CRÍTICA: Mapear delivery_time do backend
+            delivery_time: item.delivery_time || '0',
             // Mapear campos de peso corretamente
             peso_compra: typeof backendItem.weight === 'number' ? backendItem.weight : 
                         typeof item.peso_compra === 'number' ? item.peso_compra : 0,
@@ -283,6 +287,9 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado
+        // CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
+        prazo_medio: formData.prazo_medio || undefined,
+        outras_despesas_totais: formData.outras_despesas_totais || undefined,
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -325,6 +332,9 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber,
+        // CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
+        prazo_medio: formData.prazo_medio || undefined,
+        outras_despesas_totais: formData.outras_despesas_totais || undefined,
         items: updatedItems,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -349,6 +359,9 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado automaticamente
+        // CORREÇÃO: Incluir o campo prazo_medio na requisição
+        prazo_medio: formData.prazo_medio || undefined,
+        outras_despesas_totais: formData.outras_despesas_totais || undefined,
         items: items.map(item => ({
           ...item,
           peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
@@ -356,7 +369,9 @@ export default function SimplifiedBudgetForm({
           valor_com_icms_compra: parseFloat(item.valor_com_icms_compra.toString().replace(',', '.')),
           valor_com_icms_venda: parseFloat(item.valor_com_icms_venda.toString().replace(',', '.')),
           // CORREÇÃO: Garantir que o IPI seja incluído no salvamento
-          percentual_ipi: typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0
+          percentual_ipi: typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0,
+          // CORREÇÃO: Garantir que o delivery_time seja incluído no salvamento
+          delivery_time: item.delivery_time || '0'
         })),
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -379,6 +394,24 @@ export default function SimplifiedBudgetForm({
           value={value}
           onChange={(e) => updateItem(index, 'description', e.target.value)}
           placeholder="Descrição do produto"
+        />
+      ),
+    },
+    {
+      title: 'Prazo (dias)',
+      dataIndex: 'delivery_time',
+      key: 'delivery_time',
+      width: 120,
+      render: (value: string, _: BudgetItemSimplified, index: number) => (
+        <InputNumber
+          value={value ? parseInt(value) : 0}
+          onChange={(val) => updateItem(index, 'delivery_time', val?.toString() || '0')}
+          min={0}
+          max={365}
+          step={1}
+          style={{ width: '100%' }}
+          placeholder="Dias"
+          parser={(value) => value!.replace(/\D/g, '')}
         />
       ),
     },
