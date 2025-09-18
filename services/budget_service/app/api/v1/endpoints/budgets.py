@@ -549,6 +549,8 @@ async def create_simplified_budget(
 ):
     """Criar orçamento simplificado com geração automática de número do pedido"""
     try:
+        # Campo PRAZO (delivery_time) corrigido - dados chegam corretamente
+        
         # Validar dados de entrada
         budget_dict = budget_data.dict()
         errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
@@ -576,6 +578,12 @@ async def create_simplified_budget(
         
         # Converter dados para formato do BusinessRulesCalculator
         items_data = [item.dict() for item in budget_data.items]
+        
+        # 🔍 DEBUG: Log items_data após conversão
+        print(f"🔍 DEBUG - Items data após conversão:")
+        for i, item_data in enumerate(items_data):
+            print(f"🔍 DEBUG - Item {i}: delivery_time = {repr(item_data.get('delivery_time'))}")
+        
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
         outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
         
@@ -586,11 +594,20 @@ async def create_simplified_budget(
         
         # Converter resultados para formato BudgetItemCreate
         items_for_creation = []
-        for calculated_item in budget_result['items']:
-            items_for_creation.append(BudgetItemCreate(
+        for i, calculated_item in enumerate(budget_result['items']):
+            # Obter delivery_time do item original
+            original_item = items_data[i] if i < len(items_data) else {}
+            delivery_time_value = original_item.get('delivery_time', '0')
+            
+            # 🔍 DEBUG: Log delivery_time antes de criar BudgetItemCreate
+            print(f"🔍 DEBUG - Item {i} antes de BudgetItemCreate:")
+            print(f"🔍 DEBUG - original_item: {original_item}")
+            print(f"🔍 DEBUG - delivery_time_value: {repr(delivery_time_value)}")
+            
+            budget_item = BudgetItemCreate(
                 description=calculated_item['description'],
                 weight=calculated_item['peso_compra'],
-                delivery_time=calculated_item.get('delivery_time', '0'),  # CORREÇÃO: Incluir delivery_time
+                delivery_time=delivery_time_value,  # Usar delivery_time do item original
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
                 purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
@@ -603,7 +620,12 @@ async def create_simplified_budget(
                 weight_difference=calculated_item.get('diferenca_peso'),
                 ipi_percentage=calculated_item['percentual_ipi'],  # CORREÇÃO: Incluir IPI percentage
                 commission_percentage=0  # Será calculado pela rentabilidade
-            ))
+            )
+            
+            # 🔍 DEBUG: Log BudgetItemCreate após criação
+            print(f"🔍 DEBUG - BudgetItemCreate {i}: delivery_time = {repr(budget_item.delivery_time)}")
+            
+            items_for_creation.append(budget_item)
         
         # Criar orçamento completo para salvar
         complete_budget_data = BudgetCreate(

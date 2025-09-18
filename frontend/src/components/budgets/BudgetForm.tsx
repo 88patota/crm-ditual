@@ -49,7 +49,8 @@ const initialBudgetItem: BudgetItem = {
   dunamis_cost: 0,
   purchase_value_with_icms: 0,
   sale_value_with_icms: 0,
-  ipi_percentage: 0.0 // 0% por padrão (formato decimal)
+  ipi_percentage: 0.0, // 0% por padrão (formato decimal)
+  delivery_time: "0" // Prazo padrão em dias (0 = imediato)
 };
 
 export default function BudgetForm({ 
@@ -88,7 +89,8 @@ export default function BudgetForm({
           weight: typeof item.weight === 'number' ? item.weight : 0,
           purchase_value_with_icms: typeof item.purchase_value_with_icms === 'number' ? item.purchase_value_with_icms : 0,
           sale_value_with_icms: typeof item.sale_value_with_icms === 'number' ? item.sale_value_with_icms : 0,
-          purchase_other_expenses: typeof item.purchase_other_expenses === 'number' ? item.purchase_other_expenses : 0
+          purchase_other_expenses: typeof item.purchase_other_expenses === 'number' ? item.purchase_other_expenses : 0,
+          delivery_time: typeof item.delivery_time === 'string' ? item.delivery_time : "0"
         };
         return preservedItem;
       });
@@ -101,11 +103,13 @@ export default function BudgetForm({
       
       setItems(itemsWithPreservedIPI);
     } else {
+      console.log('🔍 DEBUG - Initializing with default items:', [{ ...initialBudgetItem }]);
       setItems([{ ...initialBudgetItem }]);
     }
   }, [initialData, form]);
 
   const addItem = () => {
+    console.log('🔍 DEBUG - Adding new item with initial values:', { ...initialBudgetItem });
     setItems([...items, { ...initialBudgetItem }]);
   };
 
@@ -123,10 +127,17 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     
+    // DEBUG: Log delivery_time updates
+    if (field === 'delivery_time') {
+      console.log(`🔍 DEBUG - Updating delivery_time for item ${index}:`, value);
+      console.log(`🔍 DEBUG - Current items state:`, newItems);
+    }
+    
     // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
     if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
-        field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage') {
+        field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage' || 
+        field === 'delivery_time') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculateBudget(newItems);
@@ -216,7 +227,8 @@ export default function BudgetForm({
 
   // Função para mapear os itens para BudgetItemSimplified
   const mapToSimplifiedItems = () => {
-    return items.map(item => ({
+    console.log('🔍 DEBUG - Mapping items to simplified format:', items);
+    const simplifiedItems = items.map(item => ({
       description: item.description,
       peso_compra: item.weight ?? 0,
       valor_com_icms_compra: item.purchase_value_with_icms ?? 0,
@@ -226,7 +238,10 @@ export default function BudgetForm({
       valor_com_icms_venda: item.sale_value_with_icms ?? 0,
       percentual_icms_venda: item.sale_icms_percentage ?? 0,
       percentual_ipi: item.ipi_percentage ?? 0.0, // Incluir IPI no mapeamento
+      delivery_time: item.delivery_time ?? "0" // Adicionar delivery_time ao mapeamento
     }));
+    console.log('🔍 DEBUG - Simplified items result:', simplifiedItems);
+    return simplifiedItems;
   };
 
   const handleSubmit = async () => {
@@ -242,6 +257,7 @@ export default function BudgetForm({
           items: mapToSimplifiedItems(),
           expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
         };
+        console.log('🔍 DEBUG - Submitting simplified budget data:', budgetDataSimplified);
         await onSubmit(budgetDataSimplified);
       } else {
         const budgetData: Budget = {
@@ -249,6 +265,7 @@ export default function BudgetForm({
           items: items,
           expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
         };
+        console.log('🔍 DEBUG - Submitting full budget data:', budgetData);
         await onSubmit(budgetData);
       }
     } catch (error) {
@@ -283,6 +300,20 @@ export default function BudgetForm({
           step={0.001}
           precision={3}
           style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: 'Prazo (dias)',
+      dataIndex: 'delivery_time',
+      key: 'delivery_time',
+      width: 120,
+      render: (value: string, _: BudgetItem, index: number) => (
+        <Input
+          value={value || '0'}
+          onChange={(e) => updateItem(index, 'delivery_time', e.target.value)}
+          style={{ width: '100%' }}
+          placeholder="Dias"
         />
       ),
     },

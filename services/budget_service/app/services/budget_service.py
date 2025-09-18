@@ -27,6 +27,7 @@ class BudgetService:
                 # Transform from English to Portuguese format
                 transformed_item = {
                     'description': item_data.get('description', ''),
+                    'delivery_time': item_data.get('delivery_time', '0'),  # 🔧 CORREÇÃO: Preservar delivery_time
                     'peso_compra': item_data.get('weight', 1.0),
                     'peso_venda': item_data.get('sale_weight') or item_data.get('weight', 1.0),
                     'valor_com_icms_compra': item_data.get('purchase_value_with_icms', 0),
@@ -142,11 +143,7 @@ class BudgetService:
         result = await db.execute(query)
         budget = result.scalar_one_or_none()
         
-        # DEBUG: Log delivery_time values from database (pode ser removido depois)
-        if budget and budget.items:
-            print(f"🔍 DEBUG - Budget {budget_id} retrieved from DB:")
-            for i, item in enumerate(budget.items):
-                print(f"🔍 DEBUG - Item {i}: delivery_time from DB = {repr(item.delivery_time)}")
+        # Campo delivery_time corrigido - valores preservados corretamente
         
         return budget
     

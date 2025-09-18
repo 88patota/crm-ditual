@@ -269,7 +269,7 @@ class BudgetCalculation(BaseModel):
     
     # IPI calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens
-    total_final_value: float = 0.0  # Valor final incluindo IPI (total_sale_value + total_ipi_value)
+    total_final_value: float = 0.0  # Valor final incluindo IPI
 
 
 class BudgetPreviewCalculation(BaseModel):
