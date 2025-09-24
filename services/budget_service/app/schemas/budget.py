@@ -65,6 +65,7 @@ class BudgetSimplifiedCreate(BaseModel):
     # Campos de negócio
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
+    freight_type: str = "FOB"
     
     items: List[BudgetItemSimplified]
 
@@ -187,6 +188,7 @@ class BudgetBase(BaseModel):
     # Campos de negócio
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
+    freight_type: str = "FOB"
 
     @validator('order_number')
     def validate_order_number(cls, v):
@@ -213,6 +215,7 @@ class BudgetUpdate(BaseModel):
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
     items: Optional[List[BudgetItemCreate]] = None
+    freight_type: Optional[str] = None  # Remove default value to properly handle updates
 
 
 class BudgetResponse(BudgetBase):

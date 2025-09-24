@@ -11,7 +11,6 @@ import {
   Space,
   Button,
   Typography,
-  Statistic,
   Spin,
   Result,
   Modal,
@@ -28,15 +27,11 @@ import {
   FileTextOutlined,
   CalendarOutlined,
   UserOutlined,
-  DollarCircleOutlined,
-  TrophyOutlined,
-  PercentageOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
-  FilePdfOutlined,
-  DownloadOutlined
+  FilePdfOutlined
 } from '@ant-design/icons';
 import { budgetService, type Budget, type BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
@@ -461,6 +456,11 @@ export default function BudgetView() {
                   </Space>
                 </Descriptions.Item>
               )}
+              <Descriptions.Item label="Tipo de Frete">
+                <Tag color={budget.freight_type === 'CIF' ? 'blue' : 'orange'}>
+                  {budget.freight_type || 'FOB'}
+                </Tag>
+              </Descriptions.Item>
             </Descriptions>
             {budget.notes && (
               <>
@@ -500,7 +500,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
-                      R$ {budget.total_commission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(budget.total_commission || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                 </Col>
@@ -526,10 +526,9 @@ export default function BudgetView() {
               {budget.total_ipi_value && budget.total_ipi_value > 0 && (
                 <Alert 
                   message="IPI Aplicado" 
-                  description={`Inclui R$ ${budget.total_ipi_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de IPI`}
+                  description={`Inclui R$ ${(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de IPI`}
                   type="warning" 
                   showIcon 
-                  size="small"
                   style={{ marginTop: '12px', fontSize: '11px' }}
                 />
               )}

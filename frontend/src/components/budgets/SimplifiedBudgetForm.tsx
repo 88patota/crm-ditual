@@ -16,7 +16,6 @@ import {
   Select,
   DatePicker,
   Alert,
-  Statistic,
   Spin
 } from 'antd';
 import {
@@ -128,40 +127,57 @@ export default function SimplifiedBudgetForm({
         desc: item.description, 
         ipi_original: item.percentual_ipi 
       })));
+      console.log('Initial data freight_type:', initialData.freight_type);
       
       // Modo edição - usar dados iniciais
-      form.setFieldsValue({
+      const formData = {
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
-      });
+        // Fix: Only set freight_type if it exists in initialData
+        ...(initialData.freight_type !== undefined && { freight_type: initialData.freight_type }),
+      };
       
-        // CORREÇÃO FINAL: Mapear corretamente os dados do backend
-        const itemsWithPreservedIPI = (initialData.items || [{ ...initialBudgetItem }]).map(item => {
-          // Usar a interface BackendBudgetItem para acessar propriedades que podem vir do backend
-          const backendItem = item as BudgetItemSimplified & BackendBudgetItem & { [key: string]: unknown };
+      console.log('Setting form fields with data:', formData);
+      form.setFieldsValue(formData);
+      
+      // Also set the field value directly if freight_type exists
+      if (initialData.freight_type !== undefined) {
+        form.setFieldValue('freight_type', initialData.freight_type);
+      }
+      
+      // Log the field value after setting it
+      setTimeout(() => {
+        const fieldValue = form.getFieldValue('freight_type');
+        console.log('Field value after setFieldsValue:', fieldValue);
+      }, 0);
+      
+      // CORREÇÃO FINAL: Mapear corretamente os dados do backend
+      const itemsWithPreservedIPI = (initialData.items || [{ ...initialBudgetItem }]).map(item => {
+        // Usar a interface BackendBudgetItem para acessar propriedades que podem vir do backend
+        const backendItem = item as BudgetItemSimplified & BackendBudgetItem & { [key: string]: unknown };
           
-          console.log('🔍 Raw backend item:', backendItem);
-          console.log('🔍 Available keys:', Object.keys(backendItem));
-          console.log('🔍 IPI related fields:', Object.keys(backendItem).filter(k => k.toLowerCase().includes('ipi')));
+        console.log('🔍 Raw backend item:', backendItem);
+        console.log('🔍 Available keys:', Object.keys(backendItem));
+        console.log('🔍 IPI related fields:', Object.keys(backendItem).filter(k => k.toLowerCase().includes('ipi')));
           
-          const preservedItem: BudgetItemSimplified = {
-            description: item.description || '',
-            // CORREÇÃO CRÍTICA: Mapear delivery_time do backend
-            delivery_time: item.delivery_time || '0',
-            // Mapear campos de peso corretamente
-            peso_compra: typeof backendItem.weight === 'number' ? backendItem.weight : 
+        const preservedItem: BudgetItemSimplified = {
+          description: item.description || '',
+          // CORREÇÃO CRÍTICA: Mapear delivery_time do backend
+          delivery_time: item.delivery_time || '0',
+          // Mapear campos de peso corretamente
+          peso_compra: typeof backendItem.weight === 'number' ? backendItem.weight : 
                         typeof item.peso_compra === 'number' ? item.peso_compra : 0,
-            peso_venda: typeof backendItem.sale_weight === 'number' ? backendItem.sale_weight : 
+          peso_venda: typeof backendItem.sale_weight === 'number' ? backendItem.sale_weight : 
                        typeof item.peso_venda === 'number' ? item.peso_venda : 
                        typeof backendItem.weight === 'number' ? backendItem.weight :
                        typeof item.peso_compra === 'number' ? item.peso_compra : 0,
             
-            // Mapear campos de valor de compra
-            valor_com_icms_compra: typeof backendItem.purchase_value_with_icms === 'number' ? backendItem.purchase_value_with_icms :
+          // Mapear campos de valor de compra
+          valor_com_icms_compra: typeof backendItem.purchase_value_with_icms === 'number' ? backendItem.purchase_value_with_icms :
                                   typeof item.valor_com_icms_compra === 'number' ? item.valor_com_icms_compra : 0,
-            percentual_icms_compra: typeof backendItem.purchase_icms_percentage === 'number' ? backendItem.purchase_icms_percentage :
+          percentual_icms_compra: typeof backendItem.purchase_icms_percentage === 'number' ? backendItem.purchase_icms_percentage :
                                    typeof item.percentual_icms_compra === 'number' ? item.percentual_icms_compra : 0.18,
-            outras_despesas_item: typeof backendItem.purchase_other_expenses === 'number' ? backendItem.purchase_other_expenses :
+          outras_despesas_item: typeof backendItem.purchase_other_expenses === 'number' ? backendItem.purchase_other_expenses :
                                  typeof item.outras_despesas_item === 'number' ? item.outras_despesas_item : 0,
             
             // Mapear campos de valor de venda
@@ -283,6 +299,8 @@ export default function SimplifiedBudgetForm({
     try {
       setCalculating(true);
       const formData = form.getFieldsValue();
+      console.log('Calculate form data:', formData);
+      console.log('Calculate freight_type:', formData.freight_type);
       
       const budgetData: BudgetSimplified = {
         ...formData,
@@ -290,9 +308,13 @@ export default function SimplifiedBudgetForm({
         // CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
         prazo_medio: formData.prazo_medio || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
+        freight_type: formData.freight_type || 'FOB',
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
+      
+      console.log('Calculate budget data:', budgetData);
+      console.log('Calculate budget freight_type:', budgetData.freight_type);
       
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
@@ -310,6 +332,8 @@ export default function SimplifiedBudgetForm({
   const autoCalculatePreview = async (updatedItems: BudgetItemSimplified[]) => {
     try {
       const formData = form.getFieldsValue();
+      console.log('Auto-calculate form data:', formData);
+      console.log('Auto-calculate freight_type:', formData.freight_type);
       
       // Only auto-calculate if we have basic required data
       if (!formData.client_name || updatedItems.length === 0) {
@@ -332,12 +356,16 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber,
-        // CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
+        // CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
         prazo_medio: formData.prazo_medio || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
+        freight_type: formData.freight_type || 'FOB',
         items: updatedItems,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
+      
+      console.log('Auto-calculate budget data:', budgetData);
+      console.log('Auto-calculate budget freight_type:', budgetData.freight_type);
       
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
@@ -352,6 +380,8 @@ export default function SimplifiedBudgetForm({
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
+      console.log('Form data being submitted:', formData);
+      console.log('Freight type in form data:', formData.freight_type);
       if (items.length === 0) {
         message.error('O orçamento deve conter pelo menos um item.');
         return;
@@ -362,6 +392,8 @@ export default function SimplifiedBudgetForm({
         // CORREÇÃO: Incluir o campo prazo_medio na requisição
         prazo_medio: formData.prazo_medio || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
+        // Fix: Only include freight_type if it was explicitly set/changed
+        ...(formData.freight_type !== undefined && { freight_type: formData.freight_type }),
         items: items.map(item => ({
           ...item,
           peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
@@ -376,6 +408,8 @@ export default function SimplifiedBudgetForm({
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
+      console.log('Budget data being sent to backend:', budgetData);
+      console.log('Freight type in budget data:', budgetData.freight_type);
       await onSubmit(budgetData);
     } catch (error) {
       console.error('Erro na validação do formulário:', error);
@@ -411,7 +445,6 @@ export default function SimplifiedBudgetForm({
           step={1}
           style={{ width: '100%' }}
           placeholder="Dias"
-          parser={(value) => value!.replace(/\D/g, '')}
         />
       ),
     },
@@ -586,6 +619,8 @@ export default function SimplifiedBudgetForm({
           onFinish={handleSubmit}
           initialValues={{
             status: 'draft',
+            // Fix: Only set freight_type default for new budgets, not for editing
+            ...(!isEdit && { freight_type: 'FOB' }),
           }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
@@ -732,16 +767,24 @@ export default function SimplifiedBudgetForm({
             </Col>
             <Col xs={24} md={6}>
               <Form.Item
-                label="Outras Despesas Totais"
-                name="outras_despesas_totais"
+                label="Frete"
+                name="freight_type"
               >
-                <InputNumber 
-                  min={0}
-                  step={0.01}
-                  precision={2}
-                  style={{ width: '100%' }}
-                  placeholder="0,00"
-                />
+                <Select 
+                  placeholder="Selecione o tipo de frete"
+                  onChange={(value) => {
+                    console.log('Frete type changed to:', value);
+                    console.log('Current form values before update:', form.getFieldsValue());
+                    form.setFieldsValue({ freight_type: value });
+                    setTimeout(() => {
+                      const updatedValue = form.getFieldValue('freight_type');
+                      console.log('Field value after update:', updatedValue);
+                    }, 0);
+                  }}
+                >
+                  <Option value="CIF">CIF</Option>
+                  <Option value="FOB">FOB</Option>
+                </Select>
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
@@ -855,8 +898,7 @@ export default function SimplifiedBudgetForm({
                           description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
                           type="warning" 
                           showIcon 
-                          size="small"
-                          style={{ marginTop: '12px', fontSize: '11px' }}
+                          style={{ marginTop: '12px' }}
                         />
                       )}
                     </div>

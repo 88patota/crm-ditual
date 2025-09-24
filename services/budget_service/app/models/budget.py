@@ -41,6 +41,7 @@ class Budget(Base):
     # Business fields
     prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
     outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
+    freight_type = Column(String(10), nullable=False, default='FOB')
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

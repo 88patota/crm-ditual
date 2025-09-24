@@ -75,6 +75,8 @@ class BudgetService:
             total_sale_with_icms=budget_result['totals']['soma_total_venda_com_icms'],
             total_commission=totals['total_commission'],
             profitability_percentage=totals['profitability_percentage'],
+            # Add freight_type field
+            freight_type=budget_data.freight_type,
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
             total_ipi_value=budget_result['totals'].get('total_ipi_orcamento', 0.0),
             total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0)
@@ -214,14 +216,33 @@ class BudgetService:
         if not budget:
             return None
         
+        # Armazenar o freight_type original antes de qualquer processamento
+        original_freight_type = budget.freight_type
+        print(f"🔍 DEBUG - Original freight_type: {original_freight_type}")
+        
         budget_dict = budget_data.dict(exclude_unset=True)
+        print(f"DEBUG: budget_dict = {budget_dict}")
         
         # Handle items update separately if provided
         items_data = budget_dict.pop('items', None)
         
+        # Store freight_type value before processing items (if it exists in update data)
+        freight_type_value = budget_dict.get('freight_type', None)
+        print(f"🔍 DEBUG - Freight type in update data: {freight_type_value}")
+        
         # Update budget fields (excluding items)
         for field, value in budget_dict.items():
-            setattr(budget, field, value)
+            # Skip freight_type for now, we'll handle it after item processing
+            if field != 'freight_type':
+                print(f"DEBUG: Setting {field} = {value}")
+                setattr(budget, field, value)
+        
+        # Explicitly handle freight_type if it's in the update data
+        if 'freight_type' in budget_dict:
+            budget.freight_type = budget_dict['freight_type']
+            print(f"DEBUG: Explicitly set freight_type to {budget.freight_type}")
+            # Garantir que o valor seja salvo no banco de dados
+            await db.flush()
         
         # Update items if provided
         if items_data is not None:
@@ -328,6 +349,20 @@ class BudgetService:
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
             setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
             setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
+        
+        # CORREÇÃO: Garantir que o freight_type seja sempre definido corretamente
+        # Se freight_type estiver nos dados de atualização, use-o
+        # Caso contrário, mantenha o valor original
+        if freight_type_value is not None:
+            budget.freight_type = freight_type_value
+            print(f"DEBUG: Final freight_type set to {budget.freight_type}")
+        else:
+            # Garantir que o valor original seja mantido
+            budget.freight_type = original_freight_type
+            print(f"DEBUG: Preserving original freight_type: {original_freight_type}")
+        
+        # Forçar a persistência imediata do freight_type
+        await db.flush()
         
         await db.commit()
         await db.refresh(budget)

@@ -66,45 +66,16 @@ export default function BudgetForm({
 
   useEffect(() => {
     if (initialData) {
-      console.log('=== DEBUG IPI - BudgetForm ===');
-      console.log('Initial data items:', initialData.items?.map(item => ({ 
-        desc: item.description, 
-        ipi_original: item.ipi_percentage 
-      })));
-      
-      form.setFieldsValue({
+      const formData = {
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
-      });
-      
-      // CORREÇÃO FINAL: Usar os dados exatos como vieram do backend, sem modificar o IPI
-      const itemsWithPreservedIPI = (initialData.items || []).map(item => {
-        // Preservar TODOS os valores originais, especialmente o IPI
-        const preservedItem = {
-          ...item,
-          // Garantir que valores numéricos sejam preservados corretamente
-          ipi_percentage: typeof item.ipi_percentage === 'number' ? item.ipi_percentage : 0.0,
-          purchase_icms_percentage: typeof item.purchase_icms_percentage === 'number' ? item.purchase_icms_percentage : 0.17,
-          sale_icms_percentage: typeof item.sale_icms_percentage === 'number' ? item.sale_icms_percentage : 0.17,
-          weight: typeof item.weight === 'number' ? item.weight : 0,
-          purchase_value_with_icms: typeof item.purchase_value_with_icms === 'number' ? item.purchase_value_with_icms : 0,
-          sale_value_with_icms: typeof item.sale_value_with_icms === 'number' ? item.sale_value_with_icms : 0,
-          purchase_other_expenses: typeof item.purchase_other_expenses === 'number' ? item.purchase_other_expenses : 0,
-          delivery_time: typeof item.delivery_time === 'string' ? item.delivery_time : "0"
-        };
-        return preservedItem;
-      });
-      
-      console.log('Items after processing:', itemsWithPreservedIPI.map(item => ({ 
-        desc: item.description, 
-        ipi_processed: item.ipi_percentage 
-      })));
-      console.log('================================');
-      
-      setItems(itemsWithPreservedIPI);
+      };
+      form.setFieldsValue(formData);
+      setItems(initialData.items || []);
     } else {
-      console.log('🔍 DEBUG - Initializing with default items:', [{ ...initialBudgetItem }]);
       setItems([{ ...initialBudgetItem }]);
+      // Define o valor padrão para o frete apenas para novos orçamentos
+      form.setFieldValue('freight_type', 'FOB');
     }
   }, [initialData, form]);
 
@@ -149,12 +120,18 @@ export default function BudgetForm({
     try {
       setCalculating(true);
       const formData = form.getFieldsValue();
+      console.log('Calculate form data:', formData);
+      console.log('Calculate freight_type:', formData.freight_type);
       
       const budgetData: Budget = {
         ...formData,
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        freight_type: formData.freight_type || 'FOB',
       };
+      
+      console.log('Calculate budget data:', budgetData);
+      console.log('Calculate budget freight_type:', budgetData.freight_type);
       
       const calculation = await budgetService.calculateBudget(budgetData);
       
@@ -182,6 +159,8 @@ export default function BudgetForm({
   const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
     try {
       const formData = form.getFieldsValue();
+      console.log('Auto-calculate form data:', formData);
+      console.log('Auto-calculate freight_type:', formData.freight_type);
       
       // Only auto-calculate if we have basic required data
       if (!formData.client_name || updatedItems.length === 0) {
@@ -204,7 +183,11 @@ export default function BudgetForm({
         ...formData,
         items: updatedItems,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        freight_type: formData.freight_type || 'FOB',
       };
+      
+      console.log('Auto-calculate budget data:', budgetData);
+      console.log('Auto-calculate budget freight_type:', budgetData.freight_type);
       
       const calculation = await budgetService.calculateBudget(budgetData);
       
@@ -225,49 +208,22 @@ export default function BudgetForm({
     }
   };
 
-  // Função para mapear os itens para BudgetItemSimplified
-  const mapToSimplifiedItems = () => {
-    console.log('🔍 DEBUG - Mapping items to simplified format:', items);
-    const simplifiedItems = items.map(item => ({
-      description: item.description,
-      peso_compra: item.weight ?? 0,
-      valor_com_icms_compra: item.purchase_value_with_icms ?? 0,
-      percentual_icms_compra: item.purchase_icms_percentage ?? 0,
-      outras_despesas_item: item.purchase_other_expenses ?? 0,
-      peso_venda: item.sale_weight ?? item.weight ?? 0,
-      valor_com_icms_venda: item.sale_value_with_icms ?? 0,
-      percentual_icms_venda: item.sale_icms_percentage ?? 0,
-      percentual_ipi: item.ipi_percentage ?? 0.0, // Incluir IPI no mapeamento
-      delivery_time: item.delivery_time ?? "0" // Adicionar delivery_time ao mapeamento
-    }));
-    console.log('🔍 DEBUG - Simplified items result:', simplifiedItems);
-    return simplifiedItems;
-  };
-
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
+      console.log('BudgetForm handleSubmit - formData:', formData);
+      console.log('BudgetForm handleSubmit - freight_type:', formData.freight_type);
 
-      // Detecta se está usando endpoint simplificado (ajuste conforme sua lógica)
-      const isSimplified = true;
+      const budgetData: Budget = {
+        ...initialData,
+        ...formData,
+        items: items,
+        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+      };
 
-      if (isSimplified) {
-        const budgetDataSimplified = {
-          ...formData,
-          items: mapToSimplifiedItems(),
-          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        };
-        console.log('🔍 DEBUG - Submitting simplified budget data:', budgetDataSimplified);
-        await onSubmit(budgetDataSimplified);
-      } else {
-        const budgetData: Budget = {
-          ...formData,
-          items: items,
-          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        };
-        console.log('🔍 DEBUG - Submitting full budget data:', budgetData);
-        await onSubmit(budgetData);
-      }
+      console.log('BudgetForm handleSubmit - budgetData to be submitted:', budgetData);
+
+      await onSubmit(budgetData);
     } catch (error) {
       console.error('Erro na validação do formulário:', error);
     }
@@ -447,7 +403,8 @@ export default function BudgetForm({
           onFinish={handleSubmit}
           initialValues={{
             status: 'draft',
-            markup_percentage: 0,
+            // Fix: Only set freight_type default for new budgets, not for editing
+            ...(!initialData && { freight_type: 'FOB' }),
           }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
@@ -545,6 +502,21 @@ export default function BudgetForm({
                 name="notes"
               >
                 <Input.TextArea rows={2} placeholder="Observações adicionais..." />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Frete"
+                name="freight_type"
+                rules={[{ required: true, message: 'O tipo de frete é obrigatório' }]}
+              >
+                <Select 
+                  placeholder="Selecione o tipo de frete"
+                  onChange={(value) => console.log('Select onChange - freight_type:', value)}
+                >
+                  <Option value="CIF">CIF</Option>
+                  <Option value="FOB">FOB</Option>
+                </Select>
               </Form.Item>
             </Col>
           </Row>

@@ -450,7 +450,7 @@ class DitualPDFTemplate:
             ["ICMS", "18,00%", "incluso"],
             ["PIS/COFINS", "9,25%", "incluso"],
             ["Condição de pagamento", "", "a combinar"],
-            ["Frete", "", "FOB"],
+            ["Frete", "", budget.freight_type or "FOB"],
             ["Embalagem", "", "fardo"]
         ]
         

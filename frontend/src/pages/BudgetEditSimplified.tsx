@@ -31,6 +31,7 @@ export default function BudgetEditSimplified() {
         status: budgetData.status as 'draft' | 'pending' | 'approved' | 'rejected' | 'expired',
         expires_at: budgetData.expires_at,
         notes: budgetData.notes,
+        freight_type: budgetData.freight_type, // CORREÇÃO: Incluir freight_type
         markup_percentage: 0, // Será calculado automaticamente
         items: budgetData.items.map(item => ({
           description: item.description,
@@ -97,12 +98,13 @@ export default function BudgetEditSimplified() {
       console.log(`🔍 DEBUG - Item ${i}: delivery_time from backend = ${JSON.stringify(item.delivery_time)}`);
     });
     
-    const result = {
+    const result: BudgetSimplified = {
       order_number: budget.order_number,
       client_name: budget.client_name,
       status: budget.status,
       expires_at: budget.expires_at,
       notes: budget.notes,
+      freight_type: budget.freight_type || 'FOB',
       prazo_medio: 30, // Valor padrão, pois não está no Budget original
       outras_despesas_totais: 0, // Valor padrão, pois não está no Budget original
       items: budget.items?.map((item) => ({

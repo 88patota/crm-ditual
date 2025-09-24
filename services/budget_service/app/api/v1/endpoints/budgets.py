@@ -221,6 +221,9 @@ async def update_budget(
     db: AsyncSession = Depends(get_db)
 ):
     """Atualizar orçamento"""
+    # DEBUG: Log the update data
+    print(f"DEBUG: Updating budget {budget_id} with data: {budget_data}")
+    print(f"DEBUG: freight_type in update data: {budget_data.freight_type}")
     budget = await BudgetService.update_budget(db, budget_id, budget_data)
     if not budget:
         raise HTTPException(
@@ -634,9 +637,10 @@ async def create_simplified_budget(
             markup_percentage=budget_result['totals']['markup_pedido'],
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
-            # CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
+            # CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
             prazo_medio=budget_data.prazo_medio,
             outras_despesas_totais=budget_data.outras_despesas_totais,
+            freight_type=budget_data.freight_type,
             items=items_for_creation
         )
         

@@ -26,6 +26,7 @@ export interface BudgetSimplified {
   status?: string;
   expires_at?: string;
   notes?: string;
+  freight_type?: string;
   
   // Novos campos conforme regras de negócio
   prazo_medio?: number; // Prazo médio em dias
@@ -142,6 +143,7 @@ export interface Budget {
   markup_percentage: number;
   notes?: string;
   expires_at?: string;
+  freight_type?: string;
   
   // Financial totals
   total_purchase_value?: number;
@@ -233,11 +235,11 @@ export const budgetService = {
 
   // Update budget
   async updateBudget(id: number, budget: Partial<Budget>): Promise<Budget> {
+    console.log('[budgetService.ts] Payload para updateBudget (PUT):', JSON.stringify(budget, null, 2));
     const response = await api.put<Budget>(`/budgets/${id}`, budget);
     return response.data;
   },
 
-  // Delete budget
   async deleteBudget(id: number): Promise<void> {
     await api.delete(`/budgets/${id}`);
   },
