@@ -1,0 +1,252 @@
+/* Dashboard Card Base Styles */
+.dashboard-card {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.dashboard-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.dashboard-card .ant-card-head {
+  padding: 12px 16px;
+  min-height: auto;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dashboard-card .ant-card-head-title {
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Stats Card Specific Styles */
+.stats-card {
+  height: 140px;
+}
+
+.stats-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.stats-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+/* Status Card Specific Styles */
+.status-card {
+  height: 120px;
+}
+
+.status-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+}
+
+.status-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Progress Card Specific Styles */
+.progress-card {
+  height: 180px;
+}
+
+.progress-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.progress-card .ant-card-head {
+  padding: 12px 16px;
+  min-height: auto;
+}
+
+/* Info Card Specific Styles */
+.info-card .card-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 120px;
+}
+
+.info-card .card-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  height: 100%;
+}
+
+.info-card .card-info-item {
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60px;
+  overflow: hidden;
+}
+
+.info-card .card-info-item .card-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.info-card .card-info-item .card-value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-bottom: 2px;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Text overflow protection for all dashboard cards */
+.dashboard-card .ant-typography,
+.dashboard-card .ant-statistic-title,
+.dashboard-card .ant-statistic-content,
+.dashboard-card .ant-card-meta-title,
+.dashboard-card .ant-card-meta-description {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+}
+
+/* Ensure proper text baseline for all number values */
+.dashboard-card [style*="fontSize"][style*="fontWeight"],
+.dashboard-card [style*="font-size"][style*="font-weight"] {
+  vertical-align: baseline !important;
+  min-height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Fix for custom styled text */
+.dashboard-card div[style*="fontWeight"],
+.dashboard-card div[style*="font-weight"] {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+}
+
+/* Percentage values formatting */
+.dashboard-card .percentage-value::after {
+  content: '%';
+}
+
+.dashboard-card .percentage-value {
+  display: inline-block;
+  min-width: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-card,
+  .status-card,
+  .progress-card {
+    margin-bottom: 16px;
+    height: auto;
+  }
+  
+  .stats-card {
+    min-height: 140px;
+  }
+  
+  .status-card {
+    min-height: 120px;
+  }
+  
+  .progress-card {
+    min-height: 180px;
+  }
+  
+  .info-card .card-info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Loading states */
+.dashboard-card-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 120px;
+}
+
+/* Animations */
+@keyframes cardPulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.dashboard-card.loading {
+  animation: cardPulse 1.5s ease-in-out infinite;
+}
+
+/* Theme variations */
+.dashboard-card.theme-primary {
+  border-left: 4px solid #1890ff;
+}
+
+.dashboard-card.theme-success {
+  border-left: 4px solid #52c41a;
+}
+
+.dashboard-card.theme-warning {
+  border-left: 4px solid #faad14;
+}
+
+.dashboard-card.theme-error {
+  border-left: 4px solid #ff4d4f;
+}

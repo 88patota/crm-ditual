@@ -39,34 +39,6 @@ function AntLogin() {
     }
   };
 
-  const demoCredentials = [
-    {
-      role: 'Administrador',
-      description: 'Acesso completo ao sistema - Gerenciar usuários, orçamentos e configurações',
-      username: 'admin',
-      password: 'admin123',
-      color: 'blue',
-    },
-    {
-      role: 'Vendedor (João)',
-      description: 'Perfil de vendas - Criar e gerenciar orçamentos, exportar propostas PDF',
-      username: 'vendedor',
-      password: 'vendedor123',
-      color: 'green',
-    },
-    {
-      role: 'Vendedor (Maria)',
-      description: 'Perfil de vendas - Criar e gerenciar orçamentos, exportar propostas PDF',
-      username: 'vendedor2',
-      password: 'vendedor123',
-      color: 'orange',
-    },
-  ];
-
-  const fillCredentials = (username: string, password: string) => {
-    form.setFieldsValue({ username, password });
-  };
-
   return (
     <div className="login-container">
       <Card className="login-card" bordered={false}>
@@ -76,7 +48,7 @@ function AntLogin() {
             Bem-vindo de volta
           </Title>
           <Paragraph style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '8px 0 0 0' }}>
-            Entre com suas credenciais para acessar o sistema
+            Acesse o sistema com suas credencias
           </Paragraph>
         </div>
 
@@ -148,78 +120,6 @@ function AntLogin() {
             </Button>
           </Form>
 
-          {/* Demo Credentials */}
-          <Card 
-            size="small" 
-            style={{ 
-              marginTop: 24, 
-              background: '#f8f9fa',
-              border: '1px solid #e9ecef'
-            }}
-          >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div style={{ textAlign: 'center' }}>
-                <Title level={5} style={{ margin: 0, color: '#495057' }}>
-                  🎯 Credenciais de Demonstração
-                </Title>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Clique em uma das opções abaixo para preencher automaticamente
-                </Text>
-              </div>
-
-              {demoCredentials.map((credential, index) => (
-                <Card 
-                  key={index}
-                  size="small" 
-                  style={{ 
-                    background: 'white',
-                    cursor: 'pointer',
-                    border: `1px solid ${credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16'}`,
-                    borderRadius: '6px'
-                  }}
-                  hoverable
-                  onClick={() => fillCredentials(credential.username, credential.password)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ marginBottom: '4px' }}>
-                        <Text strong style={{ fontSize: '13px', color: '#262626' }}>
-                          {credential.role}
-                        </Text>
-                      </div>
-                      <div style={{ marginBottom: '6px' }}>
-                        <Text style={{ fontSize: '11px', color: '#8c8c8c', lineHeight: '1.3' }}>
-                          {credential.description}
-                        </Text>
-                      </div>
-                      <div>
-                        <Text code style={{ fontSize: '11px', marginRight: '8px' }}>
-                          {credential.username}
-                        </Text>
-                        <Text code style={{ fontSize: '11px' }}>
-                          {credential.password}
-                        </Text>
-                      </div>
-                    </div>
-                    <div style={{ marginLeft: '12px' }}>
-                      <Button 
-                        type="primary" 
-                        size="small"
-                        style={{
-                          backgroundColor: credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16',
-                          borderColor: credential.color === 'blue' ? '#1890ff' : credential.color === 'green' ? '#52c41a' : '#fa8c16',
-                          fontSize: '11px'
-                        }}
-                      >
-                        Usar
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </Space>
-          </Card>
-
           {/* Status */}
           <div style={{ 
             textAlign: 'center', 
@@ -242,7 +142,7 @@ function AntLogin() {
             </Space>
             <div style={{ marginTop: 4 }}>
               <Text style={{ fontSize: '11px', color: '#bfbfbf' }}>
-                Versão 2.0 - Powered by Ant Design
+                Sistema CRM - Acesso seguro com autenticação JWT
               </Text>
             </div>
           </div>
@@ -250,6 +150,49 @@ function AntLogin() {
       </Card>
 
       <style>{`
+        .login-container {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+          padding: 20px;
+        }
+        
+        .login-card {
+          width: 100%;
+          max-width: 420px;
+          border-radius: 16px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          overflow: hidden;
+        }
+        
+        .login-header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 32px 24px;
+          text-align: center;
+          margin: -1px -1px 0 -1px;
+        }
+        
+        .login-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: bold;
+          color: white;
+          margin: 0 auto 20px;
+          backdrop-filter: blur(10px);
+        }
+        
+        .login-form {
+          padding: 32px 24px;
+        }
+        
         @keyframes pulse {
           0% { opacity: 1; }
           50% { opacity: 0.5; }

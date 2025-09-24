@@ -6,6 +6,51 @@
 .stats-card {
   transition: all 0.3s ease;
   border-radius: 12px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.stats-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.stats-card .ant-statistic {
+  margin: 0;
+}
+
+.stats-card .ant-statistic-title {
+  font-size: 12px;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-card .ant-statistic-content {
+  font-size: 20px !important;
+  line-height: 1.4 !important;
+  margin-bottom: 8px;
+  padding-bottom: 2px;
+}
+
+/* Fix for number baseline cutting */
+.stats-card .ant-statistic-content-value {
+  line-height: 1.4 !important;
+  padding-bottom: 2px;
+  vertical-align: baseline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  display: block;
 }
 
 .stats-card:hover {
@@ -17,6 +62,25 @@
   transition: all 0.3s ease;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
+  height: 120px;
+  overflow: hidden;
+}
+
+.status-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  overflow: hidden;
+}
+
+.status-card .ant-typography {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  line-height: 1.4;
+  padding-bottom: 1px;
 }
 
 .status-card:hover {
@@ -63,6 +127,10 @@
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
+  height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .admin-metric-card:hover {
@@ -118,10 +186,90 @@
   font-weight: 500;
 }
 
+/* Card info sections */
+.card-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 120px;
+}
+
+.card-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  height: 100%;
+}
+
+.card-info-item {
+  background: #fafafa;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60px;
+  overflow: hidden;
+}
+
+.card-info-item .card-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-info-item .card-value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-bottom: 1px;
+  min-height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Progress cards uniformity */
+.progress-card {
+  height: 180px;
+  overflow: hidden;
+}
+
+.progress-card .ant-card-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.progress-card .ant-card-head {
+  padding: 12px 16px;
+  min-height: auto;
+}
+
+.progress-card .ant-card-head-title {
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Responsive adjustments for admin dashboard */
 @media (max-width: 768px) {
   .admin-metric-card {
     margin-bottom: 16px;
+    height: auto;
+    min-height: 140px;
   }
   
   .admin-dashboard-card {
@@ -130,6 +278,22 @@
   
   .stats-card {
     margin-bottom: 16px;
+    height: auto;
+    min-height: 120px;
+  }
+  
+  .status-card {
+    height: auto;
+    min-height: 100px;
+  }
+  
+  .card-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .progress-card {
+    height: auto;
+    min-height: 160px;
   }
 }
 
@@ -155,3 +319,54 @@
 .status-approved { color: #52c41a; }
 .status-rejected { color: #ff4d4f; }
 .status-expired { color: #fa8c16; }
+
+/* Global text overflow handling for all dashboard cards */
+.ant-card .ant-statistic-content {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.ant-card .ant-statistic-content-value {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  display: block !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+}
+
+/* Ensure all card text elements are properly contained */
+.ant-card .ant-typography,
+.ant-card .ant-statistic-title,
+.ant-card .ant-statistic-content,
+.ant-card .ant-card-meta-title,
+.ant-card .ant-card-meta-description {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  line-height: 1.4;
+  padding-bottom: 1px;
+}
+
+/* Fix for custom styled text in admin dashboard */
+.ant-card div[style*="fontWeight"],
+.ant-card div[style*="font-weight"] {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  line-height: 1.4 !important;
+  padding-bottom: 2px !important;
+}
+
+/* Ensure proper text baseline for all number values */
+.ant-card [style*="fontSize"][style*="fontWeight"],
+.ant-card [style*="font-size"][style*="font-weight"] {
+  vertical-align: baseline !important;
+  min-height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}

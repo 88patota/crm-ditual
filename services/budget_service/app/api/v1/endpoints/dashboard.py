@@ -19,14 +19,13 @@ async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user)
 ):
-    """Estatísticas do dashboard para administradores"""
+    """Estatísticas do dashboard com filtros baseados no perfil do usuário"""
     
-    # Apenas administradores podem ver todas as estatísticas
+    # Definir filtro baseado no role do usuário
+    user_filter = None
     if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado. Apenas administradores podem acessar estas estatísticas."
-        )
+        # Vendedores só veem seus próprios dados
+        user_filter = current_user.username
     
     try:
         # Calcular período
@@ -52,31 +51,72 @@ async def get_dashboard_stats(
         status_counts = {}
         for budget_status in BudgetStatus:
             try:
-                result = await db.execute(
-                    text("""
+                # Construir query com filtro de usuário se necessário
+                if user_filter:
+                    query_text = """
+                        SELECT COUNT(*) 
+                        FROM budgets 
+                        WHERE status = :status 
+                        AND created_by = :user_filter
+                        AND created_at >= :start_date 
+                        AND created_at <= :end_date
+                    """
+                    params = {
+                        "status": budget_status.value, 
+                        "user_filter": user_filter,
+                        "start_date": start_date, 
+                        "end_date": end_date
+                    }
+                else:
+                    query_text = """
                         SELECT COUNT(*) 
                         FROM budgets 
                         WHERE status = :status 
                         AND created_at >= :start_date 
                         AND created_at <= :end_date
-                    """),
-                    {"status": budget_status.value, "start_date": start_date, "end_date": end_date}
-                )
+                    """
+                    params = {
+                        "status": budget_status.value, 
+                        "start_date": start_date, 
+                        "end_date": end_date
+                    }
+                
+                result = await db.execute(text(query_text), params)
                 count = result.scalar() or 0
             except Exception as status_error:
                 print(f"DEBUG - Erro ao buscar status {budget_status.value}: {status_error}")
                 # Se der erro com enum, vamos buscar usando CAST para tratar o problema
                 try:
-                    result = await db.execute(
-                        text("""
+                    if user_filter:
+                        cast_query_text = """
+                            SELECT COUNT(*) 
+                            FROM budgets 
+                            WHERE status::text = :status 
+                            AND created_by = :user_filter
+                            AND created_at >= :start_date 
+                            AND created_at <= :end_date
+                        """
+                        cast_params = {
+                            "status": budget_status.value, 
+                            "user_filter": user_filter,
+                            "start_date": start_date, 
+                            "end_date": end_date
+                        }
+                    else:
+                        cast_query_text = """
                             SELECT COUNT(*) 
                             FROM budgets 
                             WHERE status::text = :status 
                             AND created_at >= :start_date 
                             AND created_at <= :end_date
-                        """),
-                        {"status": budget_status.value, "start_date": start_date, "end_date": end_date}
-                    )
+                        """
+                        cast_params = {
+                            "status": budget_status.value, 
+                            "start_date": start_date, 
+                            "end_date": end_date
+                        }
+                    
+                    result = await db.execute(text(cast_query_text), cast_params)
                     count = result.scalar() or 0
                 except Exception as cast_error:
                     print(f"DEBUG - Erro mesmo com cast: {cast_error}")
@@ -86,42 +126,73 @@ async def get_dashboard_stats(
             print(f"DEBUG - Status {budget_status.value}: {count}")
         
         # Total de orçamentos do período
-        result = await db.execute(
-            text("""
+        if user_filter:
+            total_query = """
+                SELECT COUNT(*) 
+                FROM budgets 
+                WHERE created_by = :user_filter
+                AND created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            total_params = {"user_filter": user_filter, "start_date": start_date, "end_date": end_date}
+        else:
+            total_query = """
                 SELECT COUNT(*) 
                 FROM budgets 
                 WHERE created_at >= :start_date 
                 AND created_at <= :end_date
-            """),
-            {"start_date": start_date, "end_date": end_date}
-        )
+            """
+            total_params = {"start_date": start_date, "end_date": end_date}
+        
+        result = await db.execute(text(total_query), total_params)
         total_budgets = result.scalar() or 0
         print(f"DEBUG - Total orçamentos: {total_budgets}")
         
         # Valor total dos orçamentos do período
-        result = await db.execute(
-            text("""
+        if user_filter:
+            value_query = """
+                SELECT COALESCE(SUM(total_sale_value), 0) 
+                FROM budgets 
+                WHERE created_by = :user_filter
+                AND created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            value_params = {"user_filter": user_filter, "start_date": start_date, "end_date": end_date}
+        else:
+            value_query = """
                 SELECT COALESCE(SUM(total_sale_value), 0) 
                 FROM budgets 
                 WHERE created_at >= :start_date 
                 AND created_at <= :end_date
-            """),
-            {"start_date": start_date, "end_date": end_date}
-        )
+            """
+            value_params = {"start_date": start_date, "end_date": end_date}
+        
+        result = await db.execute(text(value_query), value_params)
         total_value = result.scalar() or 0
         print(f"DEBUG - Valor total: {total_value}")
         
         # Orçamentos aprovados do período
-        result = await db.execute(
-            text("""
+        if user_filter:
+            approved_query = """
+                SELECT COUNT(*), COALESCE(SUM(total_sale_value), 0)
+                FROM budgets 
+                WHERE status = 'approved' 
+                AND created_by = :user_filter
+                AND created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            approved_params = {"user_filter": user_filter, "start_date": start_date, "end_date": end_date}
+        else:
+            approved_query = """
                 SELECT COUNT(*), COALESCE(SUM(total_sale_value), 0)
                 FROM budgets 
                 WHERE status = 'approved' 
                 AND created_at >= :start_date 
                 AND created_at <= :end_date
-            """),
-            {"start_date": start_date, "end_date": end_date}
-        )
+            """
+            approved_params = {"start_date": start_date, "end_date": end_date}
+        
+        result = await db.execute(text(approved_query), approved_params)
         approved_result = result.first()
         approved_count = approved_result[0] if approved_result else 0
         approved_value = approved_result[1] if approved_result else 0
@@ -129,7 +200,14 @@ async def get_dashboard_stats(
         
         # Se não há orçamentos no período, vamos verificar se existem orçamentos de outros períodos
         if total_budgets == 0:
-            result = await db.execute(text("SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM budgets"))
+            if user_filter:
+                check_query = "SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM budgets WHERE created_by = :user_filter"
+                check_params = {"user_filter": user_filter}
+            else:
+                check_query = "SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM budgets"
+                check_params = {}
+            
+            result = await db.execute(text(check_query), check_params)
             total_check = result.first()
             print(f"DEBUG - Verificação geral: {total_check[0]} orçamentos, de {total_check[1]} até {total_check[2]}")
         

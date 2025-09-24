@@ -77,7 +77,7 @@ const ModernLogin: React.FC = () => {
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight">Bem-vindo de volta</h1>
             <p className="text-muted-foreground">
-              Entre com suas credenciais para acessar o sistema
+              Acesse o sistema com suas credencias
             </p>
           </div>
         </div>

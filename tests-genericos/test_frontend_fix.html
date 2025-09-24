@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Conversão de Vírgulas</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        input { width: 200px; padding: 8px; margin: 5px; }
+        button { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teste de Conversão de Valores</h1>
+        <p>Este teste simula o comportamento da função updateItem corrigida do componente React.</p>
+        
+        <div class="test-section">
+            <h3>Simulação da Função updateItem</h3>
+            <div>
+                <label>Peso Compra:</label>
+                <input type="text" id="peso_compra" placeholder="Ex: 1,5 ou 1.5" />
+                <br>
+                <label>Valor Compra:</label>
+                <input type="text" id="valor_compra" placeholder="Ex: 100,50 ou 100.50" />
+                <br>
+                <button onclick="testConversion()">Testar Conversão</button>
+                <button onclick="testBackendCall()">Testar Chamada Backend</button>
+            </div>
+            <div id="results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Casos de Teste Automáticos</h3>
+            <button onclick="runAllTests()">Executar Todos os Testes</button>
+            <div id="auto-results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simulação da função updateItem corrigida
+        function updateItem(field, value) {
+            if (field === 'peso_compra' || field === 'peso_venda' || 
+                field === 'valor_com_icms_compra' || field === 'valor_com_icms_venda' ||
+                field === 'outras_despesas_item') {
+                let numericValue = 0;
+                
+                if (typeof value === 'number') {
+                    numericValue = value;
+                } else if (typeof value === 'string') {
+                    // Converter vírgulas em pontos para garantir parsing correto
+                    const normalizedValue = value.replace(',', '.');
+                    numericValue = parseFloat(normalizedValue) || 0;
+                } else if (value === null || value === undefined) {
+                    numericValue = 0;
+                }
+                
+                return numericValue;
+            } else {
+                return value;
+            }
+        }
+
+        function testConversion() {
+            const pesoValue = document.getElementById('peso_compra').value;
+            const valorValue = document.getElementById('valor_compra').value;
+            
+            const pesoConverted = updateItem('peso_compra', pesoValue);
+            const valorConverted = updateItem('valor_com_icms_compra', valorValue);
+            
+            const results = document.getElementById('results');
+            results.innerHTML = `
+                <div class="test-result ${isValidNumber(pesoConverted) ? 'success' : 'error'}">
+                    <strong>Peso:</strong> "${pesoValue}" → ${pesoConverted} (${typeof pesoConverted})
+                </div>
+                <div class="test-result ${isValidNumber(valorConverted) ? 'success' : 'error'}">
+                    <strong>Valor:</strong> "${valorValue}" → ${valorConverted} (${typeof valorConverted})
+                </div>
+            `;
+        }
+
+        function isValidNumber(value) {
+            return typeof value === 'number' && !isNaN(value) && isFinite(value);
+        }
+
+        async function testBackendCall() {
+            const pesoValue = document.getElementById('peso_compra').value;
+            const valorValue = document.getElementById('valor_compra').value;
+            
+            const pesoConverted = updateItem('peso_compra', pesoValue);
+            const valorConverted = updateItem('valor_com_icms_compra', valorValue);
+            
+            const testData = {
+                client_name: "Cliente Teste",
+                items: [{
+                    description: "Produto Teste",
+                    peso_compra: pesoConverted,
+                    peso_venda: pesoConverted,
+                    valor_com_icms_compra: valorConverted,
+                    percentual_icms_compra: 0.18,
+                    outras_despesas_item: 0.0,
+                    valor_com_icms_venda: valorConverted * 1.5,
+                    percentual_icms_venda: 0.18
+                }]
+            };
+
+            try {
+                const response = await fetch('http://localhost:8002/api/v1/budgets/calculate-simplified', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+
+                const results = document.getElementById('results');
+                if (response.ok) {
+                    const result = await response.json();
+                    results.innerHTML += `
+                        <div class="test-result success">
+                            <strong>Backend Response:</strong> Success!<br>
+                            Total Compra: R$ ${result.total_purchase_value.toFixed(2)}<br>
+                            Total Venda: R$ ${result.total_sale_value.toFixed(2)}<br>
+                            Markup: ${result.markup_percentage.toFixed(1)}%
+                        </div>
+                    `;
+                } else {
+                    const error = await response.text();
+                    results.innerHTML += `
+                        <div class="test-result error">
+                            <strong>Backend Error:</strong><br>
+                            ${error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                const results = document.getElementById('results');
+                results.innerHTML += `
+                    <div class="test-result error">
+                        <strong>Network Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function runAllTests() {
+            const testCases = [
+                { name: "Vírgula decimal", peso: "1,5", valor: "100,50" },
+                { name: "Ponto decimal", peso: "1.5", valor: "100.50" },
+                { name: "Número inteiro", peso: "2", valor: "100" },
+                { name: "Número float", peso: 1.5, valor: 100.50 },
+                { name: "String vazia", peso: "", valor: "" },
+                { name: "Null", peso: null, valor: null },
+                { name: "Undefined", peso: undefined, valor: undefined }
+            ];
+
+            let resultsHtml = '';
+            testCases.forEach(testCase => {
+                const pesoResult = updateItem('peso_compra', testCase.peso);
+                const valorResult = updateItem('valor_com_icms_compra', testCase.valor);
+                
+                const pesoValid = isValidNumber(pesoResult);
+                const valorValid = isValidNumber(valorResult);
+                
+                resultsHtml += `
+                    <div class="test-result ${pesoValid && valorValid ? 'success' : 'error'}">
+                        <strong>${testCase.name}:</strong><br>
+                        Peso: ${JSON.stringify(testCase.peso)} → ${pesoResult} (${typeof pesoResult})<br>
+                        Valor: ${JSON.stringify(testCase.valor)} → ${valorResult} (${typeof valorResult})
+                    </div>
+                `;
+            });
+
+            document.getElementById('auto-results').innerHTML = resultsHtml;
+        }
+
+        // Executar testes automaticamente ao carregar a página
+        window.onload = function() {
+            runAllTests();
+        };
+    </script>
+</body>
+</html>

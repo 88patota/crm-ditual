@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste InputNumber Decimal</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/antd@5.12.8/dist/antd.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/reset.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        const { InputNumber, Card, Space, Typography } = antd;
+        const { Title, Text } = Typography;
+
+        function DecimalTest() {
+            const [value, setValue] = useState(0);
+            const [logData, setLogData] = useState([]);
+            
+            const handleChange = (val) => {
+                console.log('InputNumber onChange:', val, typeof val);
+                setValue(val);
+                setLogData(prev => [...prev, {
+                    time: new Date().toLocaleTimeString(),
+                    value: val,
+                    type: typeof val,
+                    raw: JSON.stringify(val)
+                }]);
+            };
+
+            return (
+                <div style={{ padding: '24px' }}>
+                    <Card title="Teste InputNumber com Decimais">
+                        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                            <div>
+                                <Text strong>Digite 5.500 no campo abaixo e observe o comportamento:</Text>
+                            </div>
+                            
+                            <InputNumber
+                                value={value}
+                                onChange={handleChange}
+                                min={0.001}
+                                step={0.001}
+                                precision={3}
+                                style={{ width: '200px' }}
+                                placeholder="Digite 5.500"
+                            />
+                            
+                            <div>
+                                <Text>Valor atual: {JSON.stringify(value)} (tipo: {typeof value})</Text>
+                            </div>
+                            
+                            <div>
+                                <Title level={4}>Log de mudanças:</Title>
+                                {logData.map((log, index) => (
+                                    <div key={index} style={{ 
+                                        padding: '8px', 
+                                        border: '1px solid #d9d9d9', 
+                                        marginBottom: '4px',
+                                        backgroundColor: '#fafafa'
+                                    }}>
+                                        <Text code>{log.time}</Text> - 
+                                        Valor: <Text strong>{log.raw}</Text> 
+                                        (tipo: <Text type="secondary">{log.type}</Text>)
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div>
+                                <Title level={4}>Teste de envio para API:</Title>
+                                <button 
+                                    onClick={() => {
+                                        const payload = {
+                                            peso_compra: value,
+                                            test_data: "simulação do frontend"
+                                        };
+                                        console.log('Payload que seria enviado:', JSON.stringify(payload, null, 2));
+                                        alert('Veja o console para o payload JSON');
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#1890ff',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Simular Envio para API
+                                </button>
+                            </div>
+                        </Space>
+                    </Card>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<DecimalTest />, document.getElementById('root'));
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</body>
+</html>

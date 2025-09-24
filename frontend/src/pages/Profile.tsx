@@ -1,244 +1,338 @@
 
-import { useForm } from 'react-hook-form';
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Form,
+  Input,
+  Button,
+  Avatar,
+  Tag,
+  Divider,
+  Space,
+  Upload,
+  Tooltip,
+  message
+} from 'antd';
+import {
+  UserOutlined,
+  LockOutlined,
+  MailOutlined,
+  CalendarOutlined,
+  SaveOutlined,
+  EditOutlined,
+  CameraOutlined,
+  ReloadOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined
+} from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
-import StripeButton from '../components/ui/StripeButton';
-import { ModernInput, FormGroup } from '../components/ui/forms';
-import { StripeCard, StripeCardContent, StripeCardHeader, StripeCardTitle } from '../components/ui/StripeCard';
-import StripeBadge from '../components/ui/StripeBadge';
 import type { UserSelfUpdateRequest, PasswordUpdateRequest } from '../types/auth';
-import { User, Lock, Save, Mail, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
+
+const { Title, Text } = Typography;
 
 export default function Profile() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-
-
-  // Profile update form
-  const profileForm = useForm<UserSelfUpdateRequest>({
-    defaultValues: {
-      full_name: user?.full_name || '',
-      email: user?.email || '',
-      username: user?.username || '',
-    },
-  });
-
-  // Password update form
-  const passwordForm = useForm<PasswordUpdateRequest>();
+  const [profileForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
 
   // Mutations
   const updateProfileMutation = useMutation({
     mutationFn: authService.updateProfile,
     onSuccess: () => {
-      toast.success('Profile updated successfully!');
+      message.success('Perfil atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to update profile');
+      message.error(error.response?.data?.detail || 'Falha ao atualizar perfil');
     },
   });
 
   const updatePasswordMutation = useMutation({
     mutationFn: authService.changePassword,
     onSuccess: () => {
-      toast.success('Password updated successfully!');
-      passwordForm.reset();
+      message.success('Senha atualizada com sucesso!');
+      passwordForm.resetFields();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to update password');
+      message.error(error.response?.data?.detail || 'Falha ao atualizar senha');
     },
   });
 
-  const onProfileSubmit = (data: UserSelfUpdateRequest) => {
-    updateProfileMutation.mutate(data);
+  const onProfileSubmit = (values: UserSelfUpdateRequest) => {
+    updateProfileMutation.mutate(values);
   };
 
-  const onPasswordSubmit = (data: PasswordUpdateRequest) => {
-    updatePasswordMutation.mutate(data);
+  const onPasswordSubmit = (values: PasswordUpdateRequest) => {
+    updatePasswordMutation.mutate(values);
+  };
+
+  const getRoleTag = (role: string) => {
+    if (role === 'admin') {
+      return <Tag color="red" icon={<UserOutlined />}>Administrador</Tag>;
+    }
+    return <Tag color="blue" icon={<UserOutlined />}>Representante de Vendas</Tag>;
+  };
+
+  const getStatusTag = (isActive: boolean) => {
+    if (isActive) {
+      return <Tag color="success" icon={<CheckCircleOutlined />}>Ativo</Tag>;
+    }
+    return <Tag color="error" icon={<CloseCircleOutlined />}>Inativo</Tag>;
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ padding: '24px' }}>
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Manage your account information and password.
-        </p>
+      <div style={{ marginBottom: '24px' }}>
+        <Title level={2} style={{ margin: 0 }}>
+          Configurações do Perfil
+        </Title>
+        <Text type="secondary">
+          Gerencie suas informações pessoais e configurações da conta.
+        </Text>
       </div>
 
-      <div className="grid-2">
+      <Row gutter={[24, 24]}>
+        {/* Profile Overview Card */}
+        <Col span={24}>
+          <Card>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+              <Avatar 
+                size={80} 
+                icon={<UserOutlined />}
+                style={{ 
+                  backgroundColor: '#1890ff',
+                  marginRight: '24px'
+                }}
+              />
+              <div style={{ flex: 1 }}>
+                <Title level={4} style={{ margin: 0 }}>
+                  {user?.full_name || 'Usuário'}
+                </Title>
+                <Text type="secondary" style={{ display: 'block', marginBottom: '8px' }}>
+                  @{user?.username}
+                </Text>
+                <Space>
+                  {getRoleTag(user?.role || 'user')}
+                  {getStatusTag(user?.is_active || false)}
+                </Space>
+              </div>
+              <Tooltip title="Alterar foto do perfil">
+                <Button 
+                  type="dashed" 
+                  icon={<CameraOutlined />}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  Alterar Foto
+                </Button>
+              </Tooltip>
+            </div>
+            
+            <Divider />
+            
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Space direction="vertical" size="small">
+                  <Text strong>E-mail</Text>
+                  <Text copyable>{user?.email}</Text>
+                </Space>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Space direction="vertical" size="small">
+                  <Text strong>Membro desde</Text>
+                  <Space>
+                    <CalendarOutlined />
+                    <Text>
+                      {user?.created_at 
+                        ? new Date(user.created_at).toLocaleDateString('pt-BR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          }) 
+                        : 'N/A'
+                      }
+                    </Text>
+                  </Space>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+
         {/* Profile Information */}
-        <StripeCard>
-          <StripeCardHeader>
-            <StripeCardTitle>Profile Information</StripeCardTitle>
-          </StripeCardHeader>
-          <StripeCardContent>
-            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-              <FormGroup>
-                <ModernInput
-                  label="Full Name"
-                  placeholder="Enter your full name"
-                  leftIcon={<User className="h-4 w-4" />}
-                  error={profileForm.formState.errors.full_name?.message}
-                  {...profileForm.register('full_name', {
-                    required: 'Full name is required',
-                  })}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <EditOutlined />
+                Informações Pessoais
+              </Space>
+            }
+          >
+            <Form
+              form={profileForm}
+              layout="vertical"
+              initialValues={{
+                full_name: user?.full_name || '',
+                email: user?.email || '',
+                username: user?.username || '',
+              }}
+              onFinish={onProfileSubmit}
+            >
+              <Form.Item
+                name="full_name"
+                label="Nome Completo"
+                rules={[
+                  { required: true, message: 'Nome completo é obrigatório' }
+                ]}
+              >
+                <Input 
+                  prefix={<UserOutlined />}
+                  placeholder="Digite seu nome completo"
                 />
+              </Form.Item>
 
-                <ModernInput
-                  label="Email"
-                  type="email"
-                  placeholder="Enter your email"
-                  leftIcon={<Mail className="h-4 w-4" />}
-                  error={profileForm.formState.errors.email?.message}
-                  {...profileForm.register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  })}
+              <Form.Item
+                name="email"
+                label="E-mail"
+                rules={[
+                  { required: true, message: 'E-mail é obrigatório' },
+                  { type: 'email', message: 'E-mail inválido' }
+                ]}
+              >
+                <Input 
+                  prefix={<MailOutlined />}
+                  placeholder="Digite seu e-mail"
                 />
+              </Form.Item>
 
-                <ModernInput
-                  label="Username"
-                  placeholder="Enter your username"
-                  leftIcon={<User className="h-4 w-4" />}
-                  error={profileForm.formState.errors.username?.message}
-                  {...profileForm.register('username', {
-                    required: 'Username is required',
-                    minLength: {
-                      value: 3,
-                      message: 'Username must be at least 3 characters',
-                    },
-                  })}
+              <Form.Item
+                name="username"
+                label="Nome de Usuário"
+                rules={[
+                  { required: true, message: 'Nome de usuário é obrigatório' },
+                  { min: 3, message: 'Nome de usuário deve ter pelo menos 3 caracteres' }
+                ]}
+              >
+                <Input 
+                  prefix={<UserOutlined />}
+                  placeholder="Digite seu nome de usuário"
                 />
+              </Form.Item>
 
-                <div className="flex items-center space-x-4 pt-2">
-                  <StripeButton
-                    type="submit"
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    icon={<SaveOutlined />}
                     loading={updateProfileMutation.isPending}
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </StripeButton>
-                  <StripeButton
-                    type="button"
-                    variant="secondary"
-                    onClick={() => profileForm.reset()}
+                    Salvar Alterações
+                  </Button>
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={() => profileForm.resetFields()}
                   >
-                    Reset
-                  </StripeButton>
-                </div>
-              </FormGroup>
-            </form>
-          </StripeCardContent>
-        </StripeCard>
+                    Redefinir
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
 
         {/* Password Change */}
-        <StripeCard>
-          <StripeCardHeader>
-            <StripeCardTitle>Change Password</StripeCardTitle>
-          </StripeCardHeader>
-          <StripeCardContent>
-            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
-              <FormGroup>
-                <ModernInput
-                  label="Current Password"
-                  type="password"
-                  placeholder="Enter current password"
-                  leftIcon={<Lock className="h-4 w-4" />}
-                  error={passwordForm.formState.errors.current_password?.message}
-                  {...passwordForm.register('current_password', {
-                    required: 'Current password is required',
-                  })}
+        <Col xs={24} lg={12}>
+          <Card 
+            title={
+              <Space>
+                <LockOutlined />
+                Alterar Senha
+              </Space>
+            }
+          >
+            <Form
+              form={passwordForm}
+              layout="vertical"
+              onFinish={onPasswordSubmit}
+            >
+              <Form.Item
+                name="current_password"
+                label="Senha Atual"
+                rules={[
+                  { required: true, message: 'Senha atual é obrigatória' }
+                ]}
+              >
+                <Input.Password 
+                  prefix={<LockOutlined />}
+                  placeholder="Digite sua senha atual"
                 />
+              </Form.Item>
 
-                <ModernInput
-                  label="New Password"
-                  type="password"
-                  placeholder="Enter new password"
-                  leftIcon={<Lock className="h-4 w-4" />}
-                  error={passwordForm.formState.errors.new_password?.message}
-                  helperText="Minimum 8 characters required"
-                  {...passwordForm.register('new_password', {
-                    required: 'New password is required',
-                    minLength: {
-                      value: 8,
-                      message: 'Password must be at least 8 characters',
+              <Form.Item
+                name="new_password"
+                label="Nova Senha"
+                rules={[
+                  { required: true, message: 'Nova senha é obrigatória' },
+                  { min: 8, message: 'Senha deve ter pelo menos 8 caracteres' }
+                ]}
+              >
+                <Input.Password 
+                  prefix={<LockOutlined />}
+                  placeholder="Digite sua nova senha"
+                />
+              </Form.Item>
+
+              <Form.Item
+                name="confirm_password"
+                label="Confirmar Nova Senha"
+                dependencies={['new_password']}
+                rules={[
+                  { required: true, message: 'Confirmação de senha é obrigatória' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('new_password') === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('As senhas não coincidem'));
                     },
-                  })}
+                  }),
+                ]}
+              >
+                <Input.Password 
+                  prefix={<LockOutlined />}
+                  placeholder="Confirme sua nova senha"
                 />
+              </Form.Item>
 
-                <div className="flex items-center space-x-4 pt-2">
-                  <StripeButton
-                    type="submit"
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    icon={<SaveOutlined />}
                     loading={updatePasswordMutation.isPending}
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    Update Password
-                  </StripeButton>
-                  <StripeButton
-                    type="button"
-                    variant="secondary"
-                    onClick={() => passwordForm.reset()}
+                    Atualizar Senha
+                  </Button>
+                  <Button
+                    onClick={() => passwordForm.resetFields()}
                   >
-                    Cancel
-                  </StripeButton>
-                </div>
-              </FormGroup>
-            </form>
-          </StripeCardContent>
-        </StripeCard>
-      </div>
-
-      {/* Account Information */}
-      <StripeCard>
-        <StripeCardHeader>
-          <StripeCardTitle>Account Information</StripeCardTitle>
-        </StripeCardHeader>
-        <StripeCardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <span className="text-sm font-medium text-gray-900">Role</span>
-                <p className="text-sm text-gray-500">Your account role and permissions</p>
-              </div>
-              <StripeBadge variant={user?.role === 'admin' ? 'primary' : 'success'}>
-                {user?.role === 'admin' ? 'Administrator' : 'Sales Representative'}
-              </StripeBadge>
-            </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <span className="text-sm font-medium text-gray-900">Account Status</span>
-                <p className="text-sm text-gray-500">Current account status</p>
-              </div>
-              <StripeBadge variant={user?.is_active ? 'success' : 'error'}>
-                {user?.is_active ? 'Active' : 'Inactive'}
-              </StripeBadge>
-            </div>
-            
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <span className="text-sm font-medium text-gray-900">Member Since</span>
-                <p className="text-sm text-gray-500">Account creation date</p>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <Calendar className="mr-1 h-4 w-4" />
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) : 'N/A'}
-              </div>
-            </div>
-          </div>
-        </StripeCardContent>
-      </StripeCard>
+                    Cancelar
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }

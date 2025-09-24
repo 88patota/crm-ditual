@@ -41,16 +41,16 @@ interface BudgetFormProps {
 const initialBudgetItem: BudgetItem = {
   description: '',
   weight: 0,
-  purchase_icms_percentage: 17,
+  purchase_icms_percentage: 0.17, // Decimal format (17%)
   purchase_other_expenses: 0,
   purchase_value_without_taxes: 0,
-  sale_icms_percentage: 17,
+  sale_icms_percentage: 0.17, // Decimal format (17%)
   sale_value_without_taxes: 0,
-  commission_percentage: 5,
   dunamis_cost: 0,
-  quantity: 0,
   purchase_value_with_icms: 0,
-  sale_value_with_icms: 0
+  sale_value_with_icms: 0,
+  ipi_percentage: 0.0, // 0% por padrão (formato decimal)
+  delivery_time: "0" // Prazo padrão em dias (0 = imediato)
 };
 
 export default function BudgetForm({ 
@@ -66,13 +66,19 @@ export default function BudgetForm({
 
   useEffect(() => {
     if (initialData) {
-      form.setFieldsValue({
+      const formData = {
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
-      });
+      };
+      
+      form.setFieldsValue(formData);
       setItems(initialData.items || []);
     } else {
       setItems([{ ...initialBudgetItem }]);
+      // Define o valor padrão para o frete apenas para novos orçamentos
+      form.setFieldValue('freight_type', 'FOB');
+      // Define o valor padrão para condições de pagamento apenas para novos orçamentos
+      form.setFieldValue('payment_condition', 'À vista');
     }
   }, [initialData, form]);
 
@@ -92,20 +98,18 @@ export default function BudgetForm({
   const updateItem = (index: number, field: keyof BudgetItem, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
-    
-    // Auto-calculate purchase value without taxes
-    if (field === 'purchase_icms_percentage') {
-      const icmsValue = (newItems[index].purchase_icms_percentage) / 100;
-      newItems[index].purchase_value_without_taxes = -icmsValue;
-    }
-    
-    // Auto-calculate sale value without taxes
-    if (field === 'sale_icms_percentage') {
-      const icmsValue = (newItems[index].sale_icms_percentage) / 100;
-      newItems[index].sale_value_without_taxes = -icmsValue;
-    }
-    
     setItems(newItems);
+    
+    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
+        field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
+        field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage' || 
+        field === 'delivery_time') {
+      // Debounce the auto-calculation to avoid too many API calls
+      setTimeout(() => {
+        autoCalculateBudget(newItems);
+      }, 300);
+    }
   };
 
   const calculateBudget = async () => {
@@ -117,6 +121,7 @@ export default function BudgetForm({
         ...formData,
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        freight_type: formData.freight_type || 'FOB',
       };
       
       const calculation = await budgetService.calculateBudget(budgetData);
@@ -127,6 +132,9 @@ export default function BudgetForm({
         total_sale_value: calculation.total_sale_value,
         total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
+        // Update IPI totals if available
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
       });
       
       message.success('Orçamento calculado com sucesso!');
@@ -138,42 +146,66 @@ export default function BudgetForm({
     }
   };
 
-  // Função para mapear os itens para BudgetItemSimplified
-  const mapToSimplifiedItems = () => {
-    return items.map(item => ({
-      description: item.description,
-      peso_compra: item.weight ?? 0,
-      valor_com_icms_compra: item.purchase_value_with_icms ?? 0,
-      percentual_icms_compra: item.purchase_icms_percentage ?? 0,
-      outras_despesas_item: item.purchase_other_expenses ?? 0,
-      peso_venda: item.sale_weight ?? item.weight ?? 0,
-      valor_com_icms_venda: item.sale_value_with_icms ?? 0,
-      percentual_icms_venda: item.sale_icms_percentage ?? 0,
-    }));
+  // Auto-calculation function for real-time updates when ICMS changes
+  const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
+    try {
+      const formData = form.getFieldsValue();
+      
+      // Only auto-calculate if we have basic required data
+      if (!formData.client_name || updatedItems.length === 0) {
+        return;
+      }
+      
+      // Check if all items have minimum required fields for calculation
+      const hasValidItems = updatedItems.every(item => 
+        item.description && 
+        (item.weight ?? 0) > 0 &&
+        (item.purchase_value_with_icms ?? 0) > 0 &&
+        (item.sale_value_with_icms ?? 0) > 0
+      );
+      
+      if (!hasValidItems) {
+        return; // Skip auto-calculation if items are incomplete
+      }
+      
+      const budgetData: Budget = {
+        ...formData,
+        items: updatedItems,
+        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+        freight_type: formData.freight_type || 'FOB',
+      };
+      
+      const calculation = await budgetService.calculateBudget(budgetData);
+      
+      // Update form with calculated values (without showing success message)
+      form.setFieldsValue({
+        total_purchase_value: calculation.total_purchase_value,
+        total_sale_value: calculation.total_sale_value,
+        total_commission: calculation.total_commission,
+        profitability_percentage: calculation.profitability_percentage,
+        // Update IPI totals if available
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
+      });
+      
+    } catch (error) {
+      // Silently handle errors in auto-calculation to avoid spamming user
+      console.warn('Auto-calculation failed:', error);
+    }
   };
 
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
 
-      // Detecta se está usando endpoint simplificado (ajuste conforme sua lógica)
-      const isSimplified = true;
+      const budgetData: Budget = {
+        ...initialData,
+        ...formData,
+        items: items,
+        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+      };
 
-      if (isSimplified) {
-        const budgetDataSimplified = {
-          ...formData,
-          items: mapToSimplifiedItems(),
-          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        };
-        await onSubmit(budgetDataSimplified);
-      } else {
-        const budgetData: Budget = {
-          ...formData,
-          items: items,
-          expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        };
-        await onSubmit(budgetData);
-      }
+      await onSubmit(budgetData);
     } catch (error) {
       console.error('Erro na validação do formulário:', error);
     }
@@ -210,6 +242,20 @@ export default function BudgetForm({
       ),
     },
     {
+      title: 'Prazo (dias)',
+      dataIndex: 'delivery_time',
+      key: 'delivery_time',
+      width: 120,
+      render: (value: string, _: BudgetItem, index: number) => (
+        <Input
+          value={value || '0'}
+          onChange={(e) => updateItem(index, 'delivery_time', e.target.value)}
+          style={{ width: '100%' }}
+          placeholder="Dias"
+        />
+      ),
+    },
+    {
       title: 'Outras Despesas',
       dataIndex: 'purchase_other_expenses',
       key: 'purchase_other_expenses',
@@ -233,8 +279,8 @@ export default function BudgetForm({
       width: 150,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 0)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
           min={0}
           step={0.01}
           precision={2}
@@ -250,8 +296,8 @@ export default function BudgetForm({
       width: 120,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 0)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -262,22 +308,13 @@ export default function BudgetForm({
       ),
     },
     {
-      title: '%Comissão',
-      dataIndex: 'commission_percentage',
-      key: 'commission_percentage',
-      width: 100,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'commission_percentage', val || 0)}
-          min={0}
-          max={100}
-          step={0.1}
-          precision={1}
-          addonAfter="%"
-          style={{ width: '100%' }}
-        />
-      ),
+      title: 'Comissão Calculada',
+      dataIndex: 'commission_value',
+      key: 'commission_value',
+      width: 120,
+      render: (value: number) => {
+        return value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00';
+      },
     },
     {
       title: 'Custo Dunamis',
@@ -294,6 +331,24 @@ export default function BudgetForm({
           style={{ width: '100%' }}
           placeholder="0,00"
         />
+      ),
+    },
+    {
+      title: '% IPI',
+      dataIndex: 'ipi_percentage',
+      key: 'ipi_percentage',
+      width: 120,
+      render: (value: number, _: BudgetItem, index: number) => (
+        <Select
+          value={value ?? 0.0}
+          onChange={(val) => updateItem(index, 'ipi_percentage', val)}
+          style={{ width: '100%' }}
+          placeholder="Selecione"
+        >
+          <Option value={0.0}>0% (Isento)</Option>
+          <Option value={0.0325}>3,25%</Option>
+          <Option value={0.05}>5%</Option>
+        </Select>
       ),
     },
     {
@@ -330,7 +385,10 @@ export default function BudgetForm({
           onFinish={handleSubmit}
           initialValues={{
             status: 'draft',
-            markup_percentage: 0,
+            // Fix: Only set freight_type default for new budgets, not for editing
+            ...(!initialData && { freight_type: 'FOB' }),
+            // Fix: Set payment_condition default for new budgets, similar to freight_type
+            ...(!initialData && { payment_condition: 'À vista' }),
           }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
@@ -430,6 +488,39 @@ export default function BudgetForm({
                 <Input.TextArea rows={2} placeholder="Observações adicionais..." />
               </Form.Item>
             </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Frete"
+                name="freight_type"
+                rules={[{ required: true, message: 'O tipo de frete é obrigatório' }]}
+              >
+                <Select placeholder="Selecione o tipo de frete">
+                  <Option value="CIF">CIF</Option>
+                  <Option value="FOB">FOB</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Condições de Pagamento"
+                name="payment_condition"
+                rules={[{ required: true, message: 'As condições de pagamento são obrigatórias' }]}
+              >
+                <Select placeholder="Selecione as condições">
+                  <Option value="À vista">À vista</Option>
+                  <Option value="7">7</Option>
+                  <Option value="21">21</Option>
+                  <Option value="28">28</Option>
+                  <Option value="28/35">28/35</Option>
+                  <Option value="28/35/42">28/35/42</Option>
+                  <Option value="28/35/42/49">28/35/42/49</Option>
+                  <Option value="30">30</Option>
+                  <Option value="30/45">30/45</Option>
+                  <Option value="30/45/60">30/45/60</Option>
+                  <Option value="30/45/60/75">30/45/60/75</Option>
+                </Select>
+              </Form.Item>
+            </Col>
           </Row>
 
           <Divider>Itens do Orçamento</Divider>
@@ -491,6 +582,28 @@ export default function BudgetForm({
                 <InputNumber
                   readOnly
                   formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          
+          {/* IPI Totals Section */}
+          <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
+            <Col xs={24} md={6}>
+              <Form.Item label="Total IPI" name="total_ipi_value">
+                <InputNumber
+                  readOnly
+                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item label="Valor Final c/ IPI" name="total_final_value">
+                <InputNumber
+                  readOnly
+                  formatter={(value) => formatCurrency(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

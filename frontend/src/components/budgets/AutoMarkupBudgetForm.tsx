@@ -15,7 +15,8 @@ import {
   Popconfirm,
   DatePicker,
   Alert,
-  Statistic
+  Statistic,
+  Select
 } from 'antd';
 import {
   PlusOutlined,
@@ -30,6 +31,7 @@ import { ErrorHandler } from '../../utils/errorHandler';
 import { formatCurrency } from '../../lib/utils';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 interface AutoMarkupBudgetFormProps {
   onSubmit: (data: BudgetSimplified) => Promise<void>;
@@ -39,13 +41,14 @@ interface AutoMarkupBudgetFormProps {
 
 const initialBudgetItem: BudgetItemSimplified = {
   description: '',
-  quantity: 1,
-  weight: 0,
-  purchase_value_with_icms: 0,
-  purchase_icms_percentage: 17, // ICMS padrão Brasil
-  purchase_other_expenses: 0,
-  sale_value_with_icms: 0,
-  sale_icms_percentage: 18
+  peso_compra: 1,
+  peso_venda: 1,
+  valor_com_icms_compra: 0,
+  percentual_icms_compra: 0.17, // Decimal format (17%)
+  outras_despesas_item: 0,
+  valor_com_icms_venda: 0,
+  percentual_icms_venda: 0.18, // Decimal format (18%)
+  percentual_ipi: 0.0 // 0% por padrão (formato decimal)
 };
 
 export default function AutoMarkupBudgetForm({ 
@@ -77,6 +80,16 @@ export default function AutoMarkupBudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     setPreview(null); // Limpar preview quando alterar item
+    
+    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
+        field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
+        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
+      // Debounce the auto-calculation to avoid too many API calls
+      setTimeout(() => {
+        autoCalculatePreview(newItems);
+      }, 300);
+    }
   };
 
   const calculatePreview = async () => {
@@ -99,6 +112,45 @@ export default function AutoMarkupBudgetForm({
       message.error(errorMessage);
     } finally {
       setCalculating(false);
+    }
+  };
+
+  // Auto-calculation function for real-time updates when ICMS changes
+  const autoCalculatePreview = async (updatedItems: BudgetItemSimplified[]) => {
+    try {
+      const formData = form.getFieldsValue();
+      
+      // Only auto-calculate if we have basic required data
+      if (!formData.client_name || updatedItems.length === 0) {
+        return;
+      }
+      
+      // Check if all items have minimum required fields for calculation
+      const hasValidItems = updatedItems.every(item => 
+        item.description && 
+        item.peso_compra > 0 && 
+        item.peso_venda > 0 &&
+        item.valor_com_icms_compra > 0 &&
+        item.valor_com_icms_venda > 0
+      );
+      
+      if (!hasValidItems) {
+        return; // Skip auto-calculation if items are incomplete
+      }
+      
+      const budgetData: BudgetSimplified = {
+        ...formData,
+        items: updatedItems,
+        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
+      };
+      
+      const calculation = await budgetService.calculateBudgetSimplified(budgetData);
+      setPreview(calculation);
+      
+    } catch (error) {
+      // Silently handle errors in auto-calculation to avoid spamming user
+      console.warn('Auto-calculation failed:', error);
+      setPreview(null);
     }
   };
 
@@ -133,48 +185,50 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
-      title: 'Quantidade *',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      title: 'Peso Compra (kg) *',
+      dataIndex: 'peso_compra',
+      key: 'peso_compra',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'quantity', val || 1)}
+          onChange={(val) => updateItem(index, 'peso_compra', val || 1)}
           min={0.01}
-          step={0.01}
-          precision={2}
+          step={0.001}
+          precision={3}
           style={{ width: '100%' }}
+          placeholder="0,000"
           required
         />
       ),
     },
     {
-      title: 'Peso (kg)',
-      dataIndex: 'weight',
-      key: 'weight',
+      title: 'Peso Venda (kg) *',
+      dataIndex: 'peso_venda',
+      key: 'peso_venda',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'weight', val || 0)}
-          min={0}
+          onChange={(val) => updateItem(index, 'peso_venda', val || 1)}
+          min={0.01}
           step={0.001}
           precision={3}
           style={{ width: '100%' }}
           placeholder="0,000"
+          required
         />
       ),
     },
     {
       title: 'Valor c/ICMS (Compra) *',
-      dataIndex: 'purchase_value_with_icms',
-      key: 'purchase_value_with_icms',
+      dataIndex: 'valor_com_icms_compra',
+      key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
           min={0.01}
           step={0.01}
           precision={2}
@@ -186,13 +240,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: '% ICMS Compra *',
-      dataIndex: 'purchase_icms_percentage',
-      key: 'purchase_icms_percentage',
+      dataIndex: 'percentual_icms_compra',
+      key: 'percentual_icms_compra',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'purchase_icms_percentage', val || 17)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 17) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -206,13 +260,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: 'Outras Despesas',
-      dataIndex: 'purchase_other_expenses',
-      key: 'purchase_other_expenses',
+      dataIndex: 'outras_despesas_item',
+      key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
+          onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
           min={0}
           step={0.01}
           precision={2}
@@ -223,13 +277,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: 'Valor c/ICMS (Venda) *',
-      dataIndex: 'sale_value_with_icms',
-      key: 'sale_value_with_icms',
+      dataIndex: 'valor_com_icms_venda',
+      key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
           value={value}
-          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
           min={0}
           step={0.01}
           precision={2}
@@ -240,13 +294,13 @@ export default function AutoMarkupBudgetForm({
     },
     {
       title: '% ICMS Venda *',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
+      dataIndex: 'percentual_icms_venda',
+      key: 'percentual_icms_venda',
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value}
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', val || 18)}
+          value={value * 100} // Convert from decimal to percentage for display
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
           min={0}
           max={100}
           step={0.1}
@@ -256,6 +310,24 @@ export default function AutoMarkupBudgetForm({
           style={{ width: '100%' }}
           required
         />
+      ),
+    },
+    {
+      title: '% IPI *',
+      dataIndex: 'percentual_ipi',
+      key: 'percentual_ipi',
+      width: 120,
+      render: (value: number, _: BudgetItemSimplified, index: number) => (
+        <Select
+          value={value}
+          onChange={(val) => updateItem(index, 'percentual_ipi', val)}
+          style={{ width: '100%' }}
+          placeholder="Selecione"
+        >
+          <Option value={0.0}>0% (Isento)</Option>
+          <Option value={0.0325}>3,25%</Option>
+          <Option value={0.05}>5%</Option>
+        </Select>
       ),
     },
     {
@@ -400,70 +472,81 @@ export default function AutoMarkupBudgetForm({
             />
           </div>
 
-          {/* Preview dos Cálculos */}
+          {/* Preview dos Cálculos - Layout Otimizado */}
           {preview && (
             <>
-              <Divider>Resumo Financeiro</Divider>
+              <Divider>✅ Orçamento Calculado</Divider>
               
-              <Alert
-                message="Cálculo Realizado"
-                description={`
-                  Markup aplicado: ${preview.markup_percentage.toFixed(1)}% 
-                  (Baseado nos valores de compra e venda informados)
-                `}
-                type="success"
-                icon={<InfoCircleOutlined />}
-                style={{ marginBottom: '16px' }}
-                showIcon
-              />
-
-              {/* Stats cards */}
-              <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Markup Calculado"
-                      value={preview.markup_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ color: '#1890ff', fontSize: '24px' }}
-                      prefix={<CalculatorOutlined />}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Compra"
-                      value={preview.total_purchase_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#ff4d4f' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Total Venda"
-                      value={preview.total_sale_value}
-                      formatter={(value) => formatCurrency(Number(value))}
-                      valueStyle={{ color: '#52c41a' }}
-                    />
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card>
-                    <Statistic
-                      title="Rentabilidade"
-                      value={preview.profitability_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
-                      valueStyle={{ 
-                        color: Number(preview.profitability_percentage) > 20 ? '#52c41a' : 
-                               Number(preview.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f'
-                      }}
-                    />
-                  </Card>
-                </Col>
-              </Row>
+              {/* Totais do Pedido - Design Integrado */}
+              <Card style={{ 
+                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                border: '1px solid #bae6fd',
+                marginBottom: '24px'
+              }}>
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} lg={16}>
+                    <div style={{ padding: '8px 0' }}>
+                      <Alert
+                        message="🎯 Markup Automático Aplicado"
+                        description={`Markup calculado: ${preview.markup_percentage.toFixed(1)}% baseado nos valores de compra e venda informados.`}
+                        type="success"
+                        showIcon
+                        style={{ marginBottom: '16px' }}
+                      />
+                      
+                      <Row gutter={[16, 8]}>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
+                              {formatCurrency(preview.total_commission || 0)}
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
+                              {preview.markup_percentage.toFixed(1)}%
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                  </Col>
+                  
+                  {/* Valor Total Destacado */}
+                  <Col xs={24} lg={8}>
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.9)',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      border: '2px solid #52c41a'
+                    }}>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
+                      <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
+                        {formatCurrency(preview.total_sale_value + preview.total_taxes)}
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '11px' }}>
+                        COM ICMS
+                      </Text>
+                      
+                      {/* Nota informativa quando há IPI */}
+                      {preview.total_ipi_value && preview.total_ipi_value > 0 && (
+                        <Alert 
+                          message="IPI Aplicado" 
+                          description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
+                          type="warning" 
+                          showIcon 
+                          size="small"
+                          style={{ marginTop: '12px', fontSize: '11px' }}
+                        />
+                      )}
+                    </div>
+                  </Col>
+                </Row>
+              </Card>
             </>
           )}
         </Form>
