@@ -77,6 +77,11 @@ class BudgetService:
             profitability_percentage=totals['profitability_percentage'],
             # Add freight_type field
             freight_type=budget_data.freight_type,
+            # Add payment_condition field - FIX: Campo estava faltando no mapeamento
+            payment_condition=budget_data.payment_condition,
+            # Add prazo_medio and outras_despesas_totais fields - FIX: Campos estavam faltando no mapeamento
+            prazo_medio=budget_data.prazo_medio,
+            outras_despesas_totais=budget_data.outras_despesas_totais,
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
             total_ipi_value=budget_result['totals'].get('total_ipi_orcamento', 0.0),
             total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0)

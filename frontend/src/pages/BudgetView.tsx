@@ -1,4 +1,5 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDeliveryTime } from '../lib/formatters';
 import {
@@ -78,11 +79,19 @@ export default function BudgetView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: budget, isLoading, error } = useQuery({
+  const { data: budget, isLoading, error } = useQuery<Budget>({
     queryKey: ['budget', id],
     queryFn: () => budgetService.getBudgetById(Number(id)),
     enabled: !!id,
   });
+
+  // Debug log para monitorar mudanças nos dados do budget
+  useEffect(() => {
+    if (budget) {
+      console.log('🔍 DEBUG - BudgetView useEffect - Budget data loaded from backend:', budget);
+      console.log('🔍 DEBUG - BudgetView useQuery onSuccess - payment_condition:', budget.payment_condition);
+    }
+  }, [budget]);
 
   // Calculate net revenue and taxes dynamically
   const financialData = budget ? calculateBudgetFinancials(budget) : {
@@ -460,6 +469,9 @@ export default function BudgetView() {
                 <Tag color={budget.freight_type === 'CIF' ? 'blue' : 'orange'}>
                   {budget.freight_type || 'FOB'}
                 </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Condições de Pagamento">
+                <Text>{budget.payment_condition || 'À vista'}</Text>
               </Descriptions.Item>
             </Descriptions>
             {budget.notes && (

@@ -31,6 +31,7 @@ export interface BudgetSimplified {
   // Novos campos conforme regras de negócio
   prazo_medio?: number; // Prazo médio em dias
   outras_despesas_totais?: number; // Outras despesas do pedido
+  payment_condition?: string;
   
   items: BudgetItemSimplified[];
 }
@@ -144,6 +145,11 @@ export interface Budget {
   notes?: string;
   expires_at?: string;
   freight_type?: string;
+  payment_condition?: string;
+  
+  // Business fields
+  prazo_medio?: number; // Prazo médio em dias
+  outras_despesas_totais?: number; // Outras despesas do pedido
   
   // Financial totals
   total_purchase_value?: number;
@@ -224,6 +230,8 @@ export const budgetService = {
   // Get budget by ID
   async getBudgetById(id: number): Promise<Budget> {
     const response = await api.get<Budget>(`/budgets/${id}`);
+    console.log('🔍 DEBUG - budgetService getBudgetById - Response from backend:', response.data);
+    console.log('🔍 DEBUG - budgetService getBudgetById - payment_condition in response:', response.data.payment_condition);
     return response.data;
   },
 
@@ -236,7 +244,11 @@ export const budgetService = {
   // Update budget
   async updateBudget(id: number, budget: Partial<Budget>): Promise<Budget> {
     console.log('[budgetService.ts] Payload para updateBudget (PUT):', JSON.stringify(budget, null, 2));
+    console.log('🔍 DEBUG - budgetService updateBudget - Sending budget data to backend:', budget);
+    console.log('🔍 DEBUG - budgetService updateBudget - payment_condition being sent:', budget.payment_condition);
     const response = await api.put<Budget>(`/budgets/${id}`, budget);
+    console.log('🔍 DEBUG - budgetService updateBudget - Response from backend:', response.data);
+    console.log('🔍 DEBUG - budgetService updateBudget - payment_condition in response:', response.data.payment_condition);
     return response.data;
   },
 

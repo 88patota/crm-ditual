@@ -641,6 +641,7 @@ async def create_simplified_budget(
             prazo_medio=budget_data.prazo_medio,
             outras_despesas_totais=budget_data.outras_despesas_totais,
             freight_type=budget_data.freight_type,
+            payment_condition=budget_data.payment_condition,
             items=items_for_creation
         )
         

@@ -70,17 +70,19 @@ export default function BudgetForm({
         ...initialData,
         expires_at: initialData.expires_at ? dayjs(initialData.expires_at) : undefined,
       };
+      
       form.setFieldsValue(formData);
       setItems(initialData.items || []);
     } else {
       setItems([{ ...initialBudgetItem }]);
       // Define o valor padrão para o frete apenas para novos orçamentos
       form.setFieldValue('freight_type', 'FOB');
+      // Define o valor padrão para condições de pagamento apenas para novos orçamentos
+      form.setFieldValue('payment_condition', 'À vista');
     }
   }, [initialData, form]);
 
   const addItem = () => {
-    console.log('🔍 DEBUG - Adding new item with initial values:', { ...initialBudgetItem });
     setItems([...items, { ...initialBudgetItem }]);
   };
 
@@ -98,12 +100,6 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     
-    // DEBUG: Log delivery_time updates
-    if (field === 'delivery_time') {
-      console.log(`🔍 DEBUG - Updating delivery_time for item ${index}:`, value);
-      console.log(`🔍 DEBUG - Current items state:`, newItems);
-    }
-    
     // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
     if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
@@ -120,8 +116,6 @@ export default function BudgetForm({
     try {
       setCalculating(true);
       const formData = form.getFieldsValue();
-      console.log('Calculate form data:', formData);
-      console.log('Calculate freight_type:', formData.freight_type);
       
       const budgetData: Budget = {
         ...formData,
@@ -129,9 +123,6 @@ export default function BudgetForm({
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
         freight_type: formData.freight_type || 'FOB',
       };
-      
-      console.log('Calculate budget data:', budgetData);
-      console.log('Calculate budget freight_type:', budgetData.freight_type);
       
       const calculation = await budgetService.calculateBudget(budgetData);
       
@@ -159,8 +150,6 @@ export default function BudgetForm({
   const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
     try {
       const formData = form.getFieldsValue();
-      console.log('Auto-calculate form data:', formData);
-      console.log('Auto-calculate freight_type:', formData.freight_type);
       
       // Only auto-calculate if we have basic required data
       if (!formData.client_name || updatedItems.length === 0) {
@@ -186,9 +175,6 @@ export default function BudgetForm({
         freight_type: formData.freight_type || 'FOB',
       };
       
-      console.log('Auto-calculate budget data:', budgetData);
-      console.log('Auto-calculate budget freight_type:', budgetData.freight_type);
-      
       const calculation = await budgetService.calculateBudget(budgetData);
       
       // Update form with calculated values (without showing success message)
@@ -211,8 +197,6 @@ export default function BudgetForm({
   const handleSubmit = async () => {
     try {
       const formData = await form.validateFields();
-      console.log('BudgetForm handleSubmit - formData:', formData);
-      console.log('BudgetForm handleSubmit - freight_type:', formData.freight_type);
 
       const budgetData: Budget = {
         ...initialData,
@@ -220,8 +204,6 @@ export default function BudgetForm({
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
-
-      console.log('BudgetForm handleSubmit - budgetData to be submitted:', budgetData);
 
       await onSubmit(budgetData);
     } catch (error) {
@@ -405,6 +387,8 @@ export default function BudgetForm({
             status: 'draft',
             // Fix: Only set freight_type default for new budgets, not for editing
             ...(!initialData && { freight_type: 'FOB' }),
+            // Fix: Set payment_condition default for new budgets, similar to freight_type
+            ...(!initialData && { payment_condition: 'À vista' }),
           }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
@@ -510,12 +494,30 @@ export default function BudgetForm({
                 name="freight_type"
                 rules={[{ required: true, message: 'O tipo de frete é obrigatório' }]}
               >
-                <Select 
-                  placeholder="Selecione o tipo de frete"
-                  onChange={(value) => console.log('Select onChange - freight_type:', value)}
-                >
+                <Select placeholder="Selecione o tipo de frete">
                   <Option value="CIF">CIF</Option>
                   <Option value="FOB">FOB</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Condições de Pagamento"
+                name="payment_condition"
+                rules={[{ required: true, message: 'As condições de pagamento são obrigatórias' }]}
+              >
+                <Select placeholder="Selecione as condições">
+                  <Option value="À vista">À vista</Option>
+                  <Option value="7">7</Option>
+                  <Option value="21">21</Option>
+                  <Option value="28">28</Option>
+                  <Option value="28/35">28/35</Option>
+                  <Option value="28/35/42">28/35/42</Option>
+                  <Option value="28/35/42/49">28/35/42/49</Option>
+                  <Option value="30">30</Option>
+                  <Option value="30/45">30/45</Option>
+                  <Option value="30/45/60">30/45/60</Option>
+                  <Option value="30/45/60/75">30/45/60/75</Option>
                 </Select>
               </Form.Item>
             </Col>

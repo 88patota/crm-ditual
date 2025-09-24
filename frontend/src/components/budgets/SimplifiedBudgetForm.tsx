@@ -145,6 +145,11 @@ export default function SimplifiedBudgetForm({
         form.setFieldValue('freight_type', initialData.freight_type);
       }
       
+      // Also set the field value directly if payment_condition exists
+      if (initialData.payment_condition !== undefined) {
+        form.setFieldValue('payment_condition', initialData.payment_condition);
+      }
+      
       // Log the field value after setting it
       setTimeout(() => {
         const fieldValue = form.getFieldValue('freight_type');
@@ -240,6 +245,8 @@ export default function SimplifiedBudgetForm({
     } else {
       // Modo criação - carregar novo número
       loadNextOrderNumber();
+      // Set default payment_condition for new budgets
+      form.setFieldValue('payment_condition', 'À vista');
     }
   }, [initialData, isEdit, form, loadNextOrderNumber]);
 
@@ -309,6 +316,7 @@ export default function SimplifiedBudgetForm({
         prazo_medio: formData.prazo_medio || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         freight_type: formData.freight_type || 'FOB',
+        payment_condition: formData.payment_condition || 'À vista',
         items: items,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -360,6 +368,7 @@ export default function SimplifiedBudgetForm({
         prazo_medio: formData.prazo_medio || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         freight_type: formData.freight_type || 'FOB',
+        payment_condition: formData.payment_condition || 'À vista',
         items: updatedItems,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
@@ -394,6 +403,7 @@ export default function SimplifiedBudgetForm({
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         // Fix: Only include freight_type if it was explicitly set/changed
         ...(formData.freight_type !== undefined && { freight_type: formData.freight_type }),
+        payment_condition: formData.payment_condition || 'À vista',
         items: items.map(item => ({
           ...item,
           peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
@@ -621,6 +631,8 @@ export default function SimplifiedBudgetForm({
             status: 'draft',
             // Fix: Only set freight_type default for new budgets, not for editing
             ...(!isEdit && { freight_type: 'FOB' }),
+            // Fix: Set payment_condition default for new budgets, similar to freight_type
+            ...(!isEdit && { payment_condition: 'À vista' }),
           }}
         >
           <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
@@ -763,6 +775,32 @@ export default function SimplifiedBudgetForm({
                   style={{ width: '100%' }}
                   placeholder="Ex: 30"
                 />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Condições de Pagamento"
+                name="payment_condition"
+                rules={[{ required: true, message: 'Condições de pagamento são obrigatórias' }]}
+              >
+                <Select 
+                  placeholder="Selecione as condições de pagamento"
+                  style={{ width: '100%' }}
+                  allowClear={false}
+                  onChange={(value) => console.log('Select onChange - payment_condition:', value)}
+                >
+                  <Option value="À vista">À vista</Option>
+                  <Option value="7">7</Option>
+                  <Option value="21">21</Option>
+                  <Option value="28">28</Option>
+                  <Option value="28/35">28/35</Option>
+                  <Option value="28/35/42">28/35/42</Option>
+                  <Option value="28/35/42/49">28/35/42/49</Option>
+                  <Option value="30">30</Option>
+                  <Option value="30/45">30/45</Option>
+                  <Option value="30/45/60">30/45/60</Option>
+                  <Option value="30/45/60/75">30/45/60/75</Option>
+                </Select>
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>

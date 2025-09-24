@@ -32,6 +32,7 @@ export default function BudgetEditSimplified() {
         expires_at: budgetData.expires_at,
         notes: budgetData.notes,
         freight_type: budgetData.freight_type, // CORREÇÃO: Incluir freight_type
+        payment_condition: budgetData.payment_condition, // CORREÇÃO: Incluir payment_condition
         markup_percentage: 0, // Será calculado automaticamente
         items: budgetData.items.map(item => ({
           description: item.description,
@@ -105,8 +106,9 @@ export default function BudgetEditSimplified() {
       expires_at: budget.expires_at,
       notes: budget.notes,
       freight_type: budget.freight_type || 'FOB',
-      prazo_medio: 30, // Valor padrão, pois não está no Budget original
-      outras_despesas_totais: 0, // Valor padrão, pois não está no Budget original
+      payment_condition: budget.payment_condition, // CORREÇÃO: Mapear payment_condition do backend
+      prazo_medio: budget.prazo_medio || 30, // CORREÇÃO: Mapear prazo_medio do backend ou usar valor padrão
+      outras_despesas_totais: budget.outras_despesas_totais || 0, // CORREÇÃO: Mapear outras_despesas_totais do backend ou usar valor padrão
       items: budget.items?.map((item) => ({
         description: item.description,
         delivery_time: item.delivery_time || '0', // CORREÇÃO: Incluir prazo de entrega

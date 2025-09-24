@@ -18,11 +18,14 @@ export default function BudgetEdit() {
 
   const updateBudgetMutation = useMutation({
     mutationFn: (budgetData: Budget) => {
-      console.log('Data passed to mutationFn in BudgetEdit:', budgetData);
-      console.log('Freight type in mutationFn:', budgetData.freight_type);
+      console.log('🔍 DEBUG - BudgetEdit mutationFn - Data passed to mutationFn:', budgetData);
+      console.log('🔍 DEBUG - BudgetEdit mutationFn - payment_condition:', budgetData.payment_condition);
+      console.log('🔍 DEBUG - BudgetEdit mutationFn - freight_type:', budgetData.freight_type);
       return budgetService.updateBudget(Number(id), budgetData);
     },
     onSuccess: (data) => {
+      console.log('🔍 DEBUG - BudgetEdit onSuccess - Updated budget data received from backend:', data);
+      console.log('🔍 DEBUG - BudgetEdit onSuccess - payment_condition in response:', data.payment_condition);
       message.success('Orçamento atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
       queryClient.invalidateQueries({ queryKey: ['budget', id] });
@@ -46,6 +49,8 @@ export default function BudgetEdit() {
   };
 
   const handleSubmit = async (budgetData: Budget) => {
+    console.log('🔍 DEBUG - BudgetEdit handleSubmit - Budget data received from form:', budgetData);
+    console.log('🔍 DEBUG - BudgetEdit handleSubmit - payment_condition:', budgetData.payment_condition);
     console.log('BudgetEdit handleSubmit - budgetData received:', budgetData);
     console.log('BudgetEdit handleSubmit - freight_type:', budgetData.freight_type);
     await updateBudgetMutation.mutateAsync(budgetData);

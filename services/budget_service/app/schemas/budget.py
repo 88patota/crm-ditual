@@ -66,6 +66,7 @@ class BudgetSimplifiedCreate(BaseModel):
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    payment_condition: Optional[str] = None  # Condições de pagamento
     
     items: List[BudgetItemSimplified]
 
@@ -189,6 +190,7 @@ class BudgetBase(BaseModel):
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    payment_condition: Optional[str] = None  # Condições de pagamento
 
     @validator('order_number')
     def validate_order_number(cls, v):
@@ -216,6 +218,7 @@ class BudgetUpdate(BaseModel):
     expires_at: Optional[datetime] = None
     items: Optional[List[BudgetItemCreate]] = None
     freight_type: Optional[str] = None  # Remove default value to properly handle updates
+    payment_condition: Optional[str] = None  # Condições de pagamento
 
 
 class BudgetResponse(BudgetBase):
