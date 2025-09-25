@@ -38,25 +38,35 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {/* Header */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Entre na sua conta
+          <div className="flex justify-center mb-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg">
+              <span className="text-2xl font-bold text-white">C</span>
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Bem-vindo de volta
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="text-muted-foreground mb-2">
+            Acesse o sistema com suas credencias
+          </p>
+          <p className="text-sm text-muted-foreground">
             Ou{' '}
             <Link
               to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500"
+              className="font-semibold text-blue-600 hover:text-blue-700"
             >
               crie uma nova conta
             </Link>
           </p>
         </div>
 
-        <Card>
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {/* Login Form */}
+        <Card className="shadow-xl border-0">
+          <form className="space-y-6 p-6" onSubmit={handleSubmit(onSubmit)}>
             <Input
               label="Usuário"
               type="text"
@@ -117,8 +127,15 @@ export default function Login() {
           </form>
         </Card>
 
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
+        {/* Footer */}
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span className="text-sm font-medium text-muted-foreground">
+              Sistema online e funcionando
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
             Sistema CRM - Acesso seguro com autenticação JWT
           </p>
         </div>

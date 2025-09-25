@@ -1,6 +1,6 @@
 """
 Serviço para exportação de orçamentos em PDF
-Baseado na estrutura da planilha de proposta fornecida
+Template baseado na proposta oficial da Ditual São Paulo Tubos e Aços
 """
 
 from reportlab.lib import colors
@@ -9,67 +9,154 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 import io
-from typing import Dict, List, Any
+import os
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 from app.models.budget import Budget, BudgetItem
 
 
-class PDFExportService:
-    """Serviço para exportar orçamentos como propostas em PDF"""
+class DitualPDFTemplate:
+    """Template moderno da Ditual para propostas comerciais"""
+    
+    # Paleta de cores moderna e elegante
+    DITUAL_RED = colors.HexColor('#8B1538')  # Vermelho principal da marca
+    DITUAL_DARK_GRAY = colors.HexColor('#2C3E50')  # Cinza escuro para títulos
+    DITUAL_GRAY = colors.HexColor('#5D6D7E')  # Cinza médio para texto
+    DITUAL_LIGHT_GRAY = colors.HexColor('#ECF0F1')  # Cinza claro para fundos
+    DITUAL_ACCENT = colors.HexColor('#E8F4FD')  # Azul claro para destaques
+    HEADER_BG = colors.white  # Fundo branco moderno para o cabeçalho
+    BORDER_COLOR = colors.HexColor('#BDC3C7')  # Cor suave para bordas
     
     def __init__(self):
         self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
+        self.logo_path = self._get_logo_path()
+    
+    def _get_logo_path(self) -> Optional[str]:
+        """
+        Busca o logo da empresa em diferentes locais possíveis
+        Para adicionar o logo, coloque o arquivo em uma dessas localizações:
+        - /app/static/logo.png (dentro do container)
+        - ./app/static/logo.png (relativo)
+        - static/logo.png (relativo)
+        """
+        # Caminhos possíveis para o logo
+        possible_paths = [
+            "/app/static/logo.png",           # Caminho absoluto no container
+            "/app/static/ditual_logo.png",    # Nome alternativo
+            "app/static/logo.png",            # Relativo ao diretório de trabalho
+            "app/static/ditual_logo.png",     # Nome alternativo relativo
+            "static/logo.png",                # Relativo simples
+            "static/ditual_logo.png",         # Nome alternativo simples
+            "./app/static/logo.png",          # Explicitamente relativo
+            os.path.join(os.path.dirname(__file__), "..", "static", "logo.png"),  # Relativo ao arquivo atual
+            os.path.join(os.path.dirname(__file__), "..", "static", "ditual_logo.png")
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
     
     def _setup_custom_styles(self):
-        """Configura estilos personalizados para o PDF"""
-        # Estilo para título principal
+        """Configura estilos modernos e elegantes para o template"""
+        
+        # Estilo para o nome da empresa (destaque principal)
         self.styles.add(ParagraphStyle(
-            name='TitleMain',
-            parent=self.styles['Title'],
+            name='CompanyName',
+            parent=self.styles['Heading1'],
             fontSize=18,
-            spaceAfter=30,
-            alignment=TA_CENTER,
-            textColor=colors.HexColor('#1f2937'),
-            fontName='Helvetica-Bold'
-        ))
-        
-        # Estilo para cabeçalho da proposta
-        self.styles.add(ParagraphStyle(
-            name='ProposalHeader',
-            parent=self.styles['Normal'],
-            fontSize=12,
-            spaceBefore=10,
-            spaceAfter=10,
+            fontName='Helvetica-Bold',
+            textColor=self.DITUAL_RED,
             alignment=TA_LEFT,
-            fontName='Helvetica-Bold'
+            spaceAfter=4,
+            spaceBefore=0,
+            leading=20
         ))
         
-        # Estilo para informações destacadas
+        # Estilo para informações da empresa (moderno e limpo)
         self.styles.add(ParagraphStyle(
-            name='Highlight',
+            name='CompanyInfo',
             parent=self.styles['Normal'],
-            fontSize=11,
-            textColor=colors.HexColor('#2563eb'),
-            fontName='Helvetica-Bold'
+            fontSize=9,
+            fontName='Helvetica',
+            textColor=self.DITUAL_GRAY,
+            alignment=TA_LEFT,
+            spaceAfter=1,
+            spaceBefore=1,
+            leading=11
         ))
         
-        # Estilo para observações
+        # Estilo para número da proposta (elegante)
         self.styles.add(ParagraphStyle(
-            name='Notes',
+            name='ProposalNumber',
+            parent=self.styles['Heading1'],
+            fontSize=16,
+            fontName='Helvetica-Bold',
+            textColor=self.DITUAL_RED,
+            alignment=TA_CENTER,
+            spaceAfter=0,
+            spaceBefore=0,
+            leading=18
+        ))
+        
+        # Estilo para labels dos dados do cliente
+        self.styles.add(ParagraphStyle(
+            name='ClientLabel',
             parent=self.styles['Normal'],
             fontSize=10,
-            spaceBefore=15,
-            spaceAfter=15,
-            leftIndent=20,
-            rightIndent=20,
-            textColor=colors.HexColor('#4b5563')
+            fontName='Helvetica-Bold',
+            textColor=self.DITUAL_DARK_GRAY,
+            alignment=TA_LEFT,
+            spaceAfter=3,
+            spaceBefore=3,
+            leading=12
         ))
-    
+        
+        # Estilo para valores dos dados do cliente
+        self.styles.add(ParagraphStyle(
+            name='ClientValue',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=self.DITUAL_GRAY,
+            alignment=TA_LEFT,
+            spaceAfter=3,
+            spaceBefore=3,
+            leading=12
+        ))
+        
+        # Estilo para texto de introdução
+        self.styles.add(ParagraphStyle(
+            name='IntroText',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            fontName='Helvetica',
+            textColor=self.DITUAL_GRAY,
+            alignment=TA_JUSTIFY,
+            spaceAfter=12,
+            spaceBefore=12,
+            leading=14
+        ))
+        
+        # Estilo para cabeçalhos de seção
+        self.styles.add(ParagraphStyle(
+            name='SectionHeader',
+            parent=self.styles['Heading2'],
+            fontSize=12,
+            fontName='Helvetica-Bold',
+            textColor=self.DITUAL_DARK_GRAY,
+            alignment=TA_LEFT,
+            spaceAfter=8,
+            spaceBefore=15,
+            leading=14
+        ))
+
     def generate_proposal_pdf(self, budget: Budget) -> bytes:
-        """Gera PDF da proposta baseado no orçamento"""
+        """Gera PDF da proposta com template oficial da Ditual"""
         
         buffer = io.BytesIO()
         
@@ -77,33 +164,39 @@ class PDFExportService:
         doc = SimpleDocTemplate(
             buffer,
             pagesize=A4,
-            rightMargin=20*mm,
-            leftMargin=20*mm,
-            topMargin=30*mm,
-            bottomMargin=30*mm
+            rightMargin=15*mm,
+            leftMargin=15*mm,
+            topMargin=15*mm,
+            bottomMargin=15*mm
         )
         
         # Elementos do PDF
         story = []
         
-        # Cabeçalho da proposta
-        self._add_header(story, budget)
+        # Cabeçalho oficial da Ditual
+        self._add_ditual_header(story, budget)
         
-        # Informações do pedido e cliente
-        self._add_proposal_info(story, budget)
+        # Informações do cliente e proposta
+        self._add_client_info(story, budget)
         
-        # Tabela principal de itens (baseada na planilha)
+        # Texto de introdução
+        self._add_intro_text(story)
+        
+        # Tabela principal de itens (exatamente como na proposta)
         self._add_items_table(story, budget)
         
-        # Resumo financeiro
-        self._add_financial_summary(story, budget)
+        # Totais e condições
+        self._add_totals_and_conditions(story, budget)
         
-        # Observações
+        # Observações se houver
         if budget.notes:
-            self._add_notes(story, budget.notes)
+            self._add_observations(story, budget.notes)
         
-        # Rodapé com informações adicionais
-        self._add_footer(story, budget)
+        # Condições comerciais
+        self._add_commercial_conditions(story, budget)
+        
+        # Rodapé com observações legais
+        self._add_legal_footer(story)
         
         # Construir PDF
         doc.build(story)
@@ -111,339 +204,415 @@ class PDFExportService:
         buffer.seek(0)
         return buffer.getvalue()
     
-    def _add_header(self, story: List, budget: Budget):
-        """Adiciona cabeçalho da proposta"""
-        # Título principal
-        title = Paragraph("PROPOSTA COMERCIAL", self.styles['TitleMain'])
-        story.append(title)
-        story.append(Spacer(1, 20))
+    def _add_ditual_header(self, story: List, budget: Budget):
+        """Adiciona cabeçalho moderno e elegante da Ditual"""
         
-        # Linha separadora
-        line_data = [[''] * 10]
-        line_table = Table(line_data, colWidths=[20*mm] * 10)
-        line_table.setStyle(TableStyle([
-            ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#2563eb')),
-        ]))
-        story.append(line_table)
-        story.append(Spacer(1, 20))
-    
-    def _add_proposal_info(self, story: List, budget: Budget):
-        """Adiciona informações básicas da proposta"""
-        
-        # Dados básicos em formato de tabela
-        info_data = [
-            ['PEDIDO:', budget.order_number, '', 'CLIENTE:', budget.client_name],
-            ['', '', '', 'MARKUP DO PEDIDO:', f'{budget.markup_percentage:.2f}%'],
-            ['', '', '', 'COMISSÃO (POR ITEM):', f'R$ {budget.total_commission:.2f}']
+        # Dados da empresa atualizados
+        company_data = [
+            [
+                # Logo + Nome da empresa
+                self._get_logo_cell(),
+                # Informações da empresa
+                Paragraph("""
+                    <b>DITUAL COMERCIO DE PRODUTOS ALIMENTICIOS LTDA</b><br/>
+                    CNPJ: 33.200.056/0001-04<br/>
+                    Rua Antônio Augusto Borges de Medeiros, 3339 - Sala 02<br/>
+                    Exposição - Caxias do Sul/RS - CEP: 95084-460<br/>
+                    Telefone: (54) 3025-3777 | E-mail: vendas@ditual.com.br
+                """, self.styles['CompanyInfo']),
+                # Número da proposta
+                Paragraph(f"<b>PROPOSTA</b><br/>Nº {budget.order_number}", 
+                         self.styles['ProposalNumber'])
+            ]
         ]
         
-        info_table = Table(info_data, colWidths=[25*mm, 40*mm, 10*mm, 35*mm, 50*mm])
-        info_table.setStyle(TableStyle([
-            # Formatação geral
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            
-            # Labels em negrito
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (3, 0), (3, -1), 'Helvetica-Bold'),
-            
-            # Valores destacados
-            ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#2563eb')),
-            ('TEXTCOLOR', (4, 0), (4, -1), colors.HexColor('#2563eb')),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
-            
-            # Bordas
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        header_table = Table(company_data, colWidths=[70*mm, 90*mm, 50*mm])
+        header_table.setStyle(TableStyle([
+            # Fundo branco moderno
+            ('BACKGROUND', (0, 0), (-1, 0), self.HEADER_BG),
+            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, 0), 15),
+            ('RIGHTPADDING', (0, 0), (-1, 0), 15),
+            ('TOPPADDING', (0, 0), (-1, 0), 15),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 15),
+            # Borda sutil na parte inferior
+            ('LINEBELOW', (0, 0), (-1, 0), 2, self.BORDER_COLOR),
         ]))
         
-        story.append(info_table)
-        story.append(Spacer(1, 20))
+        story.append(header_table)
+        story.append(Spacer(1, 25))
+    
+    def _get_logo_cell(self):
+        """Retorna célula com logo da empresa ou espaço reservado"""
+        if self.logo_path and os.path.exists(self.logo_path):
+            try:
+                # Ajustar tamanho do logo proporcionalmente
+                img = Image(self.logo_path, width=50*mm, height=25*mm)
+                return img
+            except Exception as e:
+                print(f"Erro ao carregar logo: {e}")
+                return Paragraph("<b>LOGO<br/>DITUAL</b>", self.styles['CompanyInfo'])
+        else:
+            # Placeholder para o logo
+            return Paragraph("<b>LOGO<br/>DITUAL</b>", self.styles['CompanyInfo'])
+    
+    def _format_delivery_time(self, delivery_time: str) -> str:
+        """Formata o prazo de entrega para exibição no PDF"""
+        if not delivery_time:
+            return "IMEDIATO"
+        
+        try:
+            days = int(delivery_time)
+            if days <= 0:
+                return "IMEDIATO"
+            elif days == 1:
+                return "1 dia"
+            else:
+                return f"{days} dias"
+        except (ValueError, TypeError):
+            return delivery_time or "IMEDIATO"
+    
+    def _format_currency(self, value: float) -> str:
+        """Formata valores monetários com precisão e padrão brasileiro"""
+        if value is None or value == 0:
+            return "R$ 0,00"
+        
+        # Garantir precisão numérica e formatação brasileira
+        formatted = f"R$ {value:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        return formatted
+    
+    def _calculate_icms_value(self, item_value: float, icms_percentage: float, weight: float = 1.0) -> float:
+        """Calcula o valor monetário do ICMS baseado no percentual e valor do item"""
+        if not icms_percentage or not item_value:
+            return 0.0
+        
+        # Calcular valor total do item
+        total_item_value = item_value * weight
+        # Calcular valor do ICMS
+        icms_value = total_item_value * icms_percentage
+        return icms_value
+    
+    def _add_client_info(self, story: List, budget: Budget):
+        """Adiciona informações do cliente e proposta"""
+        
+        # Formatar data
+        created_date = budget.created_at.strftime('%d/%m/%Y') if budget.created_at else datetime.now().strftime('%d/%m/%Y')
+        expires_date = budget.expires_at.strftime('%d/%m/%Y') if budget.expires_at else "7 dias corridos"
+        
+        # Dados do cliente e proposta
+        client_data = [
+            [
+                Paragraph("Cliente:", self.styles['ClientLabel']),
+                Paragraph(budget.client_name.upper(), self.styles['ClientValue']),
+                "",
+                Paragraph("Consultor:", self.styles['ClientLabel']),
+                Paragraph(budget.created_by or "Sistema", self.styles['ClientValue'])
+            ],
+            [
+                Paragraph("Contato:", self.styles['ClientLabel']),
+                Paragraph("", self.styles['ClientValue']),  # Campo vazio para preenchimento manual
+                "",
+                Paragraph("Fone:", self.styles['ClientLabel']),
+                Paragraph("", self.styles['ClientValue'])  # Campo vazio
+            ],
+            [
+                Paragraph("Data:", self.styles['ClientLabel']),
+                Paragraph(created_date, self.styles['ClientValue']),
+                "",
+                Paragraph("E-mail:", self.styles['ClientLabel']),
+                Paragraph("", self.styles['ClientValue'])  # Campo vazio
+            ],
+            [
+                Paragraph("Validade:", self.styles['ClientLabel']),
+                Paragraph(expires_date, self.styles['ClientValue']),
+                "",
+                "",
+                ""
+            ]
+        ]
+        
+        client_table = Table(client_data, colWidths=[20*mm, 50*mm, 10*mm, 25*mm, 85*mm])
+        client_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            # Linha inferior
+            ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
+        ]))
+        
+        story.append(client_table)
+        story.append(Spacer(1, 5))
+    
+    def _add_intro_text(self, story: List):
+        """Adiciona texto de introdução da proposta"""
+        intro_text = Paragraph(
+            "Em atenção à sua solicitação, apresentamos abaixo condições comerciais para fornecimento dos itens consultados:",
+            self.styles['IntroText']
+        )
+        story.append(intro_text)
+        story.append(Spacer(1, 3))
     
     def _add_items_table(self, story: List, budget: Budget):
-        """Adiciona tabela principal de itens baseada na estrutura da planilha"""
+        """Adiciona tabela principal de itens (exatamente como na proposta)"""
         
-        # Cabeçalho da tabela (baseado na planilha)
-        headers = [
-            'DESCRIÇÃO',
-            'COMPRA\nPeso',
-            'COMPRA\nValor c/ICMS',
-            'COMPRA\n%ICMS',
-            'COMPRA\nOutras Despesas',
-            'COMPRA\nValor s/Impostos',
-            'VENDA\nPeso',
-            'VENDA\nValor c/ICMS',
-            'VENDA\n%ICMS',
-            'VENDA\nValor s/Impostos',
-            'Rentabilidade',
-            'Total Compra',
-            'Total Venda',
-            'Valor Unitário',
-            'Valor Total',
-            '%Comissão',
-            'Valor Comissão'
-        ]
-        
-        # Preparar dados dos itens
-        table_data = [headers]
-        
-        for item in budget.items:
-            row = [
-                item.description,
-                f'{item.weight or 0:.2f}',
-                f'R$ {item.purchase_value_with_icms:.2f}',
-                f'{item.purchase_icms_percentage:.1f}%',
-                f'R$ {item.purchase_other_expenses:.2f}',
-                f'R$ {item.purchase_value_without_taxes:.2f}',
-                f'{item.sale_weight or item.weight or 0:.2f}',
-                f'R$ {item.sale_value_with_icms:.2f}',
-                f'{item.sale_icms_percentage:.1f}%',
-                f'R$ {item.sale_value_without_taxes:.2f}',
-                f'{item.profitability:.2f}%',
-                f'R$ {item.total_purchase:.2f}',
-                f'R$ {item.total_sale:.2f}',
-                f'R$ {item.unit_value:.2f}',
-                f'R$ {item.total_value:.2f}',
-                f'{item.commission_percentage:.2f}%',
-                f'R$ {item.commission_value:.2f}'
+        # Cabeçalho da tabela com títulos otimizados para evitar quebras
+        header_data = [
+            [
+                Paragraph("<b>Item</b>", self.styles['Normal']),
+                Paragraph("<b>Descrição</b>", self.styles['Normal']),
+                Paragraph("<b>Und</b>", self.styles['Normal']),
+                Paragraph("<b>Qtd</b>", self.styles['Normal']),
+                Paragraph("<b>Preço Unit.</b>", self.styles['Normal']),
+                Paragraph("<b>ICMS</b>", self.styles['Normal']),
+                Paragraph("<b>IPI (%)</b>", self.styles['Normal']),
+                Paragraph("<b>Total</b>", self.styles['Normal']),
+                Paragraph("<b>Prazo</b>", self.styles['Normal'])
             ]
-            table_data.append(row)
-        
-        # Criar tabela com larguras apropriadas
-        col_widths = [
-            35*mm,  # Descrição
-            12*mm,  # Peso compra
-            18*mm,  # Valor compra
-            12*mm,  # ICMS compra
-            15*mm,  # Outras despesas
-            18*mm,  # Valor s/impostos compra
-            12*mm,  # Peso venda
-            18*mm,  # Valor venda
-            12*mm,  # ICMS venda
-            18*mm,  # Valor s/impostos venda
-            15*mm,  # Rentabilidade
-            18*mm,  # Total compra
-            18*mm,  # Total venda
-            15*mm,  # Valor unitário
-            18*mm,  # Valor total
-            12*mm,  # % Comissão
-            15*mm   # Valor comissão
         ]
+        
+        # Dados dos itens
+        items_data = []
+        for i, item in enumerate(budget.items, 1):
+            # Calcular o preço unitário correto: valor total / peso (quantidade)
+            # Se o peso for 0, usar o unit_value como fallback
+            if item.weight and item.weight > 0:
+                unit_price = (item.total_sale or 0) / item.weight
+            else:
+                unit_price = item.unit_value or 0
+            
+            # Calcular valor monetário do ICMS
+            icms_value = self._calculate_icms_value(
+                item.sale_value_with_icms, 
+                item.sale_icms_percentage, 
+                1.0  # Para valor unitário
+            )
+            
+            items_data.append([
+                str(i),
+                Paragraph(item.description, self.styles['Normal']),
+                "KG",
+                f"{item.weight:,.0f}".replace(',', '.'),
+                self._format_currency(unit_price),  # Valor unitário por unidade
+                self._format_currency(icms_value) if icms_value > 0 else "R$ 0,00",  # ICMS em valor monetário
+                f"{(item.ipi_percentage or 0) * 100:,.2f}%".replace('.', ','),
+                self._format_currency(item.total_sale or 0),  # Formatação monetária melhorada
+                self._format_delivery_time(item.delivery_time)
+            ])
+        
+        # Combinar cabeçalho e dados (tabela dinâmica sem linhas vazias)
+        table_data = header_data + items_data
+        
+        # Larguras das colunas otimizadas (Descrição com mais espaço para evitar quebras)
+        col_widths = [10*mm, 45*mm, 8*mm, 12*mm, 18*mm, 12*mm, 15*mm, 22*mm, 18*mm]
         
         items_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-        
-        # Estilo da tabela
         items_table.setStyle(TableStyle([
-            # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f3f4f6')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1f2937')),
+            # Cabeçalho moderno e elegante
+            ('BACKGROUND', (0, 0), (-1, 0), self.DITUAL_ACCENT),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.DITUAL_DARK_GRAY),
             
-            # Dados
+            # Corpo da tabela
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 7),
-            ('ALIGN', (1, 1), (-1, -1), 'CENTER'),  # Todos exceto descrição centralizados
-            ('ALIGN', (0, 1), (0, -1), 'LEFT'),     # Descrição alinhada à esquerda
-            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TEXTCOLOR', (0, 1), (-1, -1), self.DITUAL_GRAY),
             
-            # Bordas
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            # Alinhamentos
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (1, 1), (1, -1), 'LEFT'),  # Descrição à esquerda
+            ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),  # Números à direita
             
-            # Zebra striping para linhas
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9fafb')]),
+            # Bordas suaves e modernas
+            ('LINEBELOW', (0, 0), (-1, 0), 2, self.DITUAL_RED),  # Linha vermelha sob cabeçalho
+            ('GRID', (0, 1), (-1, -1), 0.5, self.BORDER_COLOR),  # Grade suave
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),  # Borda externa suave
             
-            # Destaque para colunas de valores
-            ('TEXTCOLOR', (2, 1), (2, -1), colors.HexColor('#059669')),  # Valor compra
-            ('TEXTCOLOR', (7, 1), (7, -1), colors.HexColor('#2563eb')),  # Valor venda
-            ('TEXTCOLOR', (10, 1), (10, -1), colors.HexColor('#dc2626')), # Rentabilidade
-            ('TEXTCOLOR', (16, 1), (16, -1), colors.HexColor('#7c3aed')), # Comissão
+            # Padding generoso para melhor legibilidade
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            
+            # Linhas alternadas para melhor leitura
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.DITUAL_LIGHT_GRAY]),
         ]))
         
         story.append(items_table)
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 5))
     
-    def _add_financial_summary(self, story: List, budget: Budget):
-        """Adiciona resumo financeiro da proposta"""
+    def _add_totals_and_conditions(self, story: List, budget: Budget):
+        """Adiciona totais e peso (como na proposta)"""
         
-        # Título da seção
-        summary_title = Paragraph("RESUMO FINANCEIRO", self.styles['ProposalHeader'])
-        story.append(summary_title)
+        # Calcular totais
+        total_weight = sum(item.weight for item in budget.items)
+        total_without_ipi = budget.total_sale_value or 0
+        total_with_ipi = budget.total_final_value or total_without_ipi
         
-        # Dados do resumo
-        summary_data = [
-            ['Total Compra:', f'R$ {budget.total_purchase_value:.2f}'],
-            ['Total Venda:', f'R$ {budget.total_sale_value:.2f}'],
-            ['Total Comissão:', f'R$ {budget.total_commission:.2f}'],
-            ['Markup Aplicado:', f'{budget.markup_percentage:.2f}%'],
-            ['Rentabilidade:', f'{budget.profitability_percentage:.2f}%'],
+        # Tabela de totais moderna e elegante
+        totals_data = [
+            [
+                f"Peso Total: {total_weight:,.0f} kg".replace(',', '.'),
+                "",
+                f"Valor total S/IPI: {self._format_currency(total_without_ipi)}",
+                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}"
+            ]
         ]
         
-        summary_table = Table(summary_data, colWidths=[40*mm, 30*mm])
-        summary_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#2563eb')),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
+        totals_table = Table(totals_data, colWidths=[50*mm, 50*mm, 45*mm, 45*mm])
+        totals_table.setStyle(TableStyle([
+            # Estilo moderno para totais
+            ('BACKGROUND', (0, 0), (-1, -1), self.DITUAL_LIGHT_GRAY),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TEXTCOLOR', (0, 0), (-1, -1), self.DITUAL_DARK_GRAY),
+            ('ALIGN', (0, 0), (1, -1), 'LEFT'),
+            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
-        
-        story.append(summary_table)
-        story.append(Spacer(1, 20))
-    
-    def _add_notes(self, story: List, notes: str):
-        """Adiciona observações à proposta"""
-        notes_title = Paragraph("OBSERVAÇÕES", self.styles['ProposalHeader'])
-        story.append(notes_title)
-        
-        notes_content = Paragraph(notes, self.styles['Notes'])
-        story.append(notes_content)
-        story.append(Spacer(1, 15))
-    
-    def _add_footer(self, story: List, budget: Budget):
-        """Adiciona rodapé com informações adicionais"""
-        
-        footer_data = [
-            [f'Data de geração: {datetime.now().strftime("%d/%m/%Y %H:%M")}'],
-            [f'Criado por: {budget.created_by}'],
-            [f'Status: {self._get_status_text(budget.status.value)}'],
-        ]
-        
-        if budget.expires_at:
-            footer_data.append([f'Válido até: {budget.expires_at.strftime("%d/%m/%Y")}'])
-        
-        footer_table = Table(footer_data, colWidths=[80*mm])
-        footer_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#6b7280')),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ]))
-        
-        story.append(Spacer(1, 20))
-        story.append(footer_table)
-    
-    def _get_status_text(self, status: str) -> str:
-        """Converte status para texto em português"""
-        status_map = {
-            'draft': 'Rascunho',
-            'pending': 'Pendente',
-            'approved': 'Aprovado',
-            'rejected': 'Rejeitado',
-            'expired': 'Expirado'
-        }
-        return status_map.get(status, status.title())
-    
-    def generate_simplified_proposal_pdf(self, budget: Budget) -> bytes:
-        """Gera versão simplificada da proposta para apresentação ao cliente"""
-        
-        buffer = io.BytesIO()
-        
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=A4,
-            rightMargin=20*mm,
-            leftMargin=20*mm,
-            topMargin=30*mm,
-            bottomMargin=30*mm
-        )
-        
-        story = []
-        
-        # Cabeçalho simplificado
-        title = Paragraph("PROPOSTA COMERCIAL", self.styles['TitleMain'])
-        story.append(title)
-        story.append(Spacer(1, 30))
-        
-        # Informações básicas
-        info_data = [
-            ['Pedido:', budget.order_number],
-            ['Cliente:', budget.client_name],
-            ['Data:', datetime.now().strftime("%d/%m/%Y")],
-        ]
-        
-        if budget.expires_at:
-            info_data.append(['Válido até:', budget.expires_at.strftime("%d/%m/%Y")])
-        
-        info_table = Table(info_data, colWidths=[30*mm, 60*mm])
-        info_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            
+            # Bordas elegantes
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_RED),
+            
+            # Padding generoso
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ]))
         
-        story.append(info_table)
-        story.append(Spacer(1, 30))
+        story.append(totals_table)
+        story.append(Spacer(1, 8))
+    
+    def _add_observations(self, story: List, notes: str):
+        """Adiciona seção de observações com design moderno"""
         
-        # Tabela simplificada de itens
-        simple_headers = ['Item', 'Descrição', 'Quantidade', 'Valor Unitário', 'Total']
-        simple_data = [simple_headers]
+        # Título elegante
+        obs_title = Paragraph("Observações", self.styles['SectionHeader'])
+        story.append(obs_title)
         
-        for i, item in enumerate(budget.items, 1):
-            row = [
-                str(i),
-                item.description,
-                f'{item.quantity:.0f}',
-                f'R$ {item.unit_value:.2f}',
-                f'R$ {item.total_value:.2f}'
-            ]
-            simple_data.append(row)
-        
-        # Linha de total
-        simple_data.append([
-            '', 'TOTAL GERAL', '', '', 
-            f'R$ {budget.total_sale_value:.2f}'
-        ])
-        
-        simple_table = Table(simple_data, colWidths=[15*mm, 80*mm, 25*mm, 30*mm, 30*mm])
-        simple_table.setStyle(TableStyle([
-            # Cabeçalho
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            
-            # Dados
-            ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -2), 9),
-            ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # Item
-            ('ALIGN', (1, 1), (1, -1), 'LEFT'),    # Descrição
-            ('ALIGN', (2, 1), (-1, -1), 'CENTER'), # Quantidade, valores
-            
-            # Total
-            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f3f4f6')),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, -1), (-1, -1), 11),
-            ('TEXTCOLOR', (4, -1), (4, -1), colors.HexColor('#2563eb')),
-            
-            # Bordas
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        # Caixa de observações moderna
+        obs_data = [[Paragraph(notes, self.styles['IntroText'])]]
+        obs_table = Table(obs_data, colWidths=[180*mm])
+        obs_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_ACCENT),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ]))
         
-        story.append(simple_table)
+        story.append(obs_table)
+        story.append(Spacer(1, 12))
+    
+    def _add_commercial_conditions(self, story: List, budget: Budget):
+        """Adiciona condições comerciais com frete e pagamento destacados"""
         
-        # Observações se houver
-        if budget.notes:
-            story.append(Spacer(1, 30))
-            self._add_notes(story, budget.notes)
+        # Seção de Frete com design moderno
+        freight_title = Paragraph("Condições de Frete", self.styles['SectionHeader'])
+        story.append(freight_title)
         
-        doc.build(story)
+        freight_type = budget.freight_type or "FOB"
+        freight_description = "Por conta do destinatário" if freight_type == "FOB" else "Por conta do remetente"
         
-        buffer.seek(0)
-        return buffer.getvalue()
+        freight_data = [[
+            Paragraph(f"<b>Tipo:</b> {freight_type} - {freight_description}", self.styles['ClientValue'])
+        ]]
+        
+        freight_table = Table(freight_data, colWidths=[180*mm])
+        freight_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), self.DITUAL_LIGHT_GRAY),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_RED),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(freight_table)
+        story.append(Spacer(1, 12))
+        
+        # Seção de Condições de Pagamento elegante
+        payment_title = Paragraph("Condições de Pagamento", self.styles['SectionHeader'])
+        story.append(payment_title)
+        
+        payment_condition = budget.payment_condition or "À vista"
+        
+        payment_data = [[
+            Paragraph(f"<b>Condição:</b> {payment_condition}", self.styles['ClientValue'])
+        ]]
+        
+        payment_table = Table(payment_data, colWidths=[180*mm])
+        payment_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), self.DITUAL_LIGHT_GRAY),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_RED),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        
+        story.append(payment_table)
+        story.append(Spacer(1, 15))
+    
+    def _add_legal_footer(self, story: List):
+        """Adiciona rodapé elegante com observações legais"""
+        
+        # Título da seção
+        footer_title = Paragraph("Observações Legais", self.styles['SectionHeader'])
+        story.append(footer_title)
+        
+        legal_text = [
+            "• Material sujeito a venda prévia / Os pesos informados são teóricos.",
+            "• Após expiração da data de validade desta oferta, os preços estarão sujeitos a reajustes (para mais ou para menos) em função da variação dos preços dos aços planos praticados pelas usinas."
+        ]
+        
+        # Criar uma caixa elegante para as observações legais
+        legal_content = "<br/>".join(legal_text)
+        legal_data = [[Paragraph(legal_content, self.styles['IntroText'])]]
+        
+        legal_table = Table(legal_data, colWidths=[180*mm])
+        legal_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), self.DITUAL_ACCENT),
+            ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),
+            ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_GRAY),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        
+        story.append(legal_table)
+
+
+class PDFExportService:
+    """Serviço principal para exportação de PDF"""
+    
+    def __init__(self):
+        self.template = DitualPDFTemplate()
+    
+    def generate_proposal_pdf(self, budget: Budget) -> bytes:
+        """Gera PDF da proposta usando template oficial da Ditual"""
+        return self.template.generate_proposal_pdf(budget)
+    
+    def generate_simplified_proposal_pdf(self, budget: Budget) -> bytes:
+        """
+        Mantido por compatibilidade, mas agora usa o mesmo template oficial
+        """
+        return self.template.generate_proposal_pdf(budget)
 
 
 # Instância singleton do serviço

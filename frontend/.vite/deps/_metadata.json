@@ -1,0 +1,142 @@
+{
+  "hash": "d5d1a2c8",
+  "configHash": "e01ac95b",
+  "lockfileHash": "a3d3c79e",
+  "browserHash": "72d9c2de",
+  "optimized": {
+    "react/jsx-dev-runtime": {
+      "src": "../../node_modules/react/jsx-dev-runtime.js",
+      "file": "react_jsx-dev-runtime.js",
+      "fileHash": "3fda5823",
+      "needsInterop": true
+    },
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "c89c1d55",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "83a6bbe2",
+      "needsInterop": true
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.mjs",
+      "file": "react-router-dom.js",
+      "fileHash": "e51b1402",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "02a43b13",
+      "needsInterop": false
+    },
+    "@tanstack/react-query-devtools": {
+      "src": "../../node_modules/@tanstack/react-query-devtools/build/modern/index.js",
+      "file": "@tanstack_react-query-devtools.js",
+      "fileHash": "44e27813",
+      "needsInterop": false
+    },
+    "antd": {
+      "src": "../../node_modules/antd/es/index.js",
+      "file": "antd.js",
+      "fileHash": "bf2bf546",
+      "needsInterop": false
+    },
+    "antd/locale/pt_BR": {
+      "src": "../../node_modules/antd/locale/pt_BR.js",
+      "file": "antd_locale_pt_BR.js",
+      "fileHash": "08df1492",
+      "needsInterop": true
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "5662fc91",
+      "needsInterop": false
+    },
+    "react-hot-toast": {
+      "src": "../../node_modules/react-hot-toast/dist/index.mjs",
+      "file": "react-hot-toast.js",
+      "fileHash": "44348453",
+      "needsInterop": false
+    },
+    "react-hook-form": {
+      "src": "../../node_modules/react-hook-form/dist/index.esm.mjs",
+      "file": "react-hook-form.js",
+      "fileHash": "5ffa70bb",
+      "needsInterop": false
+    },
+    "lucide-react": {
+      "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
+      "file": "lucide-react.js",
+      "fileHash": "3e4da9fa",
+      "needsInterop": false
+    },
+    "@ant-design/icons": {
+      "src": "../../node_modules/@ant-design/icons/es/index.js",
+      "file": "@ant-design_icons.js",
+      "fileHash": "4d604612",
+      "needsInterop": false
+    },
+    "dayjs": {
+      "src": "../../node_modules/dayjs/dayjs.min.js",
+      "file": "dayjs.js",
+      "fileHash": "dcb2f6a9",
+      "needsInterop": true
+    },
+    "clsx": {
+      "src": "../../node_modules/clsx/dist/clsx.mjs",
+      "file": "clsx.js",
+      "fileHash": "7e623e3e",
+      "needsInterop": false
+    },
+    "dayjs/locale/pt-br": {
+      "src": "../../node_modules/dayjs/locale/pt-br.js",
+      "file": "dayjs_locale_pt-br.js",
+      "fileHash": "d555197a",
+      "needsInterop": true
+    },
+    "tailwind-merge": {
+      "src": "../../node_modules/tailwind-merge/dist/bundle-mjs.mjs",
+      "file": "tailwind-merge.js",
+      "fileHash": "5ac04f76",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "EDEL3XIZ-EEBMYJFQ": {
+      "file": "EDEL3XIZ-EEBMYJFQ.js"
+    },
+    "RN252AT2-RGJIFUEZ": {
+      "file": "RN252AT2-RGJIFUEZ.js"
+    },
+    "chunk-MCZR4CDR": {
+      "file": "chunk-MCZR4CDR.js"
+    },
+    "chunk-XUYCH2BJ": {
+      "file": "chunk-XUYCH2BJ.js"
+    },
+    "chunk-MBFJ3XHL": {
+      "file": "chunk-MBFJ3XHL.js"
+    },
+    "chunk-EHZSKXE4": {
+      "file": "chunk-EHZSKXE4.js"
+    },
+    "chunk-TMWODK65": {
+      "file": "chunk-TMWODK65.js"
+    },
+    "chunk-PV7ZWGTI": {
+      "file": "chunk-PV7ZWGTI.js"
+    },
+    "chunk-2CLD7BNN": {
+      "file": "chunk-2CLD7BNN.js"
+    },
+    "chunk-WOOG5QLI": {
+      "file": "chunk-WOOG5QLI.js"
+    }
+  }
+}

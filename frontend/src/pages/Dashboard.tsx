@@ -132,14 +132,14 @@ export default function Dashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.name} className="shadow-md rounded-xl border border-gray-100 bg-white">
-              <CardContent className="flex items-center">
-                <div className={`rounded-lg p-3 ${stat.bgColor}`}>
+            <Card key={stat.name} className="shadow-md rounded-xl border border-gray-100 bg-white min-h-[140px] flex flex-col">
+              <CardContent className="flex items-center p-6 flex-1">
+                <div className={`rounded-lg p-3 ${stat.bgColor} flex-shrink-0`}>
                   <Icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                <div className="ml-4 flex-1 overflow-hidden">
+                  <p className="text-sm font-medium text-gray-600 truncate">{stat.name}</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1 truncate" style={{ lineHeight: '1.4', paddingBottom: '1px', minHeight: '32px' }}>{stat.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -155,39 +155,43 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* User Profile Card */}
-        <Card>
+        <Card className="min-h-[300px]">
           <CardHeader>
             <CardTitle>Meu Perfil</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Nome</dt>
-                <dd className="text-sm text-gray-900">{user?.full_name}</dd>
+          <CardContent className="flex-1">
+            <div className="space-y-4 h-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg overflow-hidden">
+                  <dt className="text-sm font-medium text-gray-500 mb-1 truncate">Nome</dt>
+                  <dd className="text-sm text-gray-900 font-semibold truncate">{user?.full_name}</dd>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg overflow-hidden">
+                  <dt className="text-sm font-medium text-gray-500 mb-1 truncate">Email</dt>
+                  <dd className="text-sm text-gray-900 font-semibold truncate">{user?.email}</dd>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg overflow-hidden">
+                  <dt className="text-sm font-medium text-gray-500 mb-1 truncate">Username</dt>
+                  <dd className="text-sm text-gray-900 font-semibold truncate">{user?.username}</dd>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg overflow-hidden">
+                  <dt className="text-sm font-medium text-gray-500 mb-1 truncate">Função</dt>
+                  <dd className="text-sm text-gray-900">
+                    <StripeBadge variant={user?.role === 'admin' ? 'primary' : 'success'} size="sm">
+                      {user?.role === 'admin' ? 'Administrador' : 'Vendas'}
+                    </StripeBadge>
+                  </dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Email</dt>
-                <dd className="text-sm text-gray-900">{user?.email}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Username</dt>
-                <dd className="text-sm text-gray-900">{user?.username}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Função</dt>
-                <dd className="text-sm text-gray-900">
-                  <StripeBadge variant={user?.role === 'admin' ? 'primary' : 'success'} size="sm">
-                    {user?.role === 'admin' ? 'Administrador' : 'Vendas'}
-                  </StripeBadge>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Status</dt>
-                <dd className="text-sm text-gray-900">
-                  <StripeBadge variant={user?.is_active ? 'success' : 'error'} size="sm">
-                    {user?.is_active ? 'Ativo' : 'Inativo'}
-                  </StripeBadge>
-                </dd>
+              <div className="pt-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <dt className="text-sm font-medium text-gray-500 mb-1">Status</dt>
+                  <dd className="text-sm text-gray-900">
+                    <StripeBadge variant={user?.is_active ? 'success' : 'error'} size="sm">
+                      {user?.is_active ? 'Ativo' : 'Inativo'}
+                    </StripeBadge>
+                  </dd>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -195,25 +199,25 @@ export default function Dashboard() {
 
         {/* Recent Users (Admin only) */}
         {user?.role === 'admin' && (
-          <Card>
+          <Card className="min-h-[300px]">
             <CardHeader>
               <CardTitle>Usuários Recentes</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="flex-1">
+              <div className="space-y-3 h-full">
                 {recentUsers.map((recentUser) => (
-                  <div key={recentUser.id} className="flex items-center justify-between">
+                  <div key={recentUser.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 flex-shrink-0">
                         <span className="text-sm font-medium text-gray-700">
                           {recentUser.full_name.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="ml-3 flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
                           {recentUser.full_name}
                         </p>
-                        <p className="text-sm text-gray-500">{recentUser.email}</p>
+                        <p className="text-sm text-gray-500 truncate">{recentUser.email}</p>
                       </div>
                     </div>
                     <StripeBadge variant={recentUser.role === 'admin' ? 'primary' : 'success'} size="sm">
@@ -222,7 +226,9 @@ export default function Dashboard() {
                   </div>
                 ))}
                 {recentUsers.length === 0 && (
-                  <p className="text-sm text-gray-500">Nenhum usuário cadastrado ainda.</p>
+                  <div className="flex items-center justify-center h-32">
+                    <p className="text-sm text-gray-500">Nenhum usuário cadastrado ainda.</p>
+                  </div>
                 )}
               </div>
             </CardContent>

@@ -23,15 +23,26 @@ class Budget(Base):
     
     # Financial fields
     total_purchase_value = Column(Float, default=0.0)
-    total_sale_value = Column(Float, default=0.0)
+    total_sale_value = Column(Float, default=0.0)  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms = Column(Float, default=0.0)  # COM ICMS - valor real sem IPI
     total_commission = Column(Float, default=0.0)
     markup_percentage = Column(Float, default=0.0)
     profitability_percentage = Column(Float, default=0.0)
+    
+    # IPI totals
+    total_ipi_value = Column(Float, nullable=True)  # Total do IPI de todos os itens
+    total_final_value = Column(Float, nullable=True)  # Valor final incluindo IPI (valor que o cliente paga)
     
     # Status and metadata
     status = Column(String, nullable=False, default=BudgetStatus.DRAFT.value)
     notes = Column(Text, nullable=True)
     created_by = Column(String, nullable=False)  # Username who created
+    
+    # Business fields
+    prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
+    outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
+    freight_type = Column(String(10), nullable=False, default='FOB')
+    payment_condition = Column(String(50), nullable=True, comment='Condições de pagamento')
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -50,8 +61,8 @@ class BudgetItem(Base):
     
     # Product information
     description = Column(String, nullable=False)
-    quantity = Column(Float, nullable=False)
     weight = Column(Float, nullable=True)
+    delivery_time = Column(String, nullable=True)  # Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
     
     # Purchase data
     purchase_value_with_icms = Column(Float, nullable=False)
@@ -76,10 +87,16 @@ class BudgetItem(Base):
     
     # Commission
     commission_percentage = Column(Float, default=0.0)
+    commission_percentage_actual = Column(Float, default=0.0)  # Actual percentage used by backend
     commission_value = Column(Float, default=0.0)
     
     # Cost reference for external system (Dunamis)
     dunamis_cost = Column(Float, nullable=True)
+    
+    # IPI (Imposto sobre Produtos Industrializados)
+    ipi_percentage = Column(Float, default=0.0)  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
+    ipi_value = Column(Float, nullable=True)  # Valor do IPI calculado
+    total_value_with_ipi = Column(Float, nullable=True)  # Valor total incluindo IPI
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

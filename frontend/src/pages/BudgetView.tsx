@@ -1,5 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDeliveryTime } from '../lib/formatters';
 import {
   Card,
   Row,
@@ -10,13 +12,13 @@ import {
   Space,
   Button,
   Typography,
-  Statistic,
   Spin,
   Result,
   Modal,
   message,
   Divider,
-  Tooltip
+  Tooltip,
+  Alert
 } from 'antd';
 import {
   EditOutlined,
@@ -26,31 +28,78 @@ import {
   FileTextOutlined,
   CalendarOutlined,
   UserOutlined,
-  DollarCircleOutlined,
-  TrophyOutlined,
-  PercentageOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
-  FilePdfOutlined,
-  DownloadOutlined
+  FilePdfOutlined
 } from '@ant-design/icons';
-import { budgetService } from '../services/budgetService';
+import { budgetService, type Budget, type BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
+
+// Helper function to calculate financial data from backend values
+const calculateBudgetFinancials = (budget: Budget) => {
+  if (!budget.items || budget.items.length === 0) {
+    return {
+      totalSaleWithIcms: 0,
+      totalNetRevenue: 0,
+      totalTaxes: 0,
+      taxPercentage: 0
+    };
+  }
+
+  // Calcular total de venda COM ICMS (valor real que o cliente paga)
+  let totalSaleWithIcms = 0;
+  
+  budget.items.forEach((item: BudgetItem) => {
+    const saleWeight = item.sale_weight || item.weight || 0;
+    const saleValueWithIcms = item.sale_value_with_icms || 0;
+    totalSaleWithIcms += saleWeight * saleValueWithIcms;
+  });
+
+  // O total_sale_value do backend já é a receita líquida (SEM impostos)
+  const totalNetRevenue = budget.total_sale_value || 0;
+  
+  // Impostos = Valor COM ICMS - Valor SEM impostos
+  const totalTaxes = totalSaleWithIcms - totalNetRevenue;
+  const taxPercentage = totalSaleWithIcms > 0 ? (totalTaxes / totalSaleWithIcms) * 100 : 0;
+
+  return {
+    totalSaleWithIcms,
+    totalNetRevenue,
+    totalTaxes,
+    taxPercentage
+  };
+};
 
 export default function BudgetView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: budget, isLoading, error } = useQuery({
+  const { data: budget, isLoading, error } = useQuery<Budget>({
     queryKey: ['budget', id],
     queryFn: () => budgetService.getBudgetById(Number(id)),
     enabled: !!id,
   });
+
+  // Debug log para monitorar mudanças nos dados do budget
+  useEffect(() => {
+    if (budget) {
+      console.log('🔍 DEBUG - BudgetView useEffect - Budget data loaded from backend:', budget);
+      console.log('🔍 DEBUG - BudgetView useQuery onSuccess - payment_condition:', budget.payment_condition);
+    }
+  }, [budget]);
+
+  // Calculate net revenue and taxes dynamically
+  const financialData = budget ? calculateBudgetFinancials(budget) : {
+    totalSaleWithIcms: 0,
+    totalNetRevenue: 0,
+    totalTaxes: 0,
+    taxPercentage: 0
+  };
 
   const deleteBudgetMutation = useMutation({
     mutationFn: budgetService.deleteBudget,
@@ -81,7 +130,7 @@ export default function BudgetView() {
   });
 
   // Função para exportar PDF
-  const handleExportPdf = async (simplified: boolean = false) => {
+  const handleExportPdf = async () => {
     if (!budget) return;
     
     try {
@@ -89,8 +138,7 @@ export default function BudgetView() {
       
       await budgetService.exportAndDownloadPdf(
         budget.id!, 
-        simplified,
-        `Proposta_${simplified ? 'Simplificada' : 'Completa'}_${budget.order_number}.pdf`
+        `Proposta_${budget.order_number}.pdf`
       );
       
       loadingMessage();
@@ -169,70 +217,120 @@ export default function BudgetView() {
       title: 'Descrição',
       dataIndex: 'description',
       key: 'description',
-      width: 200,
+      width: 220,
+      fixed: 'left' as const,
     },
     {
-      title: 'Qtd',
-      dataIndex: 'quantity',
-      key: 'quantity',
+      title: 'Prazo',
+      dataIndex: 'delivery_time',
+      key: 'delivery_time',
       width: 80,
-      render: (value: number) => value.toFixed(2),
+      render: (value: string) => formatDeliveryTime(value),
     },
     {
       title: 'Peso (kg)',
       dataIndex: 'weight',
       key: 'weight',
-      width: 100,
-      render: (value: number) => value?.toFixed(3) || '-',
+      width: 90,
+      render: (value: number) => value ? value.toFixed(2) : '-',
     },
     {
-      title: 'Compra c/ICMS',
-      dataIndex: 'purchase_value_with_icms',
-      key: 'purchase_value_with_icms',
-      width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      title: 'Compra',
+      children: [
+        {
+          title: 'Valor c/ICMS',
+          dataIndex: 'purchase_value_with_icms',
+          key: 'purchase_value_with_icms',
+          width: 110,
+          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+        },
+        {
+          title: 'ICMS %',
+          dataIndex: 'purchase_icms_percentage',
+          key: 'purchase_icms_percentage',
+          width: 80,
+          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+        },
+      ],
     },
     {
-      title: 'ICMS Compra',
-      dataIndex: 'purchase_icms_percentage',
-      key: 'purchase_icms_percentage',
-      width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
+      title: 'Venda',
+      children: [
+        {
+          title: 'Valor c/ICMS',
+          dataIndex: 'sale_value_with_icms',
+          key: 'sale_value_with_icms',
+          width: 110,
+          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+        },
+        {
+          title: 'ICMS %',
+          dataIndex: 'sale_icms_percentage',
+          key: 'sale_icms_percentage',
+          width: 80,
+          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+        },
+      ],
     },
     {
-      title: 'Outras Despesas',
-      dataIndex: 'purchase_other_expenses',
-      key: 'purchase_other_expenses',
-      width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      title: 'IPI',
+      children: [
+        {
+          title: '%',
+          dataIndex: 'ipi_percentage',
+          key: 'ipi_percentage',
+          width: 70,
+          render: (value: number) => {
+            if (!value || value === 0) return '0%';
+            if (value === 0.0325) return '3,25%';
+            if (value === 0.05) return '5%';
+            return `${(value * 100).toFixed(2)}%`;
+          },
+        },
+        {
+          title: 'Valor',
+          dataIndex: 'ipi_value',
+          key: 'ipi_value',
+          width: 90,
+          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
+        },
+      ],
     },
     {
-      title: 'Venda c/ICMS',
-      dataIndex: 'sale_value_with_icms',
-      key: 'sale_value_with_icms',
-      width: 130,
-      render: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-    },
-    {
-      title: 'ICMS Venda',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
-      width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
+      title: 'Valor Final',
+      dataIndex: 'total_value_with_ipi',
+      key: 'total_value_with_ipi',
+      width: 120,
+      render: (value: number, record: BudgetItem) => {
+        // Se não tiver valor com IPI, usar o valor com ICMS
+        const weight = record.weight || 1;
+        const unitValueWithIpi = (record.sale_value_with_icms || 0) * (1 + (record.ipi_percentage || 0));
+        const finalValue = value || (unitValueWithIpi * weight);
+        return (
+          <Text strong style={{ color: '#52c41a' }}>
+            R$ {finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </Text>
+        );
+      },
     },
     {
       title: 'Comissão',
-      dataIndex: 'commission_percentage',
-      key: 'commission_percentage',
-      width: 100,
-      render: (value: number) => `${value.toFixed(1)}%`,
-    },
-    {
-      title: 'Custo Dunamis',
-      dataIndex: 'dunamis_cost',
-      key: 'dunamis_cost',
-      width: 130,
-      render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
+      children: [
+        {
+          title: '%',
+          dataIndex: 'commission_percentage_actual',
+          key: 'commission_percentage_actual',
+          width: 60,
+          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+        },
+        {
+          title: 'Valor',
+          dataIndex: 'commission_value',
+          key: 'commission_value',
+          width: 100,
+          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+        },
+      ],
     },
   ];
 
@@ -266,11 +364,11 @@ export default function BudgetView() {
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Header */}
+      {/* Header - Simplificado */}
       <Card style={{ marginBottom: '24px' }}>
         <Row justify="space-between" align="middle">
           <Col>
-            <Space>
+            <Space size="large">
               <Button 
                 icon={<ArrowLeftOutlined />} 
                 onClick={() => navigate('/budgets')}
@@ -278,45 +376,41 @@ export default function BudgetView() {
                 Voltar
               </Button>
               <div>
-                <Title level={3} style={{ margin: 0 }}>
-                  Pedido {budget.order_number} 📋
+                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                  📋 Pedido {budget.order_number}
                 </Title>
-                <Text type="secondary">
-                  Criado em {dayjs(budget.created_at).format('DD/MM/YYYY HH:mm')}
-                </Text>
+                <Space>
+                  <Tag 
+                    color={getStatusColor(budget.status)} 
+                    icon={getStatusIcon(budget.status)}
+                    style={{ fontSize: '13px', padding: '2px 8px', marginTop: '4px' }}
+                  >
+                    {getStatusText(budget.status)}
+                  </Tag>
+                  <Text type="secondary">
+                    • {budget.client_name}
+                  </Text>
+                </Space>
               </div>
             </Space>
           </Col>
           <Col>
-            <Space>
+            <Space wrap>
               <Tooltip title="Recalcular valores">
                 <Button
                   icon={<CalculatorOutlined />}
                   onClick={handleRecalculate}
                   loading={recalculateMutation.isPending}
-                >
-                  Recalcular
-                </Button>
+                />
               </Tooltip>
               
-              {/* Botões de Exportação PDF */}
-              <Tooltip title="Exportar proposta completa em PDF">
+              <Tooltip title="Exportar PDF">
                 <Button
                   icon={<FilePdfOutlined />}
-                  onClick={() => handleExportPdf(false)}
+                  onClick={handleExportPdf}
                   style={{ color: '#dc2626' }}
                 >
-                  PDF Completo
-                </Button>
-              </Tooltip>
-              
-              <Tooltip title="Exportar proposta simplificada em PDF">
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={() => handleExportPdf(true)}
-                  style={{ color: '#059669' }}
-                >
-                  PDF Simples
+                  Exportar PDF
                 </Button>
               </Tooltip>
               
@@ -325,49 +419,40 @@ export default function BudgetView() {
                   Editar
                 </Button>
               </Link>
+              
               <Button 
                 danger 
                 icon={<DeleteOutlined />}
                 onClick={handleDelete}
                 loading={deleteBudgetMutation.isPending}
-              >
-                Deletar
-              </Button>
+              />
             </Space>
           </Col>
         </Row>
       </Card>
 
-      {/* Status and Basic Info */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} lg={16}>
-          <Card title="Informações Gerais">
-            <Descriptions column={2}>
-              <Descriptions.Item label="Número do Pedido">
-                <Text strong>{budget.order_number}</Text>
-              </Descriptions.Item>
+      {/* Informações Gerais - Layout Otimizado */}
+      <Card title="Informações do Orçamento" style={{ marginBottom: '24px' }}>
+        <Row gutter={[24, 16]}>
+          <Col xs={24} lg={16}>
+            <Descriptions column={{ xs: 1, sm: 2 }} size="middle">
               <Descriptions.Item label="Cliente">
                 <Space>
                   <UserOutlined />
-                  <Text strong>{budget.client_name}</Text>
+                  <Text strong style={{ fontSize: '16px' }}>{budget.client_name}</Text>
                 </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Tag 
                   color={getStatusColor(budget.status)} 
                   icon={getStatusIcon(budget.status)}
+                  style={{ fontSize: '14px', padding: '4px 12px' }}
                 >
                   {getStatusText(budget.status)}
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Criado por">
                 <Text>{budget.created_by}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Data de Criação">
-                <Space>
-                  <CalendarOutlined />
-                  <Text>{dayjs(budget.created_at).format('DD/MM/YYYY HH:mm')}</Text>
-                </Space>
               </Descriptions.Item>
               <Descriptions.Item label="Última Atualização">
                 <Text>{dayjs(budget.updated_at).format('DD/MM/YYYY HH:mm')}</Text>
@@ -380,8 +465,13 @@ export default function BudgetView() {
                   </Space>
                 </Descriptions.Item>
               )}
-              <Descriptions.Item label="% Markup">
-                <Text>{budget.markup_percentage?.toFixed(1)}%</Text>
+              <Descriptions.Item label="Tipo de Frete">
+                <Tag color={budget.freight_type === 'CIF' ? 'blue' : 'orange'}>
+                  {budget.freight_type || 'FOB'}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Condições de Pagamento">
+                <Text>{budget.payment_condition || 'À vista'}</Text>
               </Descriptions.Item>
             </Descriptions>
             {budget.notes && (
@@ -389,101 +479,100 @@ export default function BudgetView() {
                 <Divider />
                 <div>
                   <Text strong>Observações:</Text>
-                  <p style={{ marginTop: '8px', marginBottom: 0 }}>{budget.notes}</p>
+                  <p style={{ marginTop: '8px', marginBottom: 0, fontSize: '14px' }}>{budget.notes}</p>
                 </div>
               </>
             )}
-          </Card>
-        </Col>
-        
-        <Col xs={24} lg={8}>
-          <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Card>
-                <Statistic
-                  title="Total de Venda"
-                  value={budget.total_sale_value}
-                  prefix={<DollarCircleOutlined style={{ color: '#52c41a' }} />}
-                  formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                  valueStyle={{ color: '#52c41a', fontSize: '24px' }}
+          </Col>
+          
+          {/* Totais do Pedido - Integrados */}
+          <Col xs={24} lg={8}>
+            <div style={{ 
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              padding: '20px',
+              borderRadius: '8px',
+              border: '1px solid #bae6fd'
+            }}>
+              <Title level={5} style={{ margin: '0 0 16px 0', color: '#0369a1' }}>
+                💰 Totais do Pedido
+              </Title>
+              <Row gutter={[12, 12]}>
+                <Col span={24}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
+                    <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
+                      R$ {financialData.totalSaleWithIcms.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>
+                      COM ICMS
+                    </Text>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
+                      R$ {(budget.total_commission || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>IPI</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa8c16' }}>
+                      R$ {(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
+                      {budget.markup_percentage.toFixed(1)}%
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+              
+              {/* Nota informativa quando há IPI */}
+              {budget.total_ipi_value && budget.total_ipi_value > 0 && (
+                <Alert 
+                  message="IPI Aplicado" 
+                  description={`Inclui R$ ${(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de IPI`}
+                  type="warning" 
+                  showIcon 
+                  style={{ marginTop: '12px', fontSize: '11px' }}
                 />
-              </Card>
-            </Col>
-            <Col span={24}>
-              <Card>
-                <Statistic
-                  title="Total de Comissão"
-                  value={budget.total_commission}
-                  prefix={<TrophyOutlined style={{ color: '#fa541c' }} />}
-                  formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                  valueStyle={{ color: '#fa541c', fontSize: '24px' }}
-                />
-              </Card>
-            </Col>
-            <Col span={24}>
-              <Card>
-                <Statistic
-                  title="Rentabilidade"
-                  value={budget.profitability_percentage}
-                  prefix={<PercentageOutlined style={{ color: '#722ed1' }} />}
-                  formatter={(value) => `${Number(value).toFixed(1)}%`}
-                  valueStyle={{ 
-                    color: Number(budget.profitability_percentage) > 20 ? '#52c41a' : 
-                           Number(budget.profitability_percentage) > 10 ? '#faad14' : '#ff4d4f',
-                    fontSize: '24px'
-                  }}
-                />
-              </Card>
-            </Col>
-          </Row>
-        </Col>
-      </Row>
+              )}
+            </div>
+          </Col>
+        </Row>
+      </Card>
 
-      {/* Items Table */}
-      <Card title={`Itens do Orçamento (${budget.items?.length || 0})`}>
+      {/* Items Table - Otimizada */}
+      <Card 
+        title={
+          <Space>
+            <FileTextOutlined />
+            <span>Itens do Orçamento ({budget.items?.length || 0})</span>
+          </Space>
+        }
+      >
         <Table
           dataSource={budget.items}
           columns={itemColumns}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 1200 }}
+          scroll={{ x: 900, y: 400 }}
           size="small"
+          bordered
+          style={{ 
+            background: '#fafafa',
+            borderRadius: '6px'
+          }}
         />
       </Card>
 
-      {/* Summary */}
-      <Card title="Resumo Financeiro" style={{ marginTop: '24px' }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={12} md={6}>
-            <Statistic
-              title="Total Compra"
-              value={budget.total_purchase_value}
-              formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            />
-          </Col>
-          <Col xs={12} md={6}>
-            <Statistic
-              title="Total Venda"
-              value={budget.total_sale_value}
-              formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            />
-          </Col>
-          <Col xs={12} md={6}>
-            <Statistic
-              title="Total Comissão"
-              value={budget.total_commission}
-              formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-            />
-          </Col>
-          <Col xs={12} md={6}>
-            <Statistic
-              title="Rentabilidade"
-              value={budget.profitability_percentage}
-              formatter={(value) => `${Number(value).toFixed(1)}%`}
-            />
-          </Col>
-        </Row>
-      </Card>
     </div>
   );
 }

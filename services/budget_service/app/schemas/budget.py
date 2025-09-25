@@ -6,33 +6,50 @@ from app.models.budget import BudgetStatus
 
 # Schema simplificado - APENAS campos que o vendedor deve preencher
 class BudgetItemSimplified(BaseModel):
-    """Schema com apenas os campos obrigatórios conforme especificado"""
+    """Schema com apenas os campos obrigatórios conforme especificado (nomes em português)"""
     # Campos obrigatórios
     description: str
-    quantity: float
-    weight: Optional[float] = None
-    purchase_value_with_icms: float
-    purchase_icms_percentage: float = 17.0
-    purchase_other_expenses: Optional[float] = 0.0  # Opcional
-    sale_value_with_icms: float
-    sale_icms_percentage: float = 17.0
+    peso_compra: Optional[float] = 1.0  # Peso de compra, padrão 1.0
+    peso_venda: Optional[float] = None  # Se não fornecido, usa peso_compra
+    valor_com_icms_compra: float  # Valor de compra com ICMS
+    percentual_icms_compra: float = 0.18  # Percentual ICMS compra (formato decimal 0.18 = 18%)
+    outras_despesas_item: Optional[float] = 0.0  # Outras despesas do item
+    valor_com_icms_venda: float  # Valor de venda com ICMS
+    percentual_icms_venda: float = 0.18  # Percentual ICMS venda (formato decimal 0.18 = 18%)
+    percentual_ipi: float = 0.0  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
+    delivery_time: Optional[str] = "0"  # Prazo de entrega em dias (0 = imediato)
 
-    @validator('quantity')
-    def validate_quantity(cls, v):
-        if v <= 0:
-            raise ValueError('Quantidade deve ser maior que zero')
+    @validator('peso_venda', always=True)
+    def validate_peso_venda(cls, v, values):
+        # Se peso_venda não fornecido, usa peso_compra
+        if v is None:
+            return values.get('peso_compra', 1.0)
         return v
 
-    @validator('purchase_value_with_icms', 'sale_value_with_icms')
+    @validator('valor_com_icms_compra', 'valor_com_icms_venda')
     def validate_positive_values(cls, v):
         if v <= 0:
             raise ValueError('Valores devem ser maiores que zero')
         return v
 
-    @validator('purchase_icms_percentage', 'sale_icms_percentage')
+    @validator('percentual_icms_compra', 'percentual_icms_venda')
     def validate_icms_percentage(cls, v):
-        if v < 0 or v > 100:
-            raise ValueError('Porcentagem de ICMS deve estar entre 0 e 100')
+        if v < 0 or v > 1:
+            raise ValueError('Percentual de ICMS deve estar entre 0 e 1 (formato decimal)')
+        return v
+
+    @validator('percentual_ipi')
+    def validate_ipi_percentage(cls, v):
+        # IPI aceita apenas 0%, 3.25% ou 5% (em formato decimal)
+        valid_ipi_values = [0.0, 0.0325, 0.05]
+        if v not in valid_ipi_values:
+            raise ValueError('Percentual de IPI deve ser 0%, 3.25% ou 5% (formato decimal: 0.0, 0.0325, 0.05)')
+        return v
+
+    @validator('peso_compra')
+    def validate_peso_compra(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('Peso de compra deve ser maior que zero')
         return v
 
 
@@ -44,6 +61,13 @@ class BudgetSimplifiedCreate(BaseModel):
     status: Optional[str] = "draft"
     expires_at: Optional[datetime] = None
     notes: Optional[str] = None
+    
+    # Campos de negócio
+    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
+    freight_type: str = "FOB"
+    payment_condition: Optional[str] = None  # Condições de pagamento
+    
     items: List[BudgetItemSimplified]
 
     @validator('items')
@@ -71,8 +95,8 @@ class MarkupConfiguration(BaseModel):
 
 class BudgetItemBase(BaseModel):
     description: str
-    quantity: float
     weight: Optional[float] = None
+    delivery_time: Optional[str] = None  # Prazo de entrega por item
     
     # Purchase data
     purchase_value_with_icms: float
@@ -88,20 +112,26 @@ class BudgetItemBase(BaseModel):
     sale_value_without_taxes: float
     weight_difference: Optional[float] = None
     
+    # IPI (Imposto sobre Produtos Industrializados)
+    ipi_percentage: float = 0.0  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
+    
     # Commission
     commission_percentage: float = 0.0
     dunamis_cost: Optional[float] = None
 
-    @validator('quantity')
-    def validate_quantity(cls, v):
-        if v <= 0:
-            raise ValueError('Quantidade deve ser maior que zero')
-        return v
 
     @validator('purchase_value_with_icms', 'sale_value_with_icms')
     def validate_positive_values(cls, v):
         if v < 0:
             raise ValueError('Valores não podem ser negativos')
+        return v
+
+    @validator('ipi_percentage')
+    def validate_ipi_percentage(cls, v):
+        # IPI aceita apenas 0%, 3.25% ou 5% (em formato decimal)
+        valid_ipi_values = [0.0, 0.0325, 0.05]
+        if v not in valid_ipi_values:
+            raise ValueError('Percentual de IPI deve ser 0%, 3.25% ou 5% (formato decimal: 0.0, 0.0325, 0.05)')
         return v
 
 
@@ -111,7 +141,6 @@ class BudgetItemCreate(BudgetItemBase):
 
 class BudgetItemUpdate(BaseModel):
     description: Optional[str] = None
-    quantity: Optional[float] = None
     weight: Optional[float] = None
     purchase_value_with_icms: Optional[float] = None
     purchase_icms_percentage: Optional[float] = None
@@ -120,6 +149,7 @@ class BudgetItemUpdate(BaseModel):
     sale_value_with_icms: Optional[float] = None
     sale_icms_percentage: Optional[float] = None
     sale_value_without_taxes: Optional[float] = None
+    ipi_percentage: Optional[float] = None  # IPI percentual
     commission_percentage: Optional[float] = None
     dunamis_cost: Optional[float] = None
 
@@ -135,6 +165,11 @@ class BudgetItemResponse(BudgetItemBase):
     unit_value: float
     total_value: float
     commission_value: float
+    commission_percentage_actual: float  # Actual commission percentage used (for display)
+    
+    # IPI calculated fields
+    ipi_value: Optional[float] = None  # Valor do IPI calculado
+    total_value_with_ipi: Optional[float] = None  # Valor total incluindo IPI
     
     created_at: datetime
     updated_at: datetime
@@ -150,6 +185,12 @@ class BudgetBase(BaseModel):
     markup_percentage: float = 0.0
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
+    
+    # Campos de negócio
+    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
+    freight_type: str = "FOB"
+    payment_condition: Optional[str] = None  # Condições de pagamento
 
     @validator('order_number')
     def validate_order_number(cls, v):
@@ -175,6 +216,9 @@ class BudgetUpdate(BaseModel):
     status: Optional[BudgetStatus] = None
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
+    items: Optional[List[BudgetItemCreate]] = None
+    freight_type: Optional[str] = None  # Remove default value to properly handle updates
+    payment_condition: Optional[str] = None  # Condições de pagamento
 
 
 class BudgetResponse(BudgetBase):
@@ -183,9 +227,14 @@ class BudgetResponse(BudgetBase):
     
     # Financial totals
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
+    
+    # IPI totals
+    total_ipi_value: Optional[float] = None  # Total do IPI de todos os itens
+    total_final_value: Optional[float] = None  # Valor final incluindo IPI (valor que o cliente paga)
     
     created_by: str
     created_at: datetime
@@ -202,7 +251,8 @@ class BudgetSummary(BaseModel):
     order_number: str
     client_name: str
     status: BudgetStatus
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
     items_count: int
@@ -215,17 +265,24 @@ class BudgetSummary(BaseModel):
 class BudgetCalculation(BaseModel):
     """Response model for budget calculations"""
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # COM ICMS - valor real pago pelo cliente
+    total_net_revenue: float  # SEM impostos - receita líquida após impostos
+    total_taxes: float  # Impostos totais = total_sale_value - total_net_revenue
     total_commission: float
     profitability_percentage: float
     markup_percentage: float
     items_calculations: List[dict]
+    
+    # IPI calculations
+    total_ipi_value: float = 0.0  # Total do IPI de todos os itens
+    total_final_value: float = 0.0  # Valor final incluindo IPI
 
 
 class BudgetPreviewCalculation(BaseModel):
     """Response para cálculo de preview com entrada simplificada"""
     total_purchase_value: float
-    total_sale_value: float
+    total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
+    total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
     profitability_percentage: float
     markup_percentage: float  # CALCULADO AUTOMATICAMENTE
@@ -238,3 +295,7 @@ class BudgetPreviewCalculation(BaseModel):
     # NOVOS CAMPOS
     minimum_markup_applied: float = 20.0
     maximum_markup_applied: float = 200.0
+    
+    # IPI preview calculations
+    total_ipi_value: float = 0.0  # Total do IPI de todos os itens
+    total_final_value: float = 0.0  # Valor final incluindo IPI

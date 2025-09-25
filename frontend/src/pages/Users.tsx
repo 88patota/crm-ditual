@@ -15,11 +15,11 @@ import {
   Input,
   Select,
   Switch,
-  App,
   Popconfirm,
   Badge,
   Divider,
-  Tooltip
+  Tooltip,
+  message
 } from 'antd';
 import { 
   UserOutlined, 
@@ -44,7 +44,6 @@ const { Option } = Select;
 
 export default function Users() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
 
   const getErrorMessage = (error: unknown): string => {
     if (typeof error === 'object' && error !== null && 'response' in error) {

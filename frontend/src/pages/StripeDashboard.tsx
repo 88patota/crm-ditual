@@ -106,27 +106,27 @@ export default function StripeDashboard() {
       {/* Stripe-style Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
-          <div key={stat.title} className="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
+          <div key={stat.title} className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors min-h-[140px] flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
                 <div className="p-2 bg-gray-50 rounded-lg">
-                  <stat.icon className="h-5 w-5 text-gray-600" />
+                  <stat.icon className="h-4 w-4 text-gray-600" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium text-gray-600 truncate">{stat.title}</p>
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-50 rounded">
-                <MoreHorizontal className="h-4 w-4 text-gray-400" />
+              <button className="p-1 hover:bg-gray-50 rounded flex-shrink-0">
+                <MoreHorizontal className="h-3 w-3 text-gray-400" />
               </button>
             </div>
-            <div className="space-y-1">
-              <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+            <div className="flex-1 flex flex-col justify-center space-y-1 overflow-hidden">
+              <p className="text-xl font-semibold text-gray-900 truncate overflow-hidden text-ellipsis whitespace-nowrap" style={{ lineHeight: '1.4', paddingBottom: '1px', minHeight: '24px' }}>{stat.value}</p>
               {stat.trend && (
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
+                <div className="flex items-center gap-1 overflow-hidden">
+                  <TrendingUp className="h-3 w-3 text-green-500 flex-shrink-0" />
                   <span className="text-xs text-green-600 font-medium">+{stat.trend.value}%</span>
-                  <span className="text-xs text-gray-500">vs last month</span>
+                  <span className="text-xs text-gray-500 truncate overflow-hidden text-ellipsis">vs last month</span>
                 </div>
               )}
             </div>
@@ -178,27 +178,27 @@ export default function StripeDashboard() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Role</span>
+              <div className="p-3 bg-gray-50 rounded-lg min-h-[70px] flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                  <User className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                  <span className="text-xs font-medium text-gray-700">Role</span>
                 </div>
-                <p className="text-sm text-gray-900 font-semibold capitalize">{user?.role}</p>
+                <p className="text-xs text-gray-900 font-semibold capitalize truncate">{user?.role}</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Last Activity</span>
+              <div className="p-3 bg-gray-50 rounded-lg min-h-[70px] flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                  <span className="text-xs font-medium text-gray-700">Activity</span>
                 </div>
-                <p className="text-sm text-gray-900 font-semibold">Just now</p>
+                <p className="text-xs text-gray-900 font-semibold truncate">Just now</p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Permissions</span>
+              <div className="p-3 bg-gray-50 rounded-lg min-h-[70px] flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                  <Shield className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                  <span className="text-xs font-medium text-gray-700">Access</span>
                 </div>
-                <p className="text-sm text-gray-900 font-semibold">
-                  {user?.role === 'admin' ? 'Full Access' : 'Limited'}
+                <p className="text-xs text-gray-900 font-semibold truncate">
+                  {user?.role === 'admin' ? 'Full' : 'Limited'}
                 </p>
               </div>
             </div>
@@ -264,41 +264,41 @@ export default function StripeDashboard() {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {/* Manage Profile */}
-            <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
+            <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group min-h-[88px]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors flex-shrink-0">
                 <User className="h-5 w-5 text-gray-600" />
               </div>
-              <div>
-                <p className="font-medium text-gray-900">Manage Profile</p>
-                <p className="text-sm text-gray-500">Update account settings</p>
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 text-sm truncate">Manage Profile</p>
+                <p className="text-xs text-gray-500 truncate">Update account settings</p>
               </div>
             </button>
             
             {user?.role === 'admin' && (
               <>
                 {/* Add User */}
-                <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group min-h-[88px]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors flex-shrink-0">
                     <UserCheck className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">Add User</p>
-                    <p className="text-sm text-gray-500">Invite team members</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 text-sm truncate">Add User</p>
+                    <p className="text-xs text-gray-500 truncate">Invite team members</p>
                   </div>
                 </button>
                 
                 {/* View Reports */}
-                <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors">
+                <button className="flex items-center gap-4 p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-colors group min-h-[88px]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors flex-shrink-0">
                     <BarChart3 className="h-5 w-5 text-green-600" />
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">View Reports</p>
-                    <p className="text-sm text-gray-500">Analytics & insights</p>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 text-sm truncate">View Reports</p>
+                    <p className="text-xs text-gray-500 truncate">Analytics & insights</p>
                   </div>
                 </button>
               </>
-            )}
+            )}          
           </div>
           
           {/* Additional Actions */}
