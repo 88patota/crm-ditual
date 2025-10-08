@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Ditual - Sistema Inteligente de Gestão Comercial</title>
+    <meta name="description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="assets/css/styles.css" as="style">
+    <link rel="preload" href="assets/js/main.js" as="script">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://crm-ditual.com/">
+    <meta property="og:title" content="CRM Ditual - Sistema Inteligente de Gestão Comercial">
+    <meta property="og:description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
+    <meta property="og:image" content="assets/images/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://crm-ditual.com/">
+    <meta property="twitter:title" content="CRM Ditual - Sistema Inteligente de Gestão Comercial">
+    <meta property="twitter:description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
+    <meta property="twitter:image" content="assets/images/og-image.jpg">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo">
+                    <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="logo-text">CRM Ditual</span>
+                </div>
+            </div>
+            
+            <div class="nav-menu" id="nav-menu">
+                <a href="#home" class="nav-link">Início</a>
+                <a href="#features" class="nav-link">Funcionalidades</a>
+                <a href="#technology" class="nav-link">Tecnologia</a>
+                <a href="#security" class="nav-link">Segurança</a>
+                <a href="#calculator" class="nav-link">Calculadora AWS</a>
+                <a href="#contact" class="nav-link">Contato</a>
+            </div>
+            
+            <div class="nav-actions">
+                <button class="btn btn-outline">Demo Gratuita</button>
+                <button class="btn btn-primary">Começar Agora</button>
+                <button class="nav-toggle" id="nav-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="hero-grid"></div>
+            <div class="hero-particles" id="particles"></div>
+        </div>
+        
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <span class="badge-dot"></span>
+                        Sistema em Produção
+                    </div>
+                    
+                    <h1 class="hero-title">
+                        <span class="title-line">Sistema CRM</span>
+                        <span class="title-line gradient-text">Inteligente e Moderno</span>
+                        <span class="title-line">para Sua Empresa</span>
+                    </h1>
+                    
+                    <p class="hero-description">
+                        Revolucione sua gestão comercial com nossa plataforma de microserviços. 
+                        Cálculos automáticos de rentabilidade, gestão completa de orçamentos e 
+                        segurança enterprise em uma solução moderna e escalável.
+                    </p>
+                    
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-number" data-count="99.9">0</div>
+                            <div class="stat-label">% Uptime</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number" data-count="50">0</div>
+                            <div class="stat-label">ms Resposta</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number" data-count="100">0</div>
+                            <div class="stat-label">% Seguro</div>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-actions">
+                        <button class="btn btn-primary btn-large">
+                            <span>Começar Gratuitamente</span>
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        
+                        <button class="btn btn-outline btn-large demo-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
+                                <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                            </svg>
+                            <span>Ver Demonstração</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="hero-visual">
+                    <div class="dashboard-preview">
+                        <div class="dashboard-header">
+                            <div class="dashboard-controls">
+                                <div class="control red"></div>
+                                <div class="control yellow"></div>
+                                <div class="control green"></div>
+                            </div>
+                            <div class="dashboard-title">CRM Dashboard</div>
+                        </div>
+                        
+                        <div class="dashboard-content">
+                            <div class="dashboard-sidebar">
+                                <div class="sidebar-item active">
+                                    <div class="sidebar-icon"></div>
+                                    <div class="sidebar-text"></div>
+                                </div>
+                                <div class="sidebar-item">
+                                    <div class="sidebar-icon"></div>
+                                    <div class="sidebar-text"></div>
+                                </div>
+                                <div class="sidebar-item">
+                                    <div class="sidebar-icon"></div>
+                                    <div class="sidebar-text"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="dashboard-main">
+                                <div class="dashboard-cards">
+                                    <div class="dashboard-card">
+                                        <div class="card-header"></div>
+                                        <div class="card-content">
+                                            <div class="card-chart"></div>
+                                        </div>
+                                    </div>
+                                    <div class="dashboard-card">
+                                        <div class="card-header"></div>
+                                        <div class="card-content">
+                                            <div class="card-stats">
+                                                <div class="stat-bar"></div>
+                                                <div class="stat-bar"></div>
+                                                <div class="stat-bar"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="dashboard-table">
+                                    <div class="table-header"></div>
+                                    <div class="table-row"></div>
+                                    <div class="table-row"></div>
+                                    <div class="table-row"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="floating-elements">
+                        <div class="floating-card card-1">
+                            <div class="card-icon">💰</div>
+                            <div class="card-text">Rentabilidade +25%</div>
+                        </div>
+                        <div class="floating-card card-2">
+                            <div class="card-icon">⚡</div>
+                            <div class="card-text">Automação Total</div>
+                        </div>
+                        <div class="floating-card card-3">
+                            <div class="card-icon">🔒</div>
+                            <div class="card-text">100% Seguro</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="hero-scroll">
+            <div class="scroll-indicator">
+                <span>Explore mais</span>
+                <div class="scroll-arrow"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Funcionalidades Poderosas</h2>
+                <p class="section-subtitle">
+                    Descubra como o CRM Ditual revoluciona a gestão do seu negócio com tecnologia de ponta
+                </p>
+            </div>
+            <div class="features-grid">
+                <!-- Features will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Section -->
+    <section id="technology" class="technology">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Tecnologia de Vanguarda</h2>
+                <p class="section-subtitle">
+                    Arquitetura moderna e escalável construída com as melhores tecnologias do mercado
+                </p>
+            </div>
+            <div class="tech-architecture">
+                <!-- Technology stacks will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security" class="security">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Segurança Enterprise</h2>
+                <p class="section-subtitle">
+                    Proteção máxima para seus dados com padrões de segurança bancária
+                </p>
+            </div>
+            <div class="security-features">
+                <!-- Security features will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- AWS Calculator Section -->
+    <section id="calculator" class="calculator">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Calculadora de Custos AWS</h2>
+                <p class="section-subtitle">
+                    Calcule o investimento necessário para hospedar o CRM Ditual na AWS
+                </p>
+            </div>
+            <div class="calculator-container">
+                <!-- Calculator will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Pronto para Revolucionar seu Negócio?</h2>
+                <p>
+                    Junte-se a centenas de empresas que já transformaram sua gestão com o CRM Ditual
+                </p>
+                <div class="cta-buttons">
+                    <a href="#" class="btn btn-white btn-lg">
+                        🚀 Começar Agora
+                    </a>
+                    <a href="#" class="btn btn-outline-white btn-lg">
+                        📞 Falar com Especialista
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CRM Ditual</h3>
+                    <p>
+                        A solução completa para gestão de relacionamento com clientes,
+                        desenvolvida com tecnologia de ponta para empresas modernas.
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h3>Produto</h3>
+                    <ul>
+                        <li><a href="#features">Funcionalidades</a></li>
+                        <li><a href="#technology">Tecnologia</a></li>
+                        <li><a href="#security">Segurança</a></li>
+                        <li><a href="#calculator">Calculadora</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Empresa</h3>
+                    <ul>
+                        <li><a href="#">Sobre Nós</a></li>
+                        <li><a href="#">Carreiras</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Contato</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Suporte</h3>
+                    <ul>
+                        <li><a href="#">Documentação</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Status</a></li>
+                        <li><a href="#">Suporte Técnico</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 CRM Ditual. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/main.js"></script>
+</body>
+</html>

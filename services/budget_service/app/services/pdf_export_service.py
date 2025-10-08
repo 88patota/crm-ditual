@@ -357,18 +357,18 @@ class DitualPDFTemplate:
     def _add_items_table(self, story: List, budget: Budget):
         """Adiciona tabela principal de itens (exatamente como na proposta)"""
         
-        # Cabeçalho da tabela com títulos otimizados para evitar quebras
+        # Cabeçalho da tabela com títulos sem quebras de linha
         header_data = [
             [
-                Paragraph("<b>Item</b>", self.styles['Normal']),
-                Paragraph("<b>Descrição</b>", self.styles['Normal']),
-                Paragraph("<b>Und</b>", self.styles['Normal']),
-                Paragraph("<b>Qtd</b>", self.styles['Normal']),
-                Paragraph("<b>Preço Unit.</b>", self.styles['Normal']),
-                Paragraph("<b>ICMS</b>", self.styles['Normal']),
-                Paragraph("<b>IPI (%)</b>", self.styles['Normal']),
-                Paragraph("<b>Total</b>", self.styles['Normal']),
-                Paragraph("<b>Prazo</b>", self.styles['Normal'])
+                "Item",
+                "Descrição", 
+                "Und",
+                "Qtd",
+                "Preço Unit.",
+                "ICMS",
+                "IPI (%)",
+                "Total",
+                "Prazo"
             ]
         ]
         
@@ -452,13 +452,19 @@ class DitualPDFTemplate:
         total_without_ipi = budget.total_sale_value or 0
         total_with_ipi = budget.total_final_value or total_without_ipi
         
-        # Tabela de totais moderna e elegante
+        # Tabela de totais moderna e elegante - Separando os valores IPI em linhas diferentes
         totals_data = [
             [
                 f"Peso Total: {total_weight:,.0f} kg".replace(',', '.'),
                 "",
                 f"Valor total S/IPI: {self._format_currency(total_without_ipi)}",
-                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}"
+                ""
+            ],
+            [
+                "",
+                "",
+                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}",
+                ""
             ]
         ]
         

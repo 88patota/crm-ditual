@@ -14,6 +14,10 @@ from app.schemas.budget import (
 from app.services.budget_service import BudgetService
 from app.services.budget_calculator import BudgetCalculatorService
 from app.services.pdf_export_service import pdf_export_service
+import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -175,28 +179,38 @@ async def get_budget(
     db: AsyncSession = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_active_user)
 ):
-    """Obter orçamento por ID com controle de acesso"""
-    budget = await BudgetService.get_budget_by_id(db, budget_id)
-    if not budget:
+    """Obter orçamento por ID"""
+    try:
+        budget = await BudgetService.get_budget_by_id(db, budget_id)
+        
+        if not budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        logger.debug(f"Budget {budget_id} retrieved successfully")
+        
+        # Verificar se o usuário tem permissão para ver este orçamento
+        if current_user.role != "admin" and budget.created_by != current_user.username:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado: você só pode visualizar seus próprios orçamentos"
+            )
+        
+        # DEBUG: Log delivery_time before returning
+        if budget.items:
+            print(f"🔍 DEBUG - GET endpoint returning budget {budget_id}:")
+            for i, item in enumerate(budget.items):
+                print(f"🔍 DEBUG - Item {i}: delivery_time before response = {repr(item.delivery_time)}")
+        
+        return budget
+    except Exception as e:
+        logger.error(f"Error retrieving budget {budget_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Orçamento não encontrado"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno do servidor"
         )
-    
-    # Verificar se o usuário tem permissão para ver este orçamento
-    if current_user.role != "admin" and budget.created_by != current_user.username:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado: você só pode visualizar seus próprios orçamentos"
-        )
-    
-    # DEBUG: Log delivery_time before returning
-    if budget.items:
-        print(f"🔍 DEBUG - GET endpoint returning budget {budget_id}:")
-        for i, item in enumerate(budget.items):
-            print(f"🔍 DEBUG - Item {i}: delivery_time before response = {repr(item.delivery_time)}")
-    
-    return budget
 
 
 @router.get("/order/{order_number}", response_model=BudgetResponse)
@@ -218,19 +232,29 @@ async def get_budget_by_order(
 async def update_budget(
     budget_id: int,
     budget_data: BudgetUpdate,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_active_user)
 ):
     """Atualizar orçamento"""
-    # DEBUG: Log the update data
-    print(f"DEBUG: Updating budget {budget_id} with data: {budget_data}")
-    print(f"DEBUG: freight_type in update data: {budget_data.freight_type}")
-    budget = await BudgetService.update_budget(db, budget_id, budget_data)
-    if not budget:
+    try:
+        logger.debug(f"Updating budget {budget_id}")
+        
+        updated_budget = await BudgetService.update_budget(db, budget_id, budget_data)
+        
+        if not updated_budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        logger.info(f"Budget {budget_id} updated successfully")
+        return updated_budget
+    except Exception as e:
+        logger.error(f"Error updating budget {budget_id}: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Orçamento não encontrado"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno do servidor"
         )
-    return budget
 
 
 @router.delete("/{budget_id}", status_code=status.HTTP_204_NO_CONTENT)

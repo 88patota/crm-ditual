@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.models.budget import Budget, BudgetItem, BudgetStatus
 from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetItemCreate, BudgetItemUpdate
 from app.services.business_rules_calculator import BusinessRulesCalculator
+import logging
 
 
 class BudgetService:
@@ -216,162 +217,193 @@ class BudgetService:
     
     @staticmethod
     async def update_budget(db: AsyncSession, budget_id: int, budget_data: BudgetUpdate) -> Optional[Budget]:
-        """Update budget"""
-        budget = await BudgetService.get_budget_by_id(db, budget_id)
-        if not budget:
-            return None
-        
-        # Armazenar o freight_type original antes de qualquer processamento
-        original_freight_type = budget.freight_type
-        print(f"🔍 DEBUG - Original freight_type: {original_freight_type}")
-        
-        budget_dict = budget_data.dict(exclude_unset=True)
-        print(f"DEBUG: budget_dict = {budget_dict}")
-        
-        # Handle items update separately if provided
-        items_data = budget_dict.pop('items', None)
-        
-        # Store freight_type value before processing items (if it exists in update data)
-        freight_type_value = budget_dict.get('freight_type', None)
-        print(f"🔍 DEBUG - Freight type in update data: {freight_type_value}")
-        
-        # Update budget fields (excluding items)
-        for field, value in budget_dict.items():
-            # Skip freight_type for now, we'll handle it after item processing
-            if field != 'freight_type':
-                print(f"DEBUG: Setting {field} = {value}")
-                setattr(budget, field, value)
-        
-        # Explicitly handle freight_type if it's in the update data
-        if 'freight_type' in budget_dict:
-            budget.freight_type = budget_dict['freight_type']
-            print(f"DEBUG: Explicitly set freight_type to {budget.freight_type}")
-            # Garantir que o valor seja salvo no banco de dados
-            await db.flush()
-        
-        # Update items if provided
-        if items_data is not None:
-            # Convert items to list of dicts if needed
-            items_list = [item.dict() if hasattr(item, 'dict') else item for item in items_data]
+        """Atualizar orçamento existente"""
+        try:
+            logger.debug(f"Updating budget {budget_id}")
             
-            # Transform from English schema format to Portuguese BusinessRulesCalculator format
-            transformed_items = []
-            for item_data in items_list:
-                transformed_item = {
-                    'description': item_data.get('description', ''),
-                    'delivery_time': item_data.get('delivery_time', '0'),  # CORREÇÃO: Incluir delivery_time
-                    'peso_compra': item_data.get('weight', 1.0),
-                    'peso_venda': item_data.get('sale_weight') or item_data.get('weight', 1.0),
-                    'valor_com_icms_compra': item_data.get('purchase_value_with_icms', 0),
-                    'percentual_icms_compra': item_data.get('purchase_icms_percentage', 0.18),
-                    'outras_despesas_item': item_data.get('purchase_other_expenses', 0),
-                    'valor_com_icms_venda': item_data.get('sale_value_with_icms', 0),
-                    'percentual_icms_venda': item_data.get('sale_icms_percentage', 0.18),
-                    'percentual_ipi': item_data.get('ipi_percentage', 0.0),  # IPI percentage
-                    'dunamis_cost': item_data.get('dunamis_cost')
-                }
-                transformed_items.append(transformed_item)
-            
-            # Validate items using business rules
-            for item_data in transformed_items:
-                errors = BusinessRulesCalculator.validate_item_data(item_data)
-                if errors:
-                    raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
-            
-            # Remove existing items
-            for item in budget.items:
-                await db.delete(item)
-            await db.flush()
-            
-            # Calculate totals using business rules calculator
-            soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
-            outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
-            
-            budget_result = BusinessRulesCalculator.calculate_complete_budget(
-                transformed_items, outras_despesas_totais, soma_pesos_pedido
+            # Buscar orçamento existente
+            result = await self.db.execute(
+                select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
             )
+            budget = result.scalar_one_or_none()
             
-            # Create new items with calculations from business rules
-            for i, item_data in enumerate(transformed_items):
-                calculated_item = budget_result['items'][i]
+            if not budget:
+                logger.warning(f"Budget {budget_id} not found")
+                return None
+            
+            # Preservar freight_type original se não fornecido
+            original_freight_type = budget.freight_type
+            logger.debug(f"Original freight_type: {original_freight_type}")
+            
+            # Converter para dict e atualizar campos
+            budget_dict = budget_data.model_dump(exclude_unset=True)
+            logger.debug(f"Budget update data: {budget_dict}")
+            
+            # Verificar se freight_type está sendo atualizado
+            freight_type_value = budget_dict.get('freight_type')
+            if freight_type_value is not None:
+                logger.debug(f"Freight type in update data: {freight_type_value}")
+            
+            # Atualizar campos do orçamento
+            for field, value in budget_dict.items():
+                if hasattr(budget, field) and field != 'items':
+                    logger.debug(f"Setting {field} = {value}")
+                    setattr(budget, field, value)
+            
+            # Garantir que freight_type seja preservado se não fornecido
+            if 'freight_type' not in budget_dict:
+                logger.debug(f"Explicitly set freight_type to {budget.freight_type}")
+                budget.freight_type = original_freight_type
+            
+            # Handle items update separately if provided
+            items_data = budget_dict.pop('items', None)
+            
+            # Store freight_type value before processing items (if it exists in update data)
+            freight_type_value = budget_dict.get('freight_type', None)
+            print(f"🔍 DEBUG - Freight type in update data: {freight_type_value}")
+            
+            # Update budget fields (excluding items)
+            for field, value in budget_dict.items():
+                # Skip freight_type for now, we'll handle it after item processing
+                if field != 'freight_type':
+                    print(f"DEBUG: Setting {field} = {value}")
+                    setattr(budget, field, value)
+            
+            # Explicitly handle freight_type if it's in the update data
+            if 'freight_type' in budget_dict:
+                budget.freight_type = budget_dict['freight_type']
+                print(f"DEBUG: Explicitly set freight_type to {budget.freight_type}")
+                # Garantir que o valor seja salvo no banco de dados
+                await db.flush()
+            
+            # Update items if provided
+            if items_data is not None:
+                # Convert items to list of dicts if needed
+                items_list = [item.dict() if hasattr(item, 'dict') else item for item in items_data]
                 
-                # DEBUG: Log delivery_time values
-                print(f"🔍 DEBUG - Item {i}: delivery_time from item_data = {item_data.get('delivery_time')}")
-                print(f"🔍 DEBUG - Item {i}: delivery_time from calculated_item = {calculated_item.get('delivery_time')}")
+                # Transform from English schema format to Portuguese BusinessRulesCalculator format
+                transformed_items = []
+                for item_data in items_list:
+                    transformed_item = {
+                        'description': item_data.get('description', ''),
+                        'delivery_time': item_data.get('delivery_time', '0'),  # CORREÇÃO: Incluir delivery_time
+                        'peso_compra': item_data.get('weight', 1.0),
+                        'peso_venda': item_data.get('sale_weight') or item_data.get('weight', 1.0),
+                        'valor_com_icms_compra': item_data.get('purchase_value_with_icms', 0),
+                        'percentual_icms_compra': item_data.get('purchase_icms_percentage', 0.18),
+                        'outras_despesas_item': item_data.get('purchase_other_expenses', 0),
+                        'valor_com_icms_venda': item_data.get('sale_value_with_icms', 0),
+                        'percentual_icms_venda': item_data.get('sale_icms_percentage', 0.18),
+                        'percentual_ipi': item_data.get('ipi_percentage', 0.0),  # IPI percentage
+                        'dunamis_cost': item_data.get('dunamis_cost')
+                    }
+                    transformed_items.append(transformed_item)
                 
-                # Ensure IPI values are properly calculated and set
-                ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
-                sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
-                sale_weight = calculated_item.get('peso_venda', 1.0)
+                # Validate items using business rules
+                for item_data in transformed_items:
+                    errors = BusinessRulesCalculator.validate_item_data(item_data)
+                    if errors:
+                        raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
                 
-                # Calculate IPI value explicitly to ensure it's correct
-                ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
-                    sale_weight, sale_value_with_icms, ipi_percentage
+                # Remove existing items
+                for item in budget.items:
+                    await db.delete(item)
+                await db.flush()
+                
+                # Calculate totals using business rules calculator
+                soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
+                outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
+                
+                budget_result = BusinessRulesCalculator.calculate_complete_budget(
+                    transformed_items, outras_despesas_totais, soma_pesos_pedido
                 )
                 
-                # Use correct IPI field names from BusinessRulesCalculator
-                total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+                # Create new items with calculations from business rules
+                for i, item_data in enumerate(transformed_items):
+                    calculated_item = budget_result['items'][i]
+                    
+                    # DEBUG: Log delivery_time values
+                    print(f"🔍 DEBUG - Item {i}: delivery_time from item_data = {item_data.get('delivery_time')}")
+                    print(f"🔍 DEBUG - Item {i}: delivery_time from calculated_item = {calculated_item.get('delivery_time')}")
+                    
+                    # Ensure IPI values are properly calculated and set
+                    ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+                    sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+                    sale_weight = calculated_item.get('peso_venda', 1.0)
+                    
+                    # Calculate IPI value explicitly to ensure it's correct
+                    ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                        sale_weight, sale_value_with_icms, ipi_percentage
+                    )
+                    
+                    # Use correct IPI field names from BusinessRulesCalculator
+                    total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+                    
+                    budget_item = BudgetItem(
+                        budget_id=budget.id,
+                        description=calculated_item['description'],
+                        delivery_time=item_data.get('delivery_time', '0'),  # CORREÇÃO: Usar delivery_time do item_data original
+                        weight=calculated_item['peso_compra'],
+                        purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
+                        purchase_icms_percentage=calculated_item['percentual_icms_compra'],
+                        purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                        purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
+                        purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
+                        sale_weight=calculated_item['peso_venda'],
+                        sale_value_with_icms=calculated_item['valor_com_icms_venda'],
+                        sale_icms_percentage=calculated_item['percentual_icms_venda'],
+                        sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
+                        weight_difference=calculated_item['diferenca_peso'],
+                        profitability=calculated_item['rentabilidade_item'] * 100,  # Convert to percentage
+                        total_purchase=calculated_item['total_compra_item'],
+                        total_sale=calculated_item['total_venda_item'],
+                        unit_value=calculated_item['valor_unitario_venda'],
+                        total_value=calculated_item['total_venda_item'],
+                        commission_value=calculated_item['valor_comissao'],
+                        commission_percentage=calculated_item.get('percentual_comissao', 0.0),
+                        commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
+                        # IPI fields - use values calculated by BusinessRulesCalculator
+                        ipi_percentage=ipi_percentage,
+                        ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
+                        total_value_with_ipi=total_value_with_ipi,
+                        dunamis_cost=item_data.get('dunamis_cost')
+                    )
+                    db.add(budget_item)
                 
-                budget_item = BudgetItem(
-                    budget_id=budget.id,
-                    description=calculated_item['description'],
-                    delivery_time=item_data.get('delivery_time', '0'),  # CORREÇÃO: Usar delivery_time do item_data original
-                    weight=calculated_item['peso_compra'],
-                    purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
-                    purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                    purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
-                    purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
-                    purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
-                    sale_weight=calculated_item['peso_venda'],
-                    sale_value_with_icms=calculated_item['valor_com_icms_venda'],
-                    sale_icms_percentage=calculated_item['percentual_icms_venda'],
-                    sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
-                    weight_difference=calculated_item['diferenca_peso'],
-                    profitability=calculated_item['rentabilidade_item'] * 100,  # Convert to percentage
-                    total_purchase=calculated_item['total_compra_item'],
-                    total_sale=calculated_item['total_venda_item'],
-                    unit_value=calculated_item['valor_unitario_venda'],
-                    total_value=calculated_item['total_venda_item'],
-                    commission_value=calculated_item['valor_comissao'],
-                    commission_percentage=calculated_item.get('percentual_comissao', 0.0),
-                    commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
-                    # IPI fields - use values calculated by BusinessRulesCalculator
-                    ipi_percentage=ipi_percentage,
-                    ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
-                    total_value_with_ipi=total_value_with_ipi,
-                    dunamis_cost=item_data.get('dunamis_cost')
-                )
-                db.add(budget_item)
+                # Update budget totals from business rules result
+                setattr(budget, 'total_purchase_value', budget_result['totals']['soma_total_compra'])
+                setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
+                setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
+                setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
+                setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
+                # Always set markup_percentage to the calculated value from business rules
+                setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+                # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
+                setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
+                setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
             
-            # Update budget totals from business rules result
-            setattr(budget, 'total_purchase_value', budget_result['totals']['soma_total_compra'])
-            setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
-            setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
-            setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
-            setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
-            # Always set markup_percentage to the calculated value from business rules
-            setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
-            # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
-            setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
-            setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
-        
-        # CORREÇÃO: Garantir que o freight_type seja sempre definido corretamente
-        # Se freight_type estiver nos dados de atualização, use-o
-        # Caso contrário, mantenha o valor original
-        if freight_type_value is not None:
-            budget.freight_type = freight_type_value
-            print(f"DEBUG: Final freight_type set to {budget.freight_type}")
-        else:
-            # Garantir que o valor original seja mantido
-            budget.freight_type = original_freight_type
-            print(f"DEBUG: Preserving original freight_type: {original_freight_type}")
-        
-        # Forçar a persistência imediata do freight_type
-        await db.flush()
-        
-        await db.commit()
-        await db.refresh(budget)
-        return budget
+            # CORREÇÃO: Garantir que o freight_type seja sempre definido corretamente
+            # Se freight_type estiver nos dados de atualização, use-o
+            # Caso contrário, mantenha o valor original
+            if freight_type_value is not None:
+                budget.freight_type = freight_type_value
+                print(f"DEBUG: Final freight_type set to {budget.freight_type}")
+            else:
+                # Garantir que o valor original seja mantido
+                budget.freight_type = original_freight_type
+                print(f"DEBUG: Preserving original freight_type: {original_freight_type}")
+            
+            # Forçar a persistência imediata do freight_type
+            await db.flush()
+            
+            await db.commit()
+            await db.refresh(budget)
+            logger.info(f"Budget {budget_id} updated successfully")
+            return budget
+            
+        except Exception as e:
+            logger.error(f"Error updating budget {budget_id}: {str(e)}")
+            raise
     
     @staticmethod
     async def delete_budget(db: AsyncSession, budget_id: int) -> bool:
