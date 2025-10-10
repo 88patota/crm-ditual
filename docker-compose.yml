@@ -124,21 +124,21 @@ services:
       - crm_network
 
   # Frontend (React/Vite with Nginx)
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: crm_frontend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     user_service:
-  #       condition: service_healthy
-  #     budget_service:
-  #       condition: service_healthy
-  #   networks:
-  #     - crm_network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: crm_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      user_service:
+        condition: service_healthy
+      budget_service:
+        condition: service_healthy
+    networks:
+      - crm_network
 
 volumes:
   postgres_data:
