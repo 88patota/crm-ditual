@@ -15,19 +15,15 @@ import {
   Input,
   Select,
   Dropdown,
-  DatePicker,
-  Divider
+  DatePicker
 } from 'antd';
-import type { MenuProps, ColumnsType } from 'antd';
+import type { MenuProps, TableColumnsType } from 'antd';
 import {
   FileTextOutlined,
   PlusOutlined,
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
-  CalculatorOutlined,
-  DollarCircleOutlined,
-  TrophyOutlined,
   ClockCircleOutlined,
   FilterOutlined,
   MoreOutlined,
@@ -35,7 +31,6 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   FilePdfOutlined,
-  DownloadOutlined,
   ReloadOutlined,
   CalendarOutlined,
   SearchOutlined
@@ -256,7 +251,7 @@ export default function Budgets() {
   ];
 
   // Configuração da tabela
-  const columns: ColumnsType<BudgetSummary> = [
+  const columns: TableColumnsType<BudgetSummary> = [
     {
       title: 'Pedido',
       dataIndex: 'order_number',
@@ -628,7 +623,7 @@ export default function Budgets() {
           }}
           size="middle"
           bordered={false}
-          rowClassName={(record, index) => 
+          rowClassName={(_, index) => 
             index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
           }
           onRow={(record) => ({
