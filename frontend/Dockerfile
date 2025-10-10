@@ -4,6 +4,9 @@ FROM node:18-alpine as build
 # Set working directory
 WORKDIR /app
 
+# Install/update npm to latest version
+RUN npm install -g npm@latest
+
 # Copy package files
 COPY package*.json ./
 

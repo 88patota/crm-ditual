@@ -3,9 +3,36 @@ from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from app.core.config import settings
+import bcrypt
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configuração personalizada do bcrypt para evitar erros de truncamento
+class SafeBcryptContext:
+    def __init__(self):
+        self.rounds = 12
+    
+    def hash(self, password: str) -> str:
+        """Hash a password with automatic truncation"""
+        # Truncar senha para máximo de 72 bytes
+        if len(password.encode('utf-8')) > 72:
+            password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        
+        salt = bcrypt.gensalt(rounds=self.rounds)
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    
+    def verify(self, password: str, hashed: str) -> bool:
+        """Verify a password with automatic truncation"""
+        # Truncar senha para máximo de 72 bytes
+        if len(password.encode('utf-8')) > 72:
+            password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        
+        try:
+            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        except Exception:
+            return False
+
+
+pwd_context = SafeBcryptContext()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -387,16 +387,49 @@ export const budgetService = {
   async getDashboardStats(days?: number, customStart?: string, customEnd?: string): Promise<DashboardStats> {
     const params = new URLSearchParams();
     
-    if (days !== undefined) {
-      params.append('days', days.toString());
-    }
+    let startDate: string;
+    let endDate: string;
     
     if (customStart && customEnd) {
-      params.append('custom_start', customStart);
-      params.append('custom_end', customEnd);
+      // Usar datas customizadas
+      startDate = customStart;
+      endDate = customEnd;
+    } else {
+      // Calcular datas baseado no parâmetro days (padrão: 30 dias)
+      const daysToUse = days || 30;
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - daysToUse);
+      
+      // Formatar datas no formato YYYY-MM-DD
+      startDate = start.toISOString().split('T')[0];
+      endDate = end.toISOString().split('T')[0];
     }
     
+    // Adicionar os parâmetros obrigatórios
+    params.append('start_date', startDate);
+    params.append('end_date', endDate);
+    
     const response = await api.get(`/dashboard/stats?${params.toString()}`);
-    return response.data;
+    const apiData = response.data;
+    
+    // Mapear os dados da API para a estrutura esperada pelo frontend
+    return {
+      period: apiData.period,
+      budgets_by_status: apiData.status_counts || {
+        draft: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        expired: 0
+      },
+      total_budgets: apiData.totals?.total_budgets || 0,
+      total_value: apiData.totals?.total_value || 0,
+      approved_budgets: apiData.totals?.approved_count || 0,
+      approved_value: apiData.totals?.approved_value || 0,
+      conversion_rate: apiData.totals?.total_budgets > 0 
+        ? (apiData.totals?.approved_count || 0) / apiData.totals.total_budgets * 100 
+        : 0
+    };
   },
 };

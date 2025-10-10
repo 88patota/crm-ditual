@@ -2,6 +2,7 @@
 Autenticação e segurança para o Budget Service
 """
 
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -10,8 +11,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 # Configurações JWT (devem ser as mesmas do user_service)
-SECRET_KEY = "your-secret-key-here"  # Mesma chave do user_service
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")  # Usar variável de ambiente
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 security = HTTPBearer()
 

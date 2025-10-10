@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,11 +26,12 @@ def create_application() -> FastAPI:
     )
     
     # CORS middleware
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure adequadamente em produção
+        allow_origins=allowed_origins,  # Usar domínios específicos em produção
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
     

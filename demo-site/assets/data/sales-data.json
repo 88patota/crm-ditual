@@ -1,0 +1,175 @@
+{
+  "statistics": {
+    "users": {
+      "value": 2500,
+      "label": "Usuários Ativos",
+      "growth": "+45%"
+    },
+    "companies": {
+      "value": 150,
+      "label": "Empresas Atendidas",
+      "growth": "+120%"
+    },
+    "revenue": {
+      "value": 98.5,
+      "label": "% Aumento Vendas",
+      "growth": "Média"
+    },
+    "satisfaction": {
+      "value": 4.9,
+      "label": "Satisfação Cliente",
+      "growth": "⭐⭐⭐⭐⭐"
+    }
+  },
+  "testimonials": [
+    {
+      "name": "Carlos Silva",
+      "position": "CEO",
+      "company": "TechCorp Solutions",
+      "avatar": "👨‍💼",
+      "rating": 5,
+      "text": "O CRM Ditual transformou completamente nossa gestão comercial. Aumentamos as vendas em 85% no primeiro ano e a produtividade da equipe triplicou."
+    },
+    {
+      "name": "Ana Costa",
+      "position": "Diretora Comercial",
+      "company": "Inovação Digital",
+      "avatar": "👩‍💼",
+      "rating": 5,
+      "text": "A automação de processos e os relatórios em tempo real nos deram uma visão estratégica que não tínhamos antes. ROI de 300% em 8 meses."
+    },
+    {
+      "name": "Roberto Santos",
+      "position": "Gerente de Vendas",
+      "company": "Crescimento Ltda",
+      "avatar": "👨‍💻",
+      "rating": 5,
+      "text": "Interface intuitiva, segurança impecável e suporte excepcional. Nossa equipe adotou o sistema em menos de uma semana."
+    }
+  ],
+  "benefits": [
+    {
+      "icon": "📈",
+      "title": "Aumento de 85% nas Vendas",
+      "description": "Empresas relatam crescimento médio de 85% no faturamento após implementação"
+    },
+    {
+      "icon": "⚡",
+      "title": "50% Mais Produtividade",
+      "description": "Automação de processos libera tempo para atividades estratégicas"
+    },
+    {
+      "icon": "💰",
+      "title": "ROI de 300% em 8 Meses",
+      "description": "Retorno sobre investimento comprovado em menos de um ano"
+    },
+    {
+      "icon": "🎯",
+      "title": "95% Taxa de Conversão",
+      "description": "Leads qualificados com maior precisão e assertividade"
+    }
+  ],
+  "pricing": {
+    "starter": {
+      "name": "Starter",
+      "price": 89,
+      "period": "mês",
+      "users": "Até 5 usuários",
+      "features": [
+        "Gestão básica de leads",
+        "Dashboard essencial",
+        "Relatórios básicos",
+        "Suporte por email",
+        "Integração com 3 sistemas"
+      ],
+      "popular": false
+    },
+    "professional": {
+      "name": "Professional",
+      "price": 189,
+      "period": "mês",
+      "users": "Até 25 usuários",
+      "features": [
+        "Gestão avançada de leads",
+        "Dashboard completo",
+        "Relatórios avançados",
+        "Automação de processos",
+        "Suporte prioritário",
+        "Integração ilimitada",
+        "API personalizada"
+      ],
+      "popular": true
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "price": 389,
+      "period": "mês",
+      "users": "Usuários ilimitados",
+      "features": [
+        "Todas as funcionalidades",
+        "Customização completa",
+        "Suporte 24/7",
+        "Gerente de conta dedicado",
+        "Treinamento personalizado",
+        "SLA garantido",
+        "Backup dedicado"
+      ],
+      "popular": false
+    }
+  },
+  "urgency_triggers": [
+    {
+      "type": "limited_time",
+      "message": "🔥 Oferta especial: 30% de desconto nos primeiros 3 meses",
+      "expires": "2024-12-31"
+    },
+    {
+      "type": "social_proof",
+      "message": "👥 Mais de 150 empresas já escolheram o CRM Ditual este mês"
+    },
+    {
+      "type": "scarcity",
+      "message": "⚡ Apenas 15 vagas restantes para implementação em Janeiro"
+    }
+  ],
+  "conversion_elements": {
+    "guarantee": {
+      "title": "Garantia de 30 Dias",
+      "description": "Se não ficar satisfeito, devolvemos 100% do seu investimento",
+      "icon": "🛡️"
+    },
+    "free_trial": {
+      "title": "Teste Grátis por 14 Dias",
+      "description": "Experimente todas as funcionalidades sem compromisso",
+      "icon": "🆓"
+    },
+    "implementation": {
+      "title": "Implementação Gratuita",
+      "description": "Nossa equipe configura tudo para você sem custo adicional",
+      "icon": "🚀"
+    },
+    "support": {
+      "title": "Suporte Especializado",
+      "description": "Equipe técnica disponível para ajudar sempre que precisar",
+      "icon": "🤝"
+    }
+  },
+  "objection_handling": {
+    "price": {
+      "objection": "É muito caro para nossa empresa",
+      "response": "O CRM Ditual se paga em menos de 3 meses com o aumento de vendas. ROI médio de 300% no primeiro ano."
+    },
+    "complexity": {
+      "objection": "Parece muito complexo para nossa equipe",
+      "response": "Interface intuitiva + treinamento gratuito + suporte especializado. 95% dos usuários dominam em 1 semana."
+    },
+    "integration": {
+      "objection": "Não vai integrar com nossos sistemas",
+      "response": "API robusta + 200+ integrações nativas + desenvolvimento personalizado incluído no plano Professional."
+    },
+    "security": {
+      "objection": "Preocupações com segurança dos dados",
+      "response": "Certificação ISO 27001 + criptografia bancária + conformidade LGPD + backup automático."
+    }
+  }
+}
