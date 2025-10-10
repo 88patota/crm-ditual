@@ -1,17 +1,19 @@
 # Multi-stage build for React/Vite frontend
-FROM node:18-alpine as build
+FROM node:21-alpine as build
 
 # Set working directory
 WORKDIR /app
 
-# Install/update npm to latest version
-RUN npm install -g npm@latest
+# Update npm to compatible version for Node 18
+RUN npm install -g npm@10 --unsafe-perm=true --allow-root
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Clean npm cache and install all dependencies (including dev dependencies for build)
+RUN npm cache clean --force
+RUN rm -rf node_modules package-lock.json
+RUN npm install
 
 # Copy source code
 COPY . .

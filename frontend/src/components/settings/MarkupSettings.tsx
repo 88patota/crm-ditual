@@ -197,7 +197,10 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+                        parser={(value) => {
+                          const parsed = parseFloat(value!.replace('%', '')) || 0;
+                          return Math.min(Math.max(parsed, 0), 100) as 0 | 100;
+                        }}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -218,7 +221,10 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+                        parser={(value) => {
+                          const parsed = parseFloat(value!.replace('%', '')) || 0;
+                          return Math.min(Math.max(parsed, 0), 1000) as 0 | 1000;
+                        }}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -259,7 +265,10 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+                        parser={(value) => {
+                          const parsed = parseFloat(value!.replace('%', '')) || 0;
+                          return Math.min(Math.max(parsed, 0), 100) as 0 | 100;
+                        }}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>
@@ -280,7 +289,10 @@ export default function MarkupSettings() {
                         step={0.1}
                         precision={1}
                         formatter={(value) => `${value}%`}
-                        parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+                        parser={(value) => {
+                          const parsed = parseFloat(value!.replace('%', '')) || 0;
+                          return Math.min(Math.max(parsed, 0), 100) as 0 | 100;
+                        }}
                         style={{ width: '100%' }}
                       />
                     </Form.Item>

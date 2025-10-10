@@ -15,7 +15,6 @@ import {
   Popconfirm,
   DatePicker,
   Alert,
-  Statistic,
   Select
 } from 'antd';
 import {
@@ -539,7 +538,6 @@ export default function AutoMarkupBudgetForm({
                           description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
                           type="warning" 
                           showIcon 
-                          size="small"
                           style={{ marginTop: '12px', fontSize: '11px' }}
                         />
                       )}
