@@ -19,7 +19,10 @@ class Settings(BaseSettings):
     def redis_url(self) -> str:
         """Construir URL do Redis"""
         if self.redis_password:
-            return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}"
+            # URL encode the password to handle special characters
+            from urllib.parse import quote_plus
+            encoded_password = quote_plus(self.redis_password)
+            return f"redis://:{encoded_password}@{self.redis_host}:{self.redis_port}"
         return f"redis://{self.redis_host}:{self.redis_port}"
     
     # JWT
