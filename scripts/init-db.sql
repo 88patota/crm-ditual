@@ -11,12 +11,12 @@ CREATE DATABASE IF NOT EXISTS crm_test;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
--- Grant permissions
-GRANT ALL PRIVILEGES ON DATABASE crm_db TO crm_user;
+-- Grant permissions - Use correct database name from .env.prod
+GRANT ALL PRIVILEGES ON DATABASE crm_ditual TO crm_user;
 GRANT ALL PRIVILEGES ON DATABASE crm_test TO crm_user;
 
 -- Set default search path
-ALTER DATABASE crm_db SET search_path TO public;
+ALTER DATABASE crm_ditual SET search_path TO public;
 
 -- Log the initialization
 DO $$
