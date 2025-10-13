@@ -1,0 +1,28 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="32" cy="32" r="32" fill="#f1f3f4"/>
+  
+  <!-- Growth Icon - Plant/Tree growing -->
+  <path d="M32 48V28" stroke="#ff6b9d" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Leaves/Growth elements -->
+  <path d="M32 28C28 24 20 26 20 32C20 26 28 24 32 28" fill="#ff8fab"/>
+  <path d="M32 28C36 24 44 26 44 32C44 26 36 24 32 28" fill="#ffa8c5"/>
+  
+  <!-- Additional smaller leaves -->
+  <path d="M32 34C29 31 24 32 24 36C24 32 29 31 32 34" fill="#ff6b9d" opacity="0.8"/>
+  <path d="M32 34C35 31 40 32 40 36C40 32 35 31 32 34" fill="#ff8fab" opacity="0.8"/>
+  
+  <!-- Root/base -->
+  <ellipse cx="32" cy="48" rx="8" ry="2" fill="#dee2e6"/>
+  
+  <!-- Growth indicators - small sparkles -->
+  <circle cx="26" cy="22" r="1" fill="#ff6b9d"/>
+  <circle cx="38" cy="24" r="1" fill="#ffa8c5"/>
+  <circle cx="22" cy="30" r="1" fill="#ff8fab"/>
+  <circle cx="42" cy="28" r="1" fill="#ff6b9d"/>
+  
+  <!-- Small plus signs indicating growth -->
+  <path d="M25 20L25 24M23 22L27 22" stroke="#ff6b9d" stroke-width="1" stroke-linecap="round"/>
+  <path d="M39 22L39 26M37 24L41 24" stroke="#ffa8c5" stroke-width="1" stroke-linecap="round"/>
+</svg>

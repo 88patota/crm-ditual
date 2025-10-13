@@ -3,12 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Ditual - Sistema Inteligente de Gestão Comercial</title>
-    <meta name="description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="assets/css/styles.css" as="style">
-    <link rel="preload" href="assets/js/main.js" as="script">
+    <title>Loen - CRM Inteligente para Sua Empresa</title>
+    <meta name="description" content="Transforme sua gestão comercial com o Loen. CRM inteligente que automatiza processos, aumenta vendas e potencializa resultados.">
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="assets/css/styles.css">
@@ -16,254 +12,162 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
     
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://crm-ditual.com/">
-    <meta property="og:title" content="CRM Ditual - Sistema Inteligente de Gestão Comercial">
-    <meta property="og:description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
-    <meta property="og:image" content="assets/images/og-image.jpg">
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://crm-ditual.com/">
-    <meta property="twitter:title" content="CRM Ditual - Sistema Inteligente de Gestão Comercial">
-    <meta property="twitter:description" content="Sistema CRM moderno com arquitetura de microserviços, cálculos automáticos de rentabilidade e gestão completa de orçamentos.">
-    <meta property="twitter:image" content="assets/images/og-image.jpg">
+    <meta property="og:title" content="Loen - CRM Inteligente para Sua Empresa">
+    <meta property="og:description" content="Transforme sua gestão comercial com o Loen. CRM inteligente que automatiza processos, aumenta vendas e potencializa resultados.">
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar" id="navbar">
+    <nav class="navbar">
         <div class="nav-container">
             <div class="nav-brand">
                 <div class="logo">
                     <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <span class="logo-text">CRM Ditual</span>
+                    <span class="logo-text">Loen</span>
                 </div>
             </div>
             
-            <div class="nav-menu" id="nav-menu">
+            <div class="nav-menu">
                 <a href="#home" class="nav-link">Início</a>
-                <a href="#features" class="nav-link">Funcionalidades</a>
-                <a href="#technology" class="nav-link">Tecnologia</a>
-                <a href="#security" class="nav-link">Segurança</a>
-                <a href="#calculator" class="nav-link">Calculadora AWS</a>
-                <a href="#contact" class="nav-link">Contato</a>
+                <a href="#beneficios" class="nav-link">Benefícios</a>
+                <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
+                <a href="#contato" class="nav-link">Contato</a>
             </div>
             
             <div class="nav-actions">
-                <button class="btn btn-outline">Demo Gratuita</button>
                 <button class="btn btn-primary">Começar Agora</button>
-                <button class="nav-toggle" id="nav-toggle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
     <section id="home" class="hero">
-        <div class="hero-background">
-            <div class="hero-grid"></div>
-            <div class="hero-particles" id="particles"></div>
-        </div>
-        
         <div class="container">
             <div class="hero-content">
                 <div class="hero-text">
-                    <div class="hero-badge">
-                        <span class="badge-dot"></span>
-                        Sistema em Produção
-                    </div>
-                    
                     <h1 class="hero-title">
-                        <span class="title-line">Sistema CRM</span>
-                        <span class="title-line gradient-text">Inteligente e Moderno</span>
-                        <span class="title-line">para Sua Empresa</span>
+                        Transforme Sua Gestão Comercial com o 
+                        <span class="gradient-text">Loen</span>
                     </h1>
                     
                     <p class="hero-description">
-                        Revolucione sua gestão comercial com nossa plataforma de microserviços. 
-                        Cálculos automáticos de rentabilidade, gestão completa de orçamentos e 
-                        segurança enterprise em uma solução moderna e escalável.
+                        O CRM inteligente que revoluciona a forma como você gerencia clientes, 
+                        automatiza processos de vendas e maximiza seus resultados comerciais.
                     </p>
-                    
-                    <div class="hero-stats">
-                        <div class="stat">
-                            <div class="stat-number" data-count="99.9">0</div>
-                            <div class="stat-label">% Uptime</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-number" data-count="50">0</div>
-                            <div class="stat-label">ms Resposta</div>
-                        </div>
-                        <div class="stat">
-                            <div class="stat-number" data-count="100">0</div>
-                            <div class="stat-label">% Seguro</div>
-                        </div>
-                    </div>
                     
                     <div class="hero-actions">
                         <button class="btn btn-primary btn-large">
-                            <span>Começar Gratuitamente</span>
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
-                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            Experimente Gratuitamente
                         </button>
-                        
-                        <button class="btn btn-outline btn-large demo-btn">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none">
-                                <polygon points="5,3 19,12 5,21" fill="currentColor"/>
-                            </svg>
-                            <span>Ver Demonstração</span>
+                        <button class="btn btn-outline btn-large">
+                            Ver Demonstração
                         </button>
                     </div>
                 </div>
                 
                 <div class="hero-visual">
-                    <div class="dashboard-preview">
-                        <div class="dashboard-header">
-                            <div class="dashboard-controls">
-                                <div class="control red"></div>
-                                <div class="control yellow"></div>
-                                <div class="control green"></div>
-                            </div>
-                            <div class="dashboard-title">CRM Dashboard</div>
-                        </div>
-                        
-                        <div class="dashboard-content">
-                            <div class="dashboard-sidebar">
-                                <div class="sidebar-item active">
-                                    <div class="sidebar-icon"></div>
-                                    <div class="sidebar-text"></div>
-                                </div>
-                                <div class="sidebar-item">
-                                    <div class="sidebar-icon"></div>
-                                    <div class="sidebar-text"></div>
-                                </div>
-                                <div class="sidebar-item">
-                                    <div class="sidebar-icon"></div>
-                                    <div class="sidebar-text"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="dashboard-main">
-                                <div class="dashboard-cards">
-                                    <div class="dashboard-card">
-                                        <div class="card-header"></div>
-                                        <div class="card-content">
-                                            <div class="card-chart"></div>
-                                        </div>
-                                    </div>
-                                    <div class="dashboard-card">
-                                        <div class="card-header"></div>
-                                        <div class="card-content">
-                                            <div class="card-stats">
-                                                <div class="stat-bar"></div>
-                                                <div class="stat-bar"></div>
-                                                <div class="stat-bar"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="dashboard-table">
-                                    <div class="table-header"></div>
-                                    <div class="table-row"></div>
-                                    <div class="table-row"></div>
-                                    <div class="table-row"></div>
-                                </div>
+                    <div class="dashboard-mockup">
+                        <div class="mockup-header">
+                            <div class="mockup-controls">
+                                <div class="control"></div>
+                                <div class="control"></div>
+                                <div class="control"></div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="floating-elements">
-                        <div class="floating-card card-1">
-                            <div class="card-icon">💰</div>
-                            <div class="card-text">Rentabilidade +25%</div>
-                        </div>
-                        <div class="floating-card card-2">
-                            <div class="card-icon">⚡</div>
-                            <div class="card-text">Automação Total</div>
-                        </div>
-                        <div class="floating-card card-3">
-                            <div class="card-icon">🔒</div>
-                            <div class="card-text">100% Seguro</div>
+                        <div class="mockup-content">
+                            <div class="mockup-sidebar">
+                                <div class="sidebar-item active"></div>
+                                <div class="sidebar-item"></div>
+                                <div class="sidebar-item"></div>
+                                <div class="sidebar-item"></div>
+                            </div>
+                            <div class="mockup-main">
+                                <div class="chart-area"></div>
+                                <div class="stats-grid">
+                                    <div class="stat-card"></div>
+                                    <div class="stat-card"></div>
+                                    <div class="stat-card"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="hero-scroll">
-            <div class="scroll-indicator">
-                <span>Explore mais</span>
-                <div class="scroll-arrow"></div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="beneficios" class="benefits">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Por Que Escolher o Loen?</h2>
+                <p class="section-description">
+                    Descubra como nossa plataforma pode transformar seus resultados comerciais
+                </p>
+            </div>
+            
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="assets/images/productivity-icon.svg" alt="Produtividade" width="64" height="64">
+                    </div>
+                    <h3>Aumente sua Produtividade</h3>
+                    <p>Automatize tarefas repetitivas e foque no que realmente importa para o crescimento do seu negócio.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="assets/images/organization-icon.svg" alt="Organização" width="64" height="64">
+                    </div>
+                    <h3>Organize seus Clientes</h3>
+                    <p>Mantenha todas as informações dos seus clientes organizadas e acessíveis em um só lugar.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">
+                        <img src="assets/images/growth-icon.svg" alt="Crescimento" width="64" height="64">
+                    </div>
+                    <h3>Acelere seu Crescimento</h3>
+                    <p>Identifique oportunidades de vendas e acompanhe o desempenho da sua equipe em tempo real.</p>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="features">
+    <section id="funcionalidades" class="features">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Funcionalidades Poderosas</h2>
-                <p class="section-subtitle">
-                    Descubra como o CRM Ditual revoluciona a gestão do seu negócio com tecnologia de ponta
+                <p class="section-description">
+                    Tudo que você precisa para gerenciar seu negócio em uma única plataforma
                 </p>
             </div>
+            
             <div class="features-grid">
-                <!-- Features will be populated by JavaScript -->
-            </div>
-        </div>
-    </section>
-
-    <!-- Technology Section -->
-    <section id="technology" class="technology">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Tecnologia de Vanguarda</h2>
-                <p class="section-subtitle">
-                    Arquitetura moderna e escalável construída com as melhores tecnologias do mercado
-                </p>
-            </div>
-            <div class="tech-architecture">
-                <!-- Technology stacks will be populated by JavaScript -->
-            </div>
-        </div>
-    </section>
-
-    <!-- Security Section -->
-    <section id="security" class="security">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Segurança Enterprise</h2>
-                <p class="section-subtitle">
-                    Proteção máxima para seus dados com padrões de segurança bancária
-                </p>
-            </div>
-            <div class="security-features">
-                <!-- Security features will be populated by JavaScript -->
-            </div>
-        </div>
-    </section>
-
-    <!-- AWS Calculator Section -->
-    <section id="calculator" class="calculator">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">Calculadora de Custos AWS</h2>
-                <p class="section-subtitle">
-                    Calcule o investimento necessário para hospedar o CRM Ditual na AWS
-                </p>
-            </div>
-            <div class="calculator-container">
-                <!-- Calculator will be populated by JavaScript -->
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="assets/images/automation-icon.svg" alt="Automação" width="48" height="48">
+                    </div>
+                    <h3>Automação Inteligente</h3>
+                    <p>Automatize follow-ups, lembretes e tarefas repetitivas para focar no que realmente importa.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="assets/images/analytics-icon.svg" alt="Relatórios" width="48" height="48">
+                    </div>
+                    <h3>Relatórios Detalhados</h3>
+                    <p>Acompanhe métricas importantes e tome decisões baseadas em dados concretos.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <img src="assets/images/integration-icon.svg" alt="Integração" width="48" height="48">
+                    </div>
+                    <h3>Integração Simples</h3>
+                    <p>Conecte-se facilmente com suas ferramentas favoritas e centralize tudo em um só lugar.</p>
+                </div>
             </div>
         </div>
     </section>
@@ -272,17 +176,76 @@
     <section class="cta">
         <div class="container">
             <div class="cta-content">
-                <h2>Pronto para Revolucionar seu Negócio?</h2>
-                <p>
-                    Junte-se a centenas de empresas que já transformaram sua gestão com o CRM Ditual
+                <h2 class="cta-title">Pronto para Revolucionar Suas Vendas?</h2>
+                <p class="cta-description">
+                    Junte-se a milhares de empresas que já transformaram seus resultados com o Loen.
                 </p>
-                <div class="cta-buttons">
-                    <a href="#" class="btn btn-white btn-lg">
-                        🚀 Começar Agora
-                    </a>
-                    <a href="#" class="btn btn-outline-white btn-lg">
-                        📞 Falar com Especialista
-                    </a>
+                <div class="cta-actions">
+                    <button class="btn btn-primary btn-large">
+                        Começar Gratuitamente
+                    </button>
+                    <p class="cta-note">Sem compromisso • Configuração em minutos</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contato" class="contact">
+        <div class="container">
+            <div class="contact-content">
+                <div class="contact-info">
+                    <h2 class="contact-title">Fale Conosco</h2>
+                    <p class="contact-description">
+                        Nossa equipe está pronta para ajudar você a implementar a solução perfeita para seu negócio.
+                    </p>
+                    
+                    <div class="contact-methods">
+                        <div class="contact-method">
+                            <div class="method-icon">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" stroke-width="2"/>
+                                    <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <div class="method-info">
+                                <h4>Email</h4>
+                                <p>contato@loen.com.br</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-method">
+                            <div class="method-icon">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </div>
+                            <div class="method-info">
+                                <h4>Telefone</h4>
+                                <p>(11) 9999-9999</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="contact-form">
+                    <form class="form">
+                        <div class="form-group">
+                            <input type="text" class="form-input" placeholder="Seu nome" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" class="form-input" placeholder="Seu email" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" placeholder="Empresa">
+                        </div>
+                        <div class="form-group">
+                            <textarea class="form-input" rows="4" placeholder="Como podemos ajudar?"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            Enviar Mensagem
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -292,43 +255,42 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-section">
-                    <h3>CRM Ditual</h3>
-                    <p>
-                        A solução completa para gestão de relacionamento com clientes,
-                        desenvolvida com tecnologia de ponta para empresas modernas.
+                <div class="footer-brand">
+                    <div class="logo">
+                        <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <path d="M8 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span class="logo-text">Loen</span>
+                    </div>
+                    <p class="footer-description">
+                        O CRM inteligente que transforma sua gestão comercial.
                     </p>
                 </div>
-                <div class="footer-section">
-                    <h3>Produto</h3>
-                    <ul>
-                        <li><a href="#features">Funcionalidades</a></li>
-                        <li><a href="#technology">Tecnologia</a></li>
-                        <li><a href="#security">Segurança</a></li>
-                        <li><a href="#calculator">Calculadora</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h3>Empresa</h3>
-                    <ul>
-                        <li><a href="#">Sobre Nós</a></li>
-                        <li><a href="#">Carreiras</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Contato</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h3>Suporte</h3>
-                    <ul>
-                        <li><a href="#">Documentação</a></li>
-                        <li><a href="#">API Reference</a></li>
-                        <li><a href="#">Status</a></li>
-                        <li><a href="#">Suporte Técnico</a></li>
-                    </ul>
+                
+                <div class="footer-links">
+                    <div class="footer-section">
+                        <h4 class="footer-title">Produto</h4>
+                        <ul class="footer-list">
+                            <li><a href="#funcionalidades">Funcionalidades</a></li>
+                            <li><a href="#beneficios">Benefícios</a></li>
+                            <li><a href="#">Demonstração</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="footer-section">
+                        <h4 class="footer-title">Suporte</h4>
+                        <ul class="footer-list">
+                            <li><a href="#contato">Contato</a></li>
+                            <li><a href="#">Ajuda</a></li>
+                            <li><a href="#">FAQ</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
+            
             <div class="footer-bottom">
-                <p>&copy; 2024 CRM Ditual. Todos os direitos reservados.</p>
+                <p>&copy; 2024 Loen. Todos os direitos reservados.</p>
             </div>
         </div>
     </footer>
