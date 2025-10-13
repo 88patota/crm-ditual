@@ -16,11 +16,13 @@ BEGIN
 END
 $$;
 
--- Create main database
-CREATE DATABASE crm_ditual OWNER crm_user;
+-- Create main database (if not exists)
+SELECT 'CREATE DATABASE crm_ditual OWNER crm_user'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'crm_ditual')\gexec
 
 -- Create additional databases if needed
-CREATE DATABASE crm_test OWNER crm_user;
+SELECT 'CREATE DATABASE crm_test OWNER crm_user'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'crm_test')\gexec
 
 -- Connect to crm_ditual to create extensions
 \c crm_ditual;
