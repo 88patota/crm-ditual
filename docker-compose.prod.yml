@@ -120,7 +120,9 @@ services:
 
   # Nginx Reverse Proxy
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
     container_name: crm_nginx
     restart: unless-stopped
     ports:
@@ -129,7 +131,6 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
       - /var/log/crm:/var/log/nginx
     depends_on:
