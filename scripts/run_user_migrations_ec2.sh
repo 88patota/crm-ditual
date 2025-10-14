@@ -20,6 +20,20 @@ if [ ! -f "docker-compose.prod.yml" ]; then
     exit 1
 fi
 
+# Verificar se o arquivo .env.prod existe
+if [ ! -f ".env.prod" ]; then
+    echo "❌ Arquivo .env.prod não encontrado!"
+    echo "Este arquivo é necessário para as variáveis de ambiente."
+    echo "Certifique-se de que o arquivo .env.prod está presente no diretório raiz."
+    exit 1
+fi
+
+echo "✅ Arquivo .env.prod encontrado!"
+
+# Carregar variáveis de ambiente do .env.prod
+echo "🔧 Carregando variáveis de ambiente..."
+export $(grep -v '^#' .env.prod | xargs)
+
 # Verificar se os containers estão rodando
 echo "🔍 Verificando status dos containers..."
 if ! docker-compose -f docker-compose.prod.yml ps | grep -q "user_service"; then
