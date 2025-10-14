@@ -133,6 +133,7 @@ services:
     volumes:
       - ./nginx/ssl:/etc/nginx/ssl
       - /var/log/crm:/var/log/nginx
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - frontend
       - user_service
