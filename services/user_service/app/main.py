@@ -26,10 +26,16 @@ def create_application() -> FastAPI:
     )
     
     # CORS middleware
-    allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    allowed_origins = allowed_origins_str.split(",")
+    
+    domain = os.getenv("DOMAIN")
+    if domain:
+        allowed_origins.append(f"https://{domain}")
+
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,  # Usar domínios específicos em produção
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
