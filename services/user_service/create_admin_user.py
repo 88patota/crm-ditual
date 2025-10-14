@@ -15,6 +15,7 @@ import sys
 import os
 import logging
 from pathlib import Path
+from sqlalchemy import text
 
 # Adicionar o diretório app ao path
 current_dir = Path(__file__).parent
@@ -115,7 +116,7 @@ async def test_database_connection():
     try:
         async with AsyncSessionLocal() as db:
             # Tentar fazer uma query simples
-            result = await db.execute("SELECT 1")
+            result = await db.execute(text("SELECT 1"))
             if result:
                 logger.info("✅ Conexão com banco de dados OK")
                 return True
