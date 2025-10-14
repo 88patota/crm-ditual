@@ -130,6 +130,7 @@ services:
       - "443:443"
     environment:
       - DOMAIN=${DOMAIN}
+      - ENVIRONMENT=production
     volumes:
       - ./nginx/ssl:/etc/nginx/ssl
       - /var/log/crm:/var/log/nginx
