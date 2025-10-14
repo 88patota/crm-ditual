@@ -4,17 +4,24 @@
 -- Set timezone
 SET timezone = 'America/Sao_Paulo';
 
--- Create user first (if not exists)
+-- Create user first (if not exists) - Using environment variable password
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'crm_user') THEN
-        CREATE USER crm_user WITH PASSWORD 'crm_password';
+        -- Password will be set by POSTGRES_PASSWORD environment variable
+        CREATE USER crm_user;
         RAISE NOTICE 'User crm_user created successfully';
     ELSE
         RAISE NOTICE 'User crm_user already exists';
+        -- Update password to match environment variable
+        ALTER USER crm_user WITH PASSWORD 'crm_strong_password_2024';
+        RAISE NOTICE 'User crm_user password updated';
     END IF;
 END
 $$;
+
+-- Ensure user has correct password (matching .env.prod)
+ALTER USER crm_user WITH PASSWORD 'crm_strong_password_2024';
 
 -- Create main database (if not exists)
 SELECT 'CREATE DATABASE crm_ditual OWNER crm_user'

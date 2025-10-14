@@ -59,17 +59,46 @@ echo "✅ Todos os containers necessários estão rodando!"
 
 # Aguardar serviços estarem prontos
 echo "⏳ Aguardando serviços estarem prontos..."
-sleep 10
+sleep 15
 
-# Verificar conectividade com o banco
+# Verificar conectividade com o banco usando as variáveis corretas
 echo "🔗 Testando conectividade com o banco de dados..."
-docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U crm_user -d crm_db
+docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
 if [ $? -ne 0 ]; then
     echo "❌ Banco de dados não está acessível!"
-    exit 1
+    echo "🔧 Tentando recriar o banco de dados..."
+    
+    # Recriar banco se necessário
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "DROP DATABASE IF EXISTS ${POSTGRES_DB};"
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};"
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};"
+    
+    # Testar novamente
+    docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+    if [ $? -ne 0 ]; then
+        echo "❌ Ainda não foi possível conectar ao banco!"
+        exit 1
+    fi
 fi
 
 echo "✅ Banco de dados acessível!"
+
+# Verificar se o usuário e senha estão corretos
+echo "🔐 Verificando autenticação do usuário..."
+docker-compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 1;" > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "❌ Falha na autenticação! Corrigindo senha do usuário..."
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "ALTER USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';"
+    
+    # Testar novamente
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 1;" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "❌ Ainda há problemas de autenticação!"
+        exit 1
+    fi
+fi
+
+echo "✅ Autenticação funcionando corretamente!"
 echo ""
 
 # Executar migrações do user_service
