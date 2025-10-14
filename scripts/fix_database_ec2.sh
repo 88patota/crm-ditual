@@ -50,19 +50,26 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Criar usuário e banco manualmente
-echo "👤 Criando usuário e banco de dados..."
-docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -c "
-    DROP DATABASE IF EXISTS ${POSTGRES_DB};
-    DROP USER IF EXISTS ${POSTGRES_USER};
-    CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';
-    CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};
-    GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO ${POSTGRES_USER};
-"
+# Verificar se o banco foi criado automaticamente pelo init script
+echo "🔍 Verificando se o banco foi criado automaticamente..."
+sleep 5
 
-# Testar conexão
-echo "🔐 Testando autenticação..."
+# Testar conexão direta (o usuário e banco devem ter sido criados pelo init-db.sql)
+echo "🔐 Testando autenticação com configurações do .env.prod..."
 docker-compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 'Conexão OK' as status;"
+
+# Se falhar, tentar criar manualmente usando o usuário que foi criado
+if [ $? -ne 0 ]; then
+    echo "⚠️  Conexão falhou, tentando corrigir..."
+    
+    # Usar o usuário criado pelo POSTGRES_USER para criar o banco
+    echo "🔧 Criando banco usando o usuário configurado..."
+    docker-compose -f docker-compose.prod.yml exec postgres createdb -U ${POSTGRES_USER} ${POSTGRES_DB} 2>/dev/null || true
+    
+    # Testar novamente
+    echo "🔐 Testando autenticação novamente..."
+    docker-compose -f docker-compose.prod.yml exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c "SELECT 'Conexão OK' as status;"
+fi
 
 if [ $? -eq 0 ]; then
     echo "✅ Banco de dados corrigido com sucesso!"
