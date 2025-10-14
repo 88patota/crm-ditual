@@ -56,6 +56,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - API_V1_PREFIX=/api/v1
+      - DOMAIN=${DOMAIN}
+      - ALLOWED_ORIGINS=https://loen.digital
     depends_on:
       postgres:
         condition: service_healthy
@@ -88,6 +91,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - ALLOWED_ORIGINS=https://loen.digital
     depends_on:
       postgres:
         condition: service_healthy
