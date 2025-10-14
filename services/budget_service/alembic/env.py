@@ -22,10 +22,10 @@ target_metadata = Base.metadata
 # Set environment variables in the config section
 section = config.config_ini_section
 config.set_section_option(section, "POSTGRES_USER", os.getenv("POSTGRES_USER", "crm_user"))
-config.set_section_option(section, "POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "crm_password"))
+config.set_section_option(section, "POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "crm_strong_password_2024"))
 config.set_section_option(section, "POSTGRES_HOST", os.getenv("POSTGRES_HOST", "postgres"))
 config.set_section_option(section, "POSTGRES_PORT", os.getenv("POSTGRES_PORT", "5432"))
-config.set_section_option(section, "POSTGRES_DB", os.getenv("POSTGRES_DB", "crm_db"))
+config.set_section_option(section, "POSTGRES_DB", os.getenv("POSTGRES_DB", "crm_ditual"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
