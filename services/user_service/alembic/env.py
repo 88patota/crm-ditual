@@ -4,7 +4,7 @@ from sqlalchemy import pool
 from alembic import context
 from app.core.database import Base
 from app.models.user import User  # Import all models here
-
+import os
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,6 +18,14 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = Base.metadata
+
+# Set environment variables in the config section
+section = config.config_ini_section
+config.set_section_option(section, "POSTGRES_USER", os.getenv("POSTGRES_USER", "crm_user"))
+config.set_section_option(section, "POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "crm_password"))
+config.set_section_option(section, "POSTGRES_HOST", os.getenv("POSTGRES_HOST", "postgres"))
+config.set_section_option(section, "POSTGRES_PORT", os.getenv("POSTGRES_PORT", "5432"))
+config.set_section_option(section, "POSTGRES_DB", os.getenv("POSTGRES_DB", "crm_db"))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
