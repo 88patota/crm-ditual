@@ -34,7 +34,9 @@ echo "✅ Arquivo .env.prod encontrado!"
 
 # Carregar variáveis de ambiente do .env.prod
 echo "🔧 Carregando variáveis de ambiente..."
-export $(grep -v '^#' .env.prod | xargs)
+set -a  # Automatically export all variables
+source .env.prod
+set +a  # Stop automatically exporting
 
 # Verificar se todos os containers necessários estão rodando
 echo "🔍 Verificando status dos containers..."

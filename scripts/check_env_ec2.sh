@@ -67,7 +67,9 @@ echo "✅ Todas as variáveis críticas estão presentes!"
 # Testar carregamento das variáveis
 echo ""
 echo "🔧 Testando carregamento das variáveis..."
-export $(grep -v '^#' .env.prod | xargs)
+set -a  # Automatically export all variables
+source .env.prod
+set +a  # Stop automatically exporting
 
 if [ -z "$POSTGRES_PASSWORD" ]; then
     echo "❌ Erro ao carregar POSTGRES_PASSWORD"
