@@ -9,6 +9,23 @@ Este guia explica como executar as migrações do banco de dados no ambiente EC2
 - Acesso SSH à instância EC2
 - Banco PostgreSQL configurado e acessível
 
+### ⚠️ IMPORTANTE: Configuração do .env.prod
+
+Antes de executar as migrações, certifique-se de que o arquivo `.env.prod` existe e contém as seguintes variáveis:
+
+```bash
+# Verificar se o arquivo .env.prod está configurado
+./scripts/check_env_ec2.sh
+```
+
+**Variáveis obrigatórias no .env.prod:**
+- `POSTGRES_PASSWORD`: Senha do PostgreSQL
+- `REDIS_PASSWORD`: Senha do Redis  
+- `SECRET_KEY`: Chave secreta da aplicação
+- `DOMAIN`: Domínio da aplicação
+- `POSTGRES_DB`: Nome do banco de dados
+- `POSTGRES_USER`: Usuário do PostgreSQL
+
 ## 🗄️ Estrutura das Migrações
 
 O projeto possui dois serviços com migrações independentes:
@@ -33,7 +50,10 @@ Execute todas as migrações de uma vez:
 # Tornar o script executável
 chmod +x scripts/run_all_migrations_ec2.sh
 
-# Executar todas as migrações
+# 1. Primeiro, verificar se o ambiente está configurado
+./scripts/check_env_ec2.sh
+
+# 2. Executar todas as migrações
 ./scripts/run_all_migrations_ec2.sh
 ```
 
@@ -166,6 +186,7 @@ Após executar as migrações com sucesso:
 
 ## 📚 Arquivos Relacionados
 
+- `scripts/check_env_ec2.sh` - Script para verificar configuração do ambiente
 - `scripts/run_all_migrations_ec2.sh` - Script unificado
 - `scripts/run_user_migrations_ec2.sh` - Migrações do user_service
 - `scripts/run_budget_migrations_ec2.sh` - Migrações do budget_service
