@@ -18,11 +18,24 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Copy production environment file
+# Ensure .env.production exists and copy it as .env
+RUN if [ ! -f .env.production ]; then echo "ERROR: .env.production file not found!" && exit 1; fi
 COPY .env.production .env
 
-# Build the application for production
-RUN npm run build
+# Verify environment variables are loaded
+RUN echo "Building with environment variables:" && cat .env
+
+# Build the application for production with detailed error handling
+RUN echo "Starting TypeScript compilation..." && \
+    npx tsc -b --verbose || (echo "TypeScript compilation failed!" && exit 1) && \
+    echo "TypeScript compilation successful. Starting Vite build..." && \
+    npx vite build --mode production --logLevel info || (echo "Vite build failed. Debug info:" && \
+    echo "Node version:" && node --version && \
+    echo "NPM version:" && npm --version && \
+    echo "Environment file content:" && cat .env && \
+    echo "Vite config:" && cat vite.config.ts && \
+    echo "Package.json scripts:" && cat package.json | grep -A 10 '"scripts"' && \
+    exit 1)
 
 # Production stage with nginx
 FROM nginx:alpine
