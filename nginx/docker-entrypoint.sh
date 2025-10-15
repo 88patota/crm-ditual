@@ -40,13 +40,15 @@ if [ "$ENVIRONMENT" = "production" ]; then
     echo "Usando configuração de produção..."
     CONFIG_FILE="/etc/nginx/nginx.prod.conf"
     setup_ssl
+    # Substituir variáveis de ambiente no template (DOMAIN)
+    echo "Gerando nginx.conf com DOMAIN=$DOMAIN via envsubst..."
+    envsubst '${DOMAIN}' < "$CONFIG_FILE" > /etc/nginx/nginx.conf
 else
     echo "Usando configuração de desenvolvimento..."
     CONFIG_FILE="/etc/nginx/nginx.dev.conf"
+    # Copiar configuração de desenvolvimento diretamente
+    cp "$CONFIG_FILE" /etc/nginx/nginx.conf
 fi
-
-# Copiar a configuração apropriada
-cp "$CONFIG_FILE" /etc/nginx/nginx.conf
 
 # Aguardar serviços dependentes estarem disponíveis (apenas em produção)
 if [ "$ENVIRONMENT" = "production" ]; then

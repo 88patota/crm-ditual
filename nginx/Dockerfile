@@ -1,7 +1,7 @@
 FROM nginx:alpine
 
-# Instalar dependências necessárias
-RUN apk add --no-cache openssl bash netcat-openbsd
+# Instalar dependências necessárias (inclui gettext para envsubst)
+RUN apk add --no-cache openssl bash netcat-openbsd gettext
 
 # Copiar arquivos de configuração
 COPY nginx.prod.conf /etc/nginx/nginx.prod.conf
