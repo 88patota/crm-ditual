@@ -1,18 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../services/authService';
 import type { AuthContextType, User, LoginRequest, RegisterRequest } from '../types/auth';
 import toast from 'react-hot-toast';
-
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+import { AuthContext } from './AuthContextDefinition';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -23,6 +14,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldFetchUser, setShouldFetchUser] = useState(false);
 
   const isAuthenticated = !!user && !!token;
 
@@ -35,25 +27,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryClient.removeQueries({ queryKey: ['dashboard'] });
   };
 
-  // Load user data on mount if token exists
+  // Load user data on mount if token exists or when explicitly requested
   useEffect(() => {
     async function loadUser() {
-      if (token) {
+      if (token && (shouldFetchUser || !user)) {
         try {
           const userData = await authService.getCurrentUser();
           setUser(userData);
+          setShouldFetchUser(false); // Reset flag after successful fetch
+          
+          // Show welcome message only when explicitly requested (after login)
+          if (shouldFetchUser) {
+            toast.success(`Bem-vindo(a), ${userData.full_name}!`);
+          }
         } catch {
           // Token is invalid, remove it
-          clearUserData(); // Limpar dados do usuário quando token é inválido
+          clearUserData();
           localStorage.removeItem('auth_token');
           setToken(null);
+          setUser(null);
+          setShouldFetchUser(false);
         }
       }
       setIsLoading(false);
     }
 
     loadUser();
-  }, [token, clearUserData]);
+  }, [token, shouldFetchUser]); // Removed clearUserData from dependencies
 
   const login = async (credentials: LoginRequest) => {
     setIsLoading(true);
@@ -67,11 +67,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('auth_token', access_token);
       setToken(access_token);
       
-      // Get user data
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
+      // Set flag to fetch user data instead of calling directly
+      setShouldFetchUser(true);
       
-      toast.success(`Bem-vindo(a), ${userData.full_name}!`);
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -118,4 +116,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
-export default AuthContext;
+export default AuthProvider;

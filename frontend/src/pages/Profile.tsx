@@ -27,7 +27,7 @@ import {
   CloseCircleOutlined
 } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
 import type { UserSelfUpdateRequest, PasswordUpdateRequest, ApiError } from '../types/auth';
 import type { AxiosError } from 'axios';
