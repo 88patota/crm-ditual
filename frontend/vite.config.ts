@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     server: isDevelopment ? {
       port: 3000,
       host: true,
-      allowedHosts: ['localhost', '127.0.0.1', 'larospq1a.localto.net', 'tapwq0-ip-177-60-121-7.tunnelmole.net', '6drlnmx7e.localto.net'],
+      allowedHosts: ['localhost', '127.0.0.1'],
       proxy: {
         '^/api/v1/budgets.*': {
           target: 'http://localhost:8002',
