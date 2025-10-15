@@ -292,7 +292,7 @@ export default function Budgets() {
         { text: 'Rejeitado', value: 'rejected' },
         { text: 'Expirado', value: 'expired' },
       ],
-      onFilter: (value: any, record: BudgetSummary) => record.status === value,
+      onFilter: (value: boolean | React.Key, record: BudgetSummary) => record.status === value,
       render: (status: string) => (
         <Tag 
           color={getStatusColor(status)}

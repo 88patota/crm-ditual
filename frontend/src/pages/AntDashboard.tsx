@@ -299,7 +299,7 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: { dataset: { data: number[] }, parsed: number, label: string }) {
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
             const percentage = total > 0 ? ((context.parsed * 100) / total).toFixed(1) : '0.0';
             return `${context.label}: ${context.parsed} (${percentage}%)`;
@@ -315,7 +315,7 @@ const AntDashboard: React.FC = () => {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function(value: any) {
+          callback: function(value: string | number) {
             return formatCurrency(value);
           }
         }
@@ -326,7 +326,7 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: { dataset: { label: string }, parsed: { y: number } }) {
             return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
           }
         }

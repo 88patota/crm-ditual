@@ -42,7 +42,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
           const userData = await authService.getCurrentUser();
           setUser(userData);
-        } catch (error) {
+        } catch {
           // Token is invalid, remove it
           clearUserData(); // Limpar dados do usuário quando token é inválido
           localStorage.removeItem('auth_token');
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     loadUser();
-  }, [token]);
+  }, [token, clearUserData]);
 
   const login = async (credentials: LoginRequest) => {
     setIsLoading(true);
@@ -72,10 +72,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(userData);
       
       toast.success(`Bem-vindo(a), ${userData.full_name}!`);
-    } catch (error) {
-      throw error;
-    } finally {
       setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
     }
   };
 
@@ -84,10 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await authService.register(data);
       toast.success('Conta criada com sucesso! Faça login para continuar.');
-    } catch (error) {
-      throw error;
-    } finally {
       setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
     }
   };
 

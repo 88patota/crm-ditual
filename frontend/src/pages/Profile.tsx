@@ -29,7 +29,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
-import type { UserSelfUpdateRequest, PasswordUpdateRequest } from '../types/auth';
+import type { UserSelfUpdateRequest, PasswordUpdateRequest, ApiError } from '../types/auth';
+import type { AxiosError } from 'axios';
 
 const { Title, Text } = Typography;
 
@@ -46,8 +47,11 @@ export default function Profile() {
       message.success('Perfil atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.detail || 'Falha ao atualizar perfil');
+    onError: (error: AxiosError<ApiError>) => {
+      const errorMessage = typeof error.response?.data?.detail === 'string' 
+        ? error.response.data.detail 
+        : 'Falha ao atualizar perfil';
+      message.error(errorMessage);
     },
   });
 
@@ -57,8 +61,11 @@ export default function Profile() {
       message.success('Senha atualizada com sucesso!');
       passwordForm.resetFields();
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.detail || 'Falha ao atualizar senha');
+    onError: (error: AxiosError<ApiError>) => {
+      const errorMessage = typeof error.response?.data?.detail === 'string' 
+        ? error.response.data.detail 
+        : 'Falha ao atualizar senha';
+      message.error(errorMessage);
     },
   });
 
