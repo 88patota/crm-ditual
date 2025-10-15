@@ -309,14 +309,16 @@ const AntDashboard: React.FC = () => {
     }
   };
 
-  const performanceChartOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const performanceChartOptions: any = {
     ...chartOptions,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function(value: string | number) {
-            return formatCurrency(value);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback: function(value: any) {
+            return formatCurrency(Number(value));
           }
         }
       }
@@ -326,8 +328,9 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          label: function(context: { dataset: { label: string }, parsed: { y: number } }) {
-            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          label: function(tooltipItem: any) {
+            return `${tooltipItem.dataset.label || 'Dados'}: ${formatCurrency(tooltipItem.parsed.y)}`;
           }
         }
       }
