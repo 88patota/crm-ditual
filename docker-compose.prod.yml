@@ -114,6 +114,9 @@ services:
       dockerfile: Dockerfile
     container_name: crm_frontend
     restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - VITE_API_BASE_URL=https://loen.digital/api/v1
     depends_on:
       user_service:
         condition: service_healthy
