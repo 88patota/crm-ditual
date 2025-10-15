@@ -52,25 +52,32 @@ sudo certbot certonly \
     --domains "$DOMAIN" \
     --non-interactive
 
-# Verifica se o certificado foi criado
-if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
-    echo "Certificado SSL criado com sucesso!"
-    
+# Detecta diretório do certificado (considera sufixos -0001, -0002, etc.)
+CERT_DIR="/etc/letsencrypt/live/$DOMAIN"
+if [ ! -f "$CERT_DIR/fullchain.pem" ] || [ ! -f "$CERT_DIR/privkey.pem" ]; then
+    ALT_DIR=$(ls -d /etc/letsencrypt/live/${DOMAIN}-* 2>/dev/null | sort -V | tail -n 1)
+    if [ -n "$ALT_DIR" ] && [ -f "$ALT_DIR/fullchain.pem" ] && [ -f "$ALT_DIR/privkey.pem" ]; then
+        CERT_DIR="$ALT_DIR"
+    fi
+fi
+
+# Verifica se o certificado está disponível
+if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
+    echo "Certificado SSL disponível em: $CERT_DIR"
+
     # Configura renovação automática
     echo "Configurando renovação automática..."
-    
-    # Cria script de renovação
     sudo tee /etc/cron.d/certbot-renew > /dev/null <<EOF
 # Renova certificados Let's Encrypt automaticamente
 0 12 * * * root certbot renew --quiet --deploy-hook "docker restart crm_nginx"
 EOF
-    
+
     echo "Renovação automática configurada."
-    
+
     # Reinicia o nginx
     echo "Reiniciando nginx..."
     sudo docker start crm_nginx
-    
+
     echo ""
     echo "✅ SSL configurado com sucesso!"
     echo "Seu site agora está disponível em: https://$DOMAIN"
@@ -80,8 +87,10 @@ EOF
     echo ""
     echo "Para renovar manualmente:"
     echo "sudo certbot renew"
-    
 else
-    echo "❌ Erro ao gerar certificado SSL"
+    echo "❌ Erro ao localizar certificados em /etc/letsencrypt (verifique portas 80/443 e DNS)"
+    echo "Sugestão: execute 'sudo certbot certificates' e 'ls -la /etc/letsencrypt/live' para confirmar o diretório"
+    # Mesmo em caso de falha, tente subir o nginx para não deixar o site fora do ar
+    sudo docker start crm_nginx || true
     exit 1
 fi

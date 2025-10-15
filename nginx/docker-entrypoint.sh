@@ -13,12 +13,27 @@ setup_ssl() {
         openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
     fi
     
-    # Verificar se existem certificados Let's Encrypt
-    if [ -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ] && [ -f /etc/letsencrypt/live/${DOMAIN}/privkey.pem ]; then
-        echo "Certificados Let's Encrypt encontrados. Criando links simbólicos..."
-        ln -sf /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /etc/nginx/ssl/fullchain.pem
-        ln -sf /etc/letsencrypt/live/${DOMAIN}/privkey.pem /etc/nginx/ssl/privkey.pem
-        ln -sf /etc/letsencrypt/live/${DOMAIN}/chain.pem /etc/nginx/ssl/chain.pem
+    # Tentar localizar certificados Let's Encrypt (considerando sufixos -0001, -0002, etc.)
+    CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+    if [ ! -f "$CERT_DIR/fullchain.pem" ] || [ ! -f "$CERT_DIR/privkey.pem" ]; then
+        ALT_DIR=$(ls -d /etc/letsencrypt/live/${DOMAIN}-* 2>/dev/null | sort -V | tail -n 1)
+        if [ -n "$ALT_DIR" ] && [ -f "$ALT_DIR/fullchain.pem" ] && [ -f "$ALT_DIR/privkey.pem" ]; then
+            echo "Certificados encontrados em lineage alternativa: $ALT_DIR"
+            CERT_DIR="$ALT_DIR"
+        fi
+    fi
+
+    # Linkar certificados se encontrados; caso contrário, gerar autoassinado
+    if [ -f "$CERT_DIR/fullchain.pem" ] && [ -f "$CERT_DIR/privkey.pem" ]; then
+        echo "Certificados Let's Encrypt encontrados em $CERT_DIR. Criando links simbólicos..."
+        ln -sf "$CERT_DIR/fullchain.pem" /etc/nginx/ssl/fullchain.pem
+        ln -sf "$CERT_DIR/privkey.pem" /etc/nginx/ssl/privkey.pem
+        if [ -f "$CERT_DIR/chain.pem" ]; then
+            ln -sf "$CERT_DIR/chain.pem" /etc/nginx/ssl/chain.pem
+        else
+            # Caso 'chain.pem' não exista, usar o próprio fullchain como chain
+            cp /etc/nginx/ssl/fullchain.pem /etc/nginx/ssl/chain.pem
+        fi
     else
         echo "Certificados Let's Encrypt não encontrados. Gerando certificados auto-assinados temporários..."
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
