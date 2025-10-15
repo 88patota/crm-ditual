@@ -192,7 +192,7 @@ export default function StripeLogin() {
                     <div className="text-left sm:text-right">
                       <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono">admin</code>
                       <br />
-                      <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono mt-1 inline-block">admin123</code>
+                      <code className="bg-gray-100 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-mono mt-1 inline-block">admin102030</code>
                     </div>
                   </div>
                 </div>
