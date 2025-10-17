@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { LogOut, User, Users, BarChart3 } from 'lucide-react';
 import { Button } from '../ui/Button';
 

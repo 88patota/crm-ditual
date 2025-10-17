@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 import { BarChart3, Users, User, LogOut, Home, Settings, Bell, Menu, X } from 'lucide-react';
 
 interface StripeLayoutProps {

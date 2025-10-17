@@ -15,6 +15,10 @@ import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from app.models.budget import Budget, BudgetItem
+from app.services.user_client import user_client, UserInfo
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DitualPDFTemplate:
@@ -155,8 +159,16 @@ class DitualPDFTemplate:
             leading=14
         ))
 
-    def generate_proposal_pdf(self, budget: Budget) -> bytes:
+    async def generate_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
         """Gera PDF da proposta com template oficial da Ditual"""
+        
+        # Obter informações completas do usuário
+        user_info = None
+        if auth_token and budget.created_by:
+            try:
+                user_info = await user_client.get_user_by_username(budget.created_by, auth_token)
+            except Exception as e:
+                logger.warning(f"Failed to get user info for {budget.created_by}: {e}")
         
         buffer = io.BytesIO()
         
@@ -176,8 +188,8 @@ class DitualPDFTemplate:
         # Cabeçalho oficial da Ditual
         self._add_ditual_header(story, budget)
         
-        # Informações do cliente e proposta
-        self._add_client_info(story, budget)
+        # Informações do cliente e proposta (com dados do usuário)
+        self._add_client_info(story, budget, user_info)
         
         # Texto de introdução
         self._add_intro_text(story)
@@ -292,12 +304,24 @@ class DitualPDFTemplate:
         icms_value = total_item_value * icms_percentage
         return icms_value
     
-    def _add_client_info(self, story: List, budget: Budget):
+    def _add_client_info(self, story: List, budget: Budget, user_info: Optional[UserInfo] = None):
         """Adiciona informações do cliente e proposta"""
         
         # Formatar data
         created_date = budget.created_at.strftime('%d/%m/%Y') if budget.created_at else datetime.now().strftime('%d/%m/%Y')
         expires_date = budget.expires_at.strftime('%d/%m/%Y') if budget.expires_at else "7 dias corridos"
+        
+        # Preparar informações do consultor
+        consultant_name = budget.created_by or "Sistema"
+        consultant_email = ""
+        
+        if user_info:
+            # Capitalizar primeira letra do nome completo
+            consultant_name = user_info.full_name.title() if user_info.full_name else user_info.username.title()
+            consultant_email = user_info.email
+        else:
+            # Fallback: capitalizar apenas o username
+            consultant_name = consultant_name.title()
         
         # Dados do cliente e proposta
         client_data = [
@@ -306,7 +330,7 @@ class DitualPDFTemplate:
                 Paragraph(budget.client_name.upper(), self.styles['ClientValue']),
                 "",
                 Paragraph("Consultor:", self.styles['ClientLabel']),
-                Paragraph(budget.created_by or "Sistema", self.styles['ClientValue'])
+                Paragraph(consultant_name, self.styles['ClientValue'])
             ],
             [
                 Paragraph("Contato:", self.styles['ClientLabel']),
@@ -320,7 +344,7 @@ class DitualPDFTemplate:
                 Paragraph(created_date, self.styles['ClientValue']),
                 "",
                 Paragraph("E-mail:", self.styles['ClientLabel']),
-                Paragraph("", self.styles['ClientValue'])  # Campo vazio
+                Paragraph(consultant_email, self.styles['ClientValue'])  # Email do consultor
             ],
             [
                 Paragraph("Validade:", self.styles['ClientLabel']),
@@ -357,57 +381,55 @@ class DitualPDFTemplate:
     def _add_items_table(self, story: List, budget: Budget):
         """Adiciona tabela principal de itens (exatamente como na proposta)"""
         
-        # Cabeçalho da tabela com títulos otimizados para evitar quebras
+        # Cabeçalho da tabela com títulos sem quebras de linha
         header_data = [
             [
-                Paragraph("<b>Item</b>", self.styles['Normal']),
-                Paragraph("<b>Descrição</b>", self.styles['Normal']),
-                Paragraph("<b>Und</b>", self.styles['Normal']),
-                Paragraph("<b>Qtd</b>", self.styles['Normal']),
-                Paragraph("<b>Preço Unit.</b>", self.styles['Normal']),
-                Paragraph("<b>ICMS</b>", self.styles['Normal']),
-                Paragraph("<b>IPI (%)</b>", self.styles['Normal']),
-                Paragraph("<b>Total</b>", self.styles['Normal']),
-                Paragraph("<b>Prazo</b>", self.styles['Normal'])
+                "Item",
+                "Descrição", 
+                "Und",
+                "Qtd",
+                "Preço Unit.",
+                "ICMS",
+                "IPI (%)",
+                "Prazo"
             ]
         ]
         
         # Dados dos itens
-        items_data = []
+        table_data = []
         for i, item in enumerate(budget.items, 1):
-            # Calcular o preço unitário correto: valor total / peso (quantidade)
-            # Se o peso for 0, usar o unit_value como fallback
-            if item.weight and item.weight > 0:
-                unit_price = (item.total_sale or 0) / item.weight
-            else:
-                unit_price = item.unit_value or 0
+            # Calcular valores para exibição
+            unit_price = item.sale_value_with_icms or item.unit_value or 0
+            icms_percentage = item.sale_icms_percentage or 0
             
-            # Calcular valor monetário do ICMS
-            icms_value = self._calculate_icms_value(
-                item.sale_value_with_icms, 
-                item.sale_icms_percentage, 
-                1.0  # Para valor unitário
-            )
+            # Formatação dos valores
+            weight_str = f"{item.weight:,.0f}".replace(',', '.')
+            unit_price_str = self._format_currency(unit_price)
+            # ICMS: Formato idêntico ao frontend - (value * 100).toFixed(1)%
+            icms_str = f"{icms_percentage * 100:.1f}%"
+            # IPI: Formato idêntico ao frontend - (value * 100).toFixed(2)%
+            ipi_str = f"{item.ipi_percentage * 100:.2f}%" if item.ipi_percentage else "0,00%"
             
-            items_data.append([
+            row_data = [
                 str(i),
                 Paragraph(item.description, self.styles['Normal']),
                 "KG",
-                f"{item.weight:,.0f}".replace(',', '.'),
-                self._format_currency(unit_price),  # Valor unitário por unidade
-                self._format_currency(icms_value) if icms_value > 0 else "R$ 0,00",  # ICMS em valor monetário
-                f"{(item.ipi_percentage or 0) * 100:,.2f}%".replace('.', ','),
-                self._format_currency(item.total_sale or 0),  # Formatação monetária melhorada
+                weight_str,
+                unit_price_str,
+                icms_str,
+                ipi_str,
                 self._format_delivery_time(item.delivery_time)
-            ])
+            ]
+            
+            table_data.append(row_data)
         
-        # Combinar cabeçalho e dados (tabela dinâmica sem linhas vazias)
-        table_data = header_data + items_data
+        # Combinar cabeçalho e dados
+        all_data = header_data + table_data
         
-        # Larguras das colunas otimizadas (Descrição com mais espaço para evitar quebras)
-        col_widths = [10*mm, 45*mm, 8*mm, 12*mm, 18*mm, 12*mm, 15*mm, 22*mm, 18*mm]
+        # Larguras das colunas otimizadas (sem a coluna TOTAL)
+        col_widths = [10*mm, 50*mm, 8*mm, 15*mm, 20*mm, 15*mm, 15*mm, 20*mm]
         
-        items_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        items_table = Table(all_data, colWidths=col_widths, repeatRows=1)
         items_table.setStyle(TableStyle([
             # Cabeçalho moderno e elegante
             ('BACKGROUND', (0, 0), (-1, 0), self.DITUAL_ACCENT),
@@ -449,16 +471,32 @@ class DitualPDFTemplate:
         
         # Calcular totais
         total_weight = sum(item.weight for item in budget.items)
-        total_without_ipi = budget.total_sale_value or 0
-        total_with_ipi = budget.total_final_value or total_without_ipi
         
-        # Tabela de totais moderna e elegante
+        # Valor Total S/IPI: soma dos valores de venda com ICMS (sem IPI)
+        total_without_ipi = sum(
+            (item.sale_value_with_icms or item.unit_value or 0) * item.weight 
+            for item in budget.items
+        )
+        
+        # Valor Total C/IPI: soma dos valores de venda com ICMS + IPI
+        total_with_ipi = sum(
+            ((item.sale_value_with_icms or item.unit_value or 0) * item.weight) + (item.ipi_value or 0)
+            for item in budget.items
+        )
+        
+        # Tabela de totais moderna e elegante - Separando os valores IPI em linhas diferentes
         totals_data = [
             [
                 f"Peso Total: {total_weight:,.0f} kg".replace(',', '.'),
                 "",
                 f"Valor total S/IPI: {self._format_currency(total_without_ipi)}",
-                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}"
+                ""
+            ],
+            [
+                "",
+                "",
+                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}",
+                ""
             ]
         ]
         
@@ -604,15 +642,15 @@ class PDFExportService:
     def __init__(self):
         self.template = DitualPDFTemplate()
     
-    def generate_proposal_pdf(self, budget: Budget) -> bytes:
+    async def generate_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
         """Gera PDF da proposta usando template oficial da Ditual"""
-        return self.template.generate_proposal_pdf(budget)
+        return await self.template.generate_proposal_pdf(budget, auth_token)
     
-    def generate_simplified_proposal_pdf(self, budget: Budget) -> bytes:
+    async def generate_simplified_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
         """
         Mantido por compatibilidade, mas agora usa o mesmo template oficial
         """
-        return self.template.generate_proposal_pdf(budget)
+        return await self.template.generate_proposal_pdf(budget, auth_token)
 
 
 # Instância singleton do serviço

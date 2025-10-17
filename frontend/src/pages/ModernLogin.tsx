@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
@@ -52,7 +52,7 @@ const ModernLogin: React.FC = () => {
       role: 'Administrador',
       description: 'Acesso completo ao sistema - Gerenciar usuários, orçamentos e configurações',
       username: 'admin',
-      password: 'admin123',
+      password: 'admin102030',
       variant: 'default' as const,
     },
     {

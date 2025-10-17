@@ -61,6 +61,6 @@ export interface ApiError {
     type: string;
     loc: string[];
     msg: string;
-    input: any;
+    input: unknown;
   }>;
 }

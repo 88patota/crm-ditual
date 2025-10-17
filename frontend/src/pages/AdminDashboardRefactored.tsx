@@ -22,7 +22,7 @@ import {
   CalendarOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { budgetService, type DashboardStats } from '../services/budgetService';
 import { StatsCard, StatusCard, ProgressCard, InfoCard } from '../components/ui/DashboardCard';

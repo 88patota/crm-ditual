@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';

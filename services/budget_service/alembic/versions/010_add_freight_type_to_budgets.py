@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '010_add_freight_type_to_budgets'
-down_revision = '009_add_delivery_time_to_budget_items'
+down_revision = '009_add_delivery_time'
 branch_labels = None
 depends_on = None
 

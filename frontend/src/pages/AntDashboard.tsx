@@ -1,6 +1,5 @@
 import React from 'react';
 import '../styles/AntDashboard.css';
-import type { User } from '../types/auth';
 import { 
   Card, 
   Row, 
@@ -9,7 +8,6 @@ import {
   Space, 
   Button,
   Alert,
-  Divider,
   Select,
   DatePicker
 } from 'antd';
@@ -24,18 +22,14 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   WarningOutlined,
-  ReloadOutlined,
-  CalendarOutlined
+  ReloadOutlined
 } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { budgetService, type DashboardStats } from '../services/budgetService';
 import { Link } from 'react-router-dom';
 import { 
-  StatsCard, 
-  StatusCard, 
-  ProgressCard, 
-  InfoCard 
+  StatusCard
 } from '../components/ui/DashboardCard';
 import { 
   Chart as ChartJS,
@@ -52,8 +46,9 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useState } from 'react';
+import dayjs from 'dayjs';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -168,21 +163,7 @@ const AntDashboard: React.FC = () => {
     }
   ] : [];
 
-  // Dados para ProgressCards
-  const progressData = [
-    {
-      title: 'Meta de Conversão',
-      progress: Math.min((dashboardStats?.conversion_rate || 0), 100),
-      status: 'active' as const,
-      description: `${(dashboardStats?.conversion_rate || 0).toFixed(1)}% de taxa de aprovação`
-    },
-    {
-      title: 'Meta de Vendas',
-      progress: 75.5,
-      status: 'success' as const,
-      description: `${formatCurrency(dashboardStats?.approved_value || 0)} aprovado`
-    }
-  ];
+
 
   // Dados para gráfico de pizza - Status dos Orçamentos
   const statusChartData = {
@@ -318,7 +299,7 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: { dataset: { data: number[] }, parsed: number, label: string }) {
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
             const percentage = total > 0 ? ((context.parsed * 100) / total).toFixed(1) : '0.0';
             return `${context.label}: ${context.parsed} (${percentage}%)`;
@@ -328,14 +309,16 @@ const AntDashboard: React.FC = () => {
     }
   };
 
-  const performanceChartOptions = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const performanceChartOptions: any = {
     ...chartOptions,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           callback: function(value: any) {
-            return formatCurrency(value);
+            return formatCurrency(Number(value));
           }
         }
       }
@@ -345,8 +328,9 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          label: function(context: any) {
-            return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          label: function(tooltipItem: any) {
+            return `${tooltipItem.dataset.label || 'Dados'}: ${formatCurrency(tooltipItem.parsed.y)}`;
           }
         }
       }

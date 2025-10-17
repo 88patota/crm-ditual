@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from decouple import config
+import os
 
-# Database configuration
-DATABASE_URL = config(
+# Database configuration - Use environment variable from docker-compose
+DATABASE_URL = os.getenv(
     'DATABASE_URL', 
-    default='postgresql+asyncpg://postgres:postgres@localhost:5432/crm_budget'
+    'postgresql+asyncpg://crm_user:crm_password@localhost:5432/crm_ditual'
 )
 
 engine = create_async_engine(DATABASE_URL, echo=True)
