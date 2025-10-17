@@ -5,9 +5,9 @@ services:
     container_name: crm_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: crm_db
+      POSTGRES_DB: crm_ditual
       POSTGRES_USER: crm_user
-      POSTGRES_PASSWORD: crm_password
+      POSTGRES_PASSWORD: crm_strong_password_2024
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U crm_user -d crm_db"]
+      test: ["CMD-SHELL", "pg_isready -U crm_user -d crm_ditual"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,7 +51,7 @@ services:
     container_name: crm_user_service
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://crm_user:crm_password@postgres:5432/crm_db
+      - DATABASE_URL=postgresql+asyncpg://crm_user:crm_strong_password_2024@postgres:5432/crm_ditual
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
       - SECRET_KEY=your-secret-key-here
@@ -83,7 +83,7 @@ services:
     container_name: crm_budget_service
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://crm_user:crm_password@postgres:5432/crm_db
+      - DATABASE_URL=postgresql+asyncpg://crm_user:crm_strong_password_2024@postgres:5432/crm_ditual
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
     ports:
@@ -124,21 +124,21 @@ services:
       - crm_network
 
   # Frontend (React/Vite with Nginx)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: crm_frontend
-    restart: unless-stopped
-    ports:
-      - "3000:80"
-    depends_on:
-      user_service:
-        condition: service_healthy
-      budget_service:
-        condition: service_healthy
-    networks:
-      - crm_network
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: crm_frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     user_service:
+  #       condition: service_healthy
+  #     budget_service:
+  #       condition: service_healthy
+  #   networks:
+  #     - crm_network
 
 volumes:
   postgres_data:
