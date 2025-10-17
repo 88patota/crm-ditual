@@ -226,11 +226,11 @@ class DitualPDFTemplate:
                 self._get_logo_cell(),
                 # Informações da empresa
                 Paragraph("""
-                    <b>DITUAL COMERCIO DE PRODUTOS ALIMENTICIOS LTDA</b><br/>
-                    CNPJ: 33.200.056/0001-04<br/>
-                    Rua Antônio Augusto Borges de Medeiros, 3339 - Sala 02<br/>
-                    Exposição - Caxias do Sul/RS - CEP: 95084-460<br/>
-                    Telefone: (54) 3025-3777 | E-mail: vendas@ditual.com.br
+                    <b>DITUAL SAO PAULO DISTRIBUIDORA DE TUBOS E ACOS LTDA</b><br/>
+                    CNPJ: 26.600.524/0001-07<br/>
+                    Estr. Presidente Juscelino Kubitschek De Oliveira, 1996<br/>
+                    Jardim Albertina - Guarulhos/SP - CEP: 07260-000<br/>
+                    Telefone: (11) 2489-9110 | E-mail: vendas@ditualsp.com.br
                 """, self.styles['CompanyInfo']),
                 # Número da proposta
                 Paragraph(f"<b>PROPOSTA</b><br/>Nº {budget.order_number}", 
@@ -331,13 +331,6 @@ class DitualPDFTemplate:
                 "",
                 Paragraph("Consultor:", self.styles['ClientLabel']),
                 Paragraph(consultant_name, self.styles['ClientValue'])
-            ],
-            [
-                Paragraph("Contato:", self.styles['ClientLabel']),
-                Paragraph("", self.styles['ClientValue']),  # Campo vazio para preenchimento manual
-                "",
-                Paragraph("Fone:", self.styles['ClientLabel']),
-                Paragraph("", self.styles['ClientValue'])  # Campo vazio
             ],
             [
                 Paragraph("Data:", self.styles['ClientLabel']),
