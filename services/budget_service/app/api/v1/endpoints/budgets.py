@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from datetime import datetime, timedelta
@@ -20,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+security = HTTPBearer()
 
 
 async def generate_order_number(db: AsyncSession) -> str:
@@ -857,7 +859,8 @@ async def calculate_dunamis_cost(
 async def export_budget_as_pdf(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: CurrentUser = Depends(get_current_active_user)
+    current_user: CurrentUser = Depends(get_current_active_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Exportar orçamento como proposta em PDF usando template oficial da Ditual"""
     try:
@@ -876,8 +879,8 @@ async def export_budget_as_pdf(
                 detail="Acesso negado: você só pode exportar seus próprios orçamentos"
             )
         
-        # Gerar PDF usando template oficial
-        pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+        # Gerar PDF usando template oficial com token de autenticação
+        pdf_content = await pdf_export_service.generate_proposal_pdf(budget, credentials.credentials)
         filename = f"Proposta_{budget.order_number}.pdf"
         
         # Retornar PDF como resposta
@@ -900,7 +903,8 @@ async def export_budget_as_pdf(
 @router.get("/order/{order_number}/export-pdf")
 async def export_budget_by_order_as_pdf(
     order_number: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Exportar orçamento como proposta em PDF pelo número do pedido"""
     try:
@@ -912,8 +916,8 @@ async def export_budget_by_order_as_pdf(
                 detail="Orçamento não encontrado"
             )
         
-        # Gerar PDF usando template oficial
-        pdf_content = pdf_export_service.generate_proposal_pdf(budget)
+        # Gerar PDF usando template oficial com token de autenticação
+        pdf_content = await pdf_export_service.generate_proposal_pdf(budget, credentials.credentials)
         filename = f"Proposta_{budget.order_number}.pdf"
         
         # Retornar PDF como resposta

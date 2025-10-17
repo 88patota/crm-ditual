@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Space, Alert, Divider } from 'antd';
+import { Form, Input, Button, Card, Typography, Space, Alert } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 interface LoginForm {
   username: string;
@@ -43,13 +42,33 @@ function AntLogin() {
     <div className="login-container">
       <Card className="login-card" bordered={false}>
         <div className="login-header">
-          <div className="login-logo">C</div>
-          <Title level={2} style={{ color: 'white', margin: 0 }}>
-            Bem-vindo de volta
-          </Title>
-          <Paragraph style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '8px 0 0 0' }}>
-            Acesse o sistema com suas credencias
-          </Paragraph>
+          <div className="text-center mb-10">
+            <div className="flex items-center justify-center mb-6">
+              <div>
+                <div style={{
+                  fontSize: '3.2rem',
+                  fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  fontWeight: '700',
+                  color: '#e11d48',
+                  lineHeight: '1.1',
+                  letterSpacing: '-0.02em',
+                  marginBottom: '12px'
+                }}>
+                  LoenCRM
+                </div>
+                <div style={{
+                  fontSize: '1rem',
+                  fontFamily: '"Inter", sans-serif',
+                  fontWeight: '500',
+                  color: '#374151',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center'
+                }}>
+                  Conecte. Entenda. Cresça.
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="login-form">
@@ -59,7 +78,12 @@ function AntLogin() {
               description={error}
               type="error"
               showIcon
-              style={{ marginBottom: 24 }}
+              style={{ 
+                marginBottom: 24,
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: '8px'
+              }}
             />
           )}
 
@@ -72,23 +96,33 @@ function AntLogin() {
           >
             <Form.Item
               name="username"
-              label="Usuário"
+              label={<span style={{ color: '#374151', fontWeight: 500 }}>Usuário</span>}
               rules={[{ required: true, message: 'Por favor, digite seu usuário!' }]}
             >
               <Input 
-                prefix={<UserOutlined />} 
+                prefix={<UserOutlined style={{ color: '#9ca3af' }} />} 
                 placeholder="Digite seu usuário"
+                style={{
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  padding: '8px 12px'
+                }}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="Senha"
+              label={<span style={{ color: '#374151', fontWeight: 500 }}>Senha</span>}
               rules={[{ required: true, message: 'Por favor, digite sua senha!' }]}
             >
               <Input.Password
-                prefix={<LockOutlined />}
+                prefix={<LockOutlined style={{ color: '#9ca3af' }} />}
                 placeholder="Digite sua senha"
+                style={{
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  padding: '8px 12px'
+                }}
                 iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
               />
             </Form.Item>
@@ -101,23 +135,17 @@ function AntLogin() {
                 block
                 style={{
                   height: 48,
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none',
+                  background: '#e11d48',
+                  borderColor: '#e11d48',
+                  borderRadius: '8px',
                   fontSize: '16px',
-                  fontWeight: 500
+                  fontWeight: 500,
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                 }}
               >
                 Entrar
               </Button>
             </Form.Item>
-
-            <Divider>ou</Divider>
-
-            <Button block style={{ height: 40 }}>
-              <Link to="/register" style={{ textDecoration: 'none' }}>
-                Criar nova conta
-              </Link>
-            </Button>
           </Form>
 
           {/* Status */}
@@ -125,24 +153,24 @@ function AntLogin() {
             textAlign: 'center', 
             marginTop: 24,
             paddingTop: 16,
-            borderTop: '1px solid #f0f0f0'
+            borderTop: '1px solid #f1f5f9'
           }}>
             <Space size="small">
               <div style={{
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                background: '#52c41a',
+                background: '#10b981',
                 display: 'inline-block',
                 animation: 'pulse 2s infinite'
               }} />
-              <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>
+              <Text style={{ fontSize: '12px', color: '#64748b' }}>
                 Sistema online e funcionando
               </Text>
             </Space>
             <div style={{ marginTop: 4 }}>
-              <Text style={{ fontSize: '11px', color: '#bfbfbf' }}>
-                Sistema CRM - Acesso seguro com autenticação JWT
+              <Text style={{ fontSize: '11px', color: '#94a3b8' }}>
+                LoenCRM - Acesso seguro com autenticação JWT
               </Text>
             </div>
           </div>
@@ -155,7 +183,7 @@ function AntLogin() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+          background: #f8fafc;
           padding: 20px;
         }
         
@@ -163,34 +191,22 @@ function AntLogin() {
           width: 100%;
           max-width: 420px;
           border-radius: 16px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
           overflow: hidden;
+          border: 1px solid #e2e8f0;
         }
         
         .login-header {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #ffffff;
           padding: 32px 24px;
           text-align: center;
           margin: -1px -1px 0 -1px;
-        }
-        
-        .login-logo {
-          width: 60px;
-          height: 60px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          font-weight: bold;
-          color: white;
-          margin: 0 auto 20px;
-          backdrop-filter: blur(10px);
+          border-bottom: 1px solid #f1f5f9;
         }
         
         .login-form {
           padding: 32px 24px;
+          background: #ffffff;
         }
         
         @keyframes pulse {

@@ -13,12 +13,11 @@ export const setQueryClient = (queryClient: QueryClient) => {
 
 // Use relative URLs para aproveitar o proxy Nginx em produção
 // CORREÇÃO: Sempre usar a variável de ambiente quando disponível
-const ENV_BASE = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const DEFAULT_BASE = '/api/v1';
+const RAW_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || DEFAULT_BASE;
 
-// Se temos uma variável de ambiente definida, usar ela
-// Caso contrário, usar o padrão relativo
-const resolvedBaseURL = ENV_BASE || DEFAULT_BASE;
+// Normalizar base para evitar barras duplas (ex: "/api/v1/" + "/budgets")
+const resolvedBaseURL = RAW_BASE.replace(/\/+$/, '');
 
 export const api = axios.create({
   // Use '/api/v1' como padrão para alinhar com o gateway Nginx em produção
