@@ -25,6 +25,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryClient.removeQueries({ queryKey: ['users'] });
     queryClient.removeQueries({ queryKey: ['profile'] });
     queryClient.removeQueries({ queryKey: ['dashboard'] });
+    queryClient.removeQueries({ queryKey: ['dashboard-stats'] });
   };
 
   // Load user data on mount if token exists or when explicitly requested

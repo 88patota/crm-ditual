@@ -162,11 +162,17 @@ class DitualPDFTemplate:
     async def generate_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
         """Gera PDF da proposta com template oficial da Ditual"""
         
-        # Obter informações completas do usuário
+        # Obter informações completas do usuário responsável pelo orçamento
         user_info = None
         if auth_token and budget.created_by:
             try:
-                user_info = await user_client.get_user_by_username(budget.created_by, auth_token)
+                # Primeiro tentar buscar o usuário específico (para administradores)
+                user_info = await user_client.get_user_by_username_specific(budget.created_by, auth_token)
+                
+                # Se não conseguir (não é admin ou usuário não encontrado), usar método original como fallback
+                if user_info is None:
+                    user_info = await user_client.get_user_by_username(budget.created_by, auth_token)
+                    
             except Exception as e:
                 logger.warning(f"Failed to get user info for {budget.created_by}: {e}")
         

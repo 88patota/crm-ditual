@@ -29,6 +29,53 @@ class UserClient:
         self.user_service_url = os.getenv("USER_SERVICE_URL", "http://user_service:8000")
         self.timeout = 10.0
     
+    async def get_user_by_username_specific(self, username: str, auth_token: str) -> Optional[UserInfo]:
+        """
+        Obter informações de um usuário específico pelo username (apenas para administradores)
+        
+        Args:
+            username: Nome do usuário específico a ser buscado
+            auth_token: Token JWT para autenticação (deve ser de um administrador)
+            
+        Returns:
+            UserInfo ou None se não encontrado
+        """
+        try:
+            headers = {
+                "Authorization": f"Bearer {auth_token}",
+                "Content-Type": "application/json"
+            }
+            
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Usar o novo endpoint para buscar usuário por username
+                response = await client.get(
+                    f"{self.user_service_url}/api/v1/users/username/{username}",
+                    headers=headers
+                )
+                
+                if response.status_code == 200:
+                    user_data = response.json()
+                    return UserInfo(**user_data)
+                elif response.status_code == 403:
+                    logger.warning(f"Access denied when getting user info for {username} - user may not be admin")
+                    return None
+                elif response.status_code == 404:
+                    logger.warning(f"User {username} not found")
+                    return None
+                else:
+                    logger.warning(f"Failed to get user info for {username}: {response.status_code}")
+                    return None
+                    
+        except httpx.TimeoutException:
+            logger.error(f"Timeout when getting user info for {username}")
+            return None
+        except httpx.RequestError as e:
+            logger.error(f"Request error when getting user info for {username}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error when getting user info for {username}: {e}")
+            return None
+
     async def get_user_by_username(self, username: str, auth_token: str) -> Optional[UserInfo]:
         """
         Obter informações do usuário pelo username

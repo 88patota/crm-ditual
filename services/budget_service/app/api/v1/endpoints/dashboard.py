@@ -29,20 +29,27 @@ async def get_dashboard_stats(
         end_dt = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
         
         logger.debug(f"Dashboard stats period: {start_date} to {end_date}")
+        logger.debug(f"User role: {current_user.role}, username: {current_user.username}")
+        
+        # Determinar filtro de usuário baseado no role
+        user_filter_condition = []
+        if current_user.role != "admin":
+            user_filter_condition.append(Budget.created_by == current_user.username)
+            logger.debug(f"Applying user filter for non-admin user: {current_user.username}")
         
         # Contar orçamentos por status
         status_counts = {}
         for budget_status in BudgetStatus:
             try:
+                conditions = [
+                    Budget.created_at >= start_dt,
+                    Budget.created_at < end_dt,
+                    Budget.status == budget_status
+                ] + user_filter_condition
+                
                 result = await db.execute(
                     select(func.count(Budget.id))
-                    .where(
-                        and_(
-                            Budget.created_at >= start_dt,
-                            Budget.created_at < end_dt,
-                            Budget.status == budget_status
-                        )
-                    )
+                    .where(and_(*conditions))
                 )
                 count = result.scalar() or 0
                 status_counts[budget_status.value] = count
@@ -52,15 +59,15 @@ async def get_dashboard_stats(
                 
                 # Tentar com cast para Integer
                 try:
+                    conditions = [
+                        Budget.created_at >= start_dt,
+                        Budget.created_at < end_dt,
+                        cast(Budget.status, Integer) == budget_status.value
+                    ] + user_filter_condition
+                    
                     result = await db.execute(
                         select(func.count(Budget.id))
-                        .where(
-                            and_(
-                                Budget.created_at >= start_dt,
-                                Budget.created_at < end_dt,
-                                cast(Budget.status, Integer) == budget_status.value
-                            )
-                        )
+                        .where(and_(*conditions))
                     )
                     count = result.scalar() or 0
                     status_counts[budget_status.value] = count
@@ -72,40 +79,71 @@ async def get_dashboard_stats(
             logger.debug(f"Status {budget_status.value}: {count}")
         
         # Total de orçamentos do período
-        total_query = """
-            SELECT COUNT(*) 
-            FROM budgets 
-            WHERE created_at >= :start_date 
-            AND created_at <= :end_date
-        """
-        total_params = {"start_date": start_dt, "end_date": end_dt}
+        if current_user.role != "admin":
+            total_query = """
+                SELECT COUNT(*) 
+                FROM budgets 
+                WHERE created_at >= :start_date 
+                AND created_at <= :end_date
+                AND created_by = :created_by
+            """
+            total_params = {"start_date": start_dt, "end_date": end_dt, "created_by": current_user.username}
+        else:
+            total_query = """
+                SELECT COUNT(*) 
+                FROM budgets 
+                WHERE created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            total_params = {"start_date": start_dt, "end_date": end_dt}
         
         result = await db.execute(text(total_query), total_params)
         total_budgets = result.scalar() or 0
         print(f"DEBUG - Total orçamentos: {total_budgets}")
         
         # Valor total dos orçamentos do período
-        value_query = """
-            SELECT COALESCE(SUM(total_sale_value), 0) 
-            FROM budgets 
-            WHERE created_at >= :start_date 
-            AND created_at <= :end_date
-        """
-        value_params = {"start_date": start_dt, "end_date": end_dt}
+        if current_user.role != "admin":
+            value_query = """
+                SELECT COALESCE(SUM(total_sale_value), 0) 
+                FROM budgets 
+                WHERE created_at >= :start_date 
+                AND created_at <= :end_date
+                AND created_by = :created_by
+            """
+            value_params = {"start_date": start_dt, "end_date": end_dt, "created_by": current_user.username}
+        else:
+            value_query = """
+                SELECT COALESCE(SUM(total_sale_value), 0) 
+                FROM budgets 
+                WHERE created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            value_params = {"start_date": start_dt, "end_date": end_dt}
         
         result = await db.execute(text(value_query), value_params)
         total_value = result.scalar() or 0
         print(f"DEBUG - Valor total: {total_value}")
         
         # Orçamentos aprovados do período
-        approved_query = """
-            SELECT COUNT(*), COALESCE(SUM(total_sale_value), 0)
-            FROM budgets 
-            WHERE status = 'approved' 
-            AND created_at >= :start_date 
-            AND created_at <= :end_date
-        """
-        approved_params = {"start_date": start_dt, "end_date": end_dt}
+        if current_user.role != "admin":
+            approved_query = """
+                SELECT COUNT(*), COALESCE(SUM(total_sale_value), 0)
+                FROM budgets 
+                WHERE status = 'approved' 
+                AND created_at >= :start_date 
+                AND created_at <= :end_date
+                AND created_by = :created_by
+            """
+            approved_params = {"start_date": start_dt, "end_date": end_dt, "created_by": current_user.username}
+        else:
+            approved_query = """
+                SELECT COUNT(*), COALESCE(SUM(total_sale_value), 0)
+                FROM budgets 
+                WHERE status = 'approved' 
+                AND created_at >= :start_date 
+                AND created_at <= :end_date
+            """
+            approved_params = {"start_date": start_dt, "end_date": end_dt}
         
         result = await db.execute(text(approved_query), approved_params)
         approved_result = result.first()

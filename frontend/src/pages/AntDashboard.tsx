@@ -78,7 +78,7 @@ const AntDashboard: React.FC = () => {
     refetch,
     isRefetching 
   } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats', filterDays, customDateRange],
+    queryKey: ['dashboard-stats', user?.id, user?.role, filterDays, customDateRange],
     queryFn: () => {
       if (customDateRange) {
         return budgetService.getDashboardStats(undefined, customDateRange[0], customDateRange[1]);
