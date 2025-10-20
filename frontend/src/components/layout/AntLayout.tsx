@@ -109,45 +109,23 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
         }}>
           {!collapsed ? (
             <Space direction="vertical" size={4}>
-              <div style={{
-                width: 40,
-                height: 40,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                margin: '0 auto'
-              }}>
-                C
-              </div>
               <div>
-                <Title level={5} style={{ margin: 0, color: '#262626' }}>
-                  CRM Ditual
+                <Title level={5} style={{ margin: 0, color: '#e11d48' }}>
+                  LoenCRM
                 </Title>
                 <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Business Suite
+                  Conecte. Entenda. Cresça.
                 </Text>
               </div>
             </Space>
           ) : (
             <div style={{
-              width: 32,
-              height: 32,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '16px',
+              fontSize: '14px',
               fontWeight: 'bold',
-              margin: '0 auto'
+              color: '#e11d48',
+              textAlign: 'center'
             }}>
-              C
+              L
             </div>
           )}
         </div>

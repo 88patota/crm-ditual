@@ -66,13 +66,10 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children }) => {
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <span className="text-sm font-bold">C</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">CRM Ditual</span>
-              <span className="text-xs text-muted-foreground">Business Suite</span>
+          <div className="flex h-16 items-center justify-center border-b border-border px-6">
+            <div className="flex flex-col text-center">
+              <span className="text-lg font-bold" style={{ color: '#e11d48' }}>LoenCRM</span>
+              <span className="text-xs text-muted-foreground">Conecte. Entenda. Cresça.</span>
             </div>
           </div>
 

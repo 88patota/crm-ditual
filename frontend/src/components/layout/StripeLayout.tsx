@@ -51,14 +51,9 @@ export default function StripeLayout({ children }: StripeLayoutProps) {
       <aside className={`stripe-sidebar ${sidebarOpen ? 'open' : ''} bg-white border-r border-gray-200`} style={{ position: 'fixed', left: '0', top: '0', width: '200px', height: '100vh', zIndex: 50 }}>
         {/* Logo Section */}
         <div className="flex h-16 items-center justify-center border-b border-gray-100 px-4">
-          <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-purple-600 via-purple-600 to-blue-600 flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">CRM Ditual</h1>
-              <p className="text-xs text-gray-500 font-medium">Business Suite</p>
-            </div>
+          <div className="flex flex-col text-center">
+            <h1 className="text-lg font-bold" style={{ color: '#e11d48' }}>LoenCRM</h1>
+            <p className="text-xs text-gray-500 font-medium">Conecte. Entenda. Cresça.</p>
           </div>
         </div>
         
