@@ -35,6 +35,7 @@ import {
   FilePdfOutlined
 } from '@ant-design/icons';
 import { budgetService, type Budget, type BudgetItem } from '../services/budgetService';
+import { authService } from '../services/authService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -83,6 +84,13 @@ export default function BudgetView() {
     queryKey: ['budget', id],
     queryFn: () => budgetService.getBudgetById(Number(id)),
     enabled: !!id,
+  });
+
+  // Query to get creator user information
+  const { data: creatorUser } = useQuery({
+    queryKey: ['user', budget?.created_by],
+    queryFn: () => authService.getUserByUsername(budget!.created_by),
+    enabled: !!budget?.created_by,
   });
 
   // Debug log para monitorar mudanças nos dados do budget
@@ -452,7 +460,7 @@ export default function BudgetView() {
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Criado por">
-                <Text>{budget.created_by}</Text>
+                <Text>{creatorUser?.full_name || budget.created_by}</Text>
               </Descriptions.Item>
               <Descriptions.Item label="Última Atualização">
                 <Text>{dayjs(budget.updated_at).format('DD/MM/YYYY HH:mm')}</Text>

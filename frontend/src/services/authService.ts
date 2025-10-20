@@ -57,4 +57,9 @@ export const authService = {
   async deleteUser(id: number): Promise<void> {
     await api.delete(`/users/${id}`);
   },
+
+  async getUserByUsername(username: string): Promise<User> {
+    const response = await api.get<User>(`/users/username/${username}`);
+    return response.data;
+  },
 };

@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
   ChevronDown,
 } from 'lucide-react';
 
@@ -156,11 +155,6 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
-              
               <div className="hidden lg:flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
                   <span className="text-xs font-medium">

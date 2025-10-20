@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Button, Badge } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Space, Button } from 'antd';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -9,7 +9,6 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BellOutlined,
   SettingOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
@@ -238,22 +237,6 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
           </Space>
 
           <Space size="large" align="center">
-            <Badge count={3} size="small" offset={[-2, 2]}>
-              <Button 
-                type="text" 
-                icon={<BellOutlined />} 
-                style={{
-                  fontSize: '16px',
-                  width: 40,
-                  height: 40,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px'
-                }}
-              />
-            </Badge>
-            
             <Dropdown 
               menu={{ items: userMenuItems }}
               trigger={['click']}

@@ -175,13 +175,9 @@ async def get_user_by_username(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Obter usuário por username (apenas administradores ou para buscar dados de orçamentos)"""
-    # Permitir acesso apenas para administradores
-    if current_user.role.value != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para acessar este usuário"
-        )
+    """Obter usuário por username (administradores têm acesso completo, outros usuários podem ver informações básicas para orçamentos)"""
+    # Permitir acesso para todos os usuários autenticados
+    # Administradores têm acesso completo, outros usuários podem ver informações básicas
     
     user = await user_service.get_user_by_username(db, username)
     if not user:

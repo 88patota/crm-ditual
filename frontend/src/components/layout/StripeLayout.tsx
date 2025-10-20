@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { BarChart3, Users, User, LogOut, Home, Settings, Bell, Menu, X } from 'lucide-react';
+import { BarChart3, Users, User, LogOut, Home, Settings, Menu, X } from 'lucide-react';
 
 interface StripeLayoutProps {
   children: React.ReactNode;
@@ -149,9 +149,6 @@ export default function StripeLayout({ children }: StripeLayoutProps) {
           </h2>
         </div>
         <div className="flex items-center space-x-2 lg:space-x-4">
-          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <Bell className="h-5 w-5" />
-          </button>
           <div className="hidden lg:flex items-center space-x-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center">
               <span className="text-xs font-semibold text-purple-700">
