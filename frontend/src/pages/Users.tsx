@@ -109,29 +109,29 @@ export default function Users() {
       title: 'Total de Usuários',
       value: users.length,
       prefix: <UserOutlined className="stats-icon users" />,
-      color: '#1890ff',
-      bgColor: '#e6f7ff',
+      color: '#86CFE8',  // Azul pastel - primária
+      bgColor: '#F0F9FF',  // Fundo azul claro
     },
     {
       title: 'Usuários Ativos',
       value: users.filter(u => u.is_active).length,
       prefix: <TeamOutlined className="stats-icon active" />,
-      color: '#52c41a',
-      bgColor: '#f6ffed',
+      color: '#86E2A1',  // Verde pastel - sucesso
+      bgColor: '#F0FDF4',  // Fundo verde claro
     },
     {
       title: 'Administradores',
       value: users.filter(u => u.role === 'admin').length,
       prefix: <UserSwitchOutlined className="stats-icon admin" />,
-      color: '#fa541c',
-      bgColor: '#fff2e8',
+      color: '#FFE8A1',  // Amarelo pastel - aviso
+      bgColor: '#FFFBEB',  // Fundo amarelo claro
     },
     {
       title: 'Equipe de Vendas',
       value: users.filter(u => u.role === 'vendas').length,
       prefix: <UserAddOutlined className="stats-icon sales" />,
-      color: '#722ed1',
-      bgColor: '#f9f0ff',
+      color: '#C8A2C8',  // Lilás claro - secundária
+      bgColor: '#FAF5FF',  // Fundo lilás claro
     },
   ];
 
@@ -206,7 +206,7 @@ export default function Users() {
               <Title level={2} style={{ margin: 0 }}>
                 Gerenciar Usuários 👥
               </Title>
-              <Text style={{ fontSize: '16px', color: '#8c8c8c' }}>
+              <Text style={{ fontSize: '16px', color: '#666666' }}>  {/* Cinza médio - texto secundário */}
                 Gerencie todos os usuários do sistema, suas permissões e status.
               </Text>
             </Space>
@@ -232,7 +232,7 @@ export default function Users() {
       <Row gutter={[16, 16]}>
         {stats.map((stat, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
-            <Card className="stats-card" hoverable>
+            <Card className="stats-card user-stats-card" hoverable style={{ background: '#FFFFFF' }}>
               <Statistic
                 title={stat.title}
                 value={stat.value}
@@ -261,6 +261,8 @@ export default function Users() {
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <Card 
+            className="user-list-card"
+            style={{ background: '#FFFFFF' }}
             title={
               <Space>
                 <TeamOutlined />
@@ -300,7 +302,7 @@ export default function Users() {
                         icon={user.is_active ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
                         onClick={() => toggleUserStatus(user)}
                         style={{ 
-                          color: user.is_active ? '#ff4d4f' : '#52c41a'
+                          color: user.is_active ? '#F4A6A6' : '#86E2A1'  // Rosa claro para desativar, verde pastel para ativar
                         }}
                       />
                     </Tooltip>,
@@ -333,8 +335,8 @@ export default function Users() {
                       <Avatar 
                         size={48}
                         style={{ 
-                          backgroundColor: getRoleColor(user.role) === 'red' ? '#ff4d4f' : 
-                                           getRoleColor(user.role) === 'blue' ? '#1890ff' : '#52c41a',
+                          backgroundColor: getRoleColor(user.role) === 'red' ? '#F4A6A6' :     // Rosa claro
+                                           getRoleColor(user.role) === 'blue' ? '#86CFE8' : '#86E2A1',  // Azul pastel ou verde pastel
                           fontSize: '18px',
                           fontWeight: 'bold'
                         }}

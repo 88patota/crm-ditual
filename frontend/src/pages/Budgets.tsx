@@ -41,7 +41,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -50,6 +50,7 @@ const { RangePicker } = DatePicker;
 
 export default function Budgets() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [clientFilter, setClientFilter] = useState('');
@@ -375,24 +376,24 @@ export default function Budgets() {
       fixed: 'right',
       render: (_, record: BudgetSummary) => (
         <Space size="small">
-          <Tooltip title="Visualizar">
-            <Link to={`/budgets/${record.id}`}>
+          <Link to={`/budgets/${record.id}`}>
+            <Tooltip title="Visualizar">
               <Button
                 type="text"
                 icon={<EyeOutlined />}
                 size="small"
               />
-            </Link>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Link to={`/budgets/${record.id}/edit`}>
+            </Tooltip>
+          </Link>
+          <Link to={`/budgets/${record.id}/edit`}>
+            <Tooltip title="Editar">
               <Button
                 type="text"
                 icon={<EditOutlined />}
                 size="small"
               />
-            </Link>
-          </Tooltip>
+            </Tooltip>
+          </Link>
           <Dropdown
             menu={{ items: getActionItems(record) }}
             trigger={['click']}
@@ -627,6 +628,16 @@ export default function Budgets() {
             index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
           }
           onRow={(record) => ({
+            onClick: (event) => {
+              // Verifica se o clique foi em um botão ou link de ação
+              const target = event.target as HTMLElement;
+              const isActionButton = target.closest('.ant-btn') || target.closest('a[href]');
+              
+              // Só navega se não foi clique em botão de ação
+              if (!isActionButton) {
+                navigate(`/budgets/${record.id}`);
+              }
+            },
             onDoubleClick: () => {
               window.open(`/budgets/${record.id}`, '_blank');
             },

@@ -106,10 +106,10 @@ class BudgetCalculatorService:
         sale_icms_percentage = item_input.percentual_icms_venda * 100  # Converter decimal para percentual
         ipi_percentage = item_input.percentual_ipi  # Já em formato decimal
         
-        # REGRA 1: Valor s/Impostos (Compra) = [Valor c/ICMS (Compra) * (1 - % ICMS (Compra))] * (1 - Taxa PIS/COFINS) - Outras Despesas
+        # REGRA 1: Valor s/Impostos (Compra) = [Valor c/ICMS (Compra) * (1 - % ICMS (Compra))] * (1 - Taxa PIS/COFINS) + Outras Despesas
         purchase_value_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
         if item_input.outras_despesas_item:
-            purchase_value_without_taxes -= (item_input.outras_despesas_item / (item_input.peso_compra or 1))  # Proporcionalmente ao peso
+            purchase_value_without_taxes += (item_input.outras_despesas_item / (item_input.peso_compra or 1))  # Proporcionalmente ao peso
         
         # REGRA 2: Valor c/Difer. Peso (Compra) = Valor s/Impostos (Compra) * (Peso (Compra) / Peso (Venda))
         peso_compra = item_input.peso_compra or 1.0

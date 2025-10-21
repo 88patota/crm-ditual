@@ -271,6 +271,7 @@ const AntDashboard: React.FC = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    backgroundColor: '#FFFFFF',
     plugins: {
       legend: {
         position: 'bottom' as const,
@@ -289,6 +290,9 @@ const AntDashboard: React.FC = () => {
         cornerRadius: 6,
         displayColors: true
       }
+    },
+    layout: {
+      padding: 0
     }
   };
 
@@ -562,10 +566,10 @@ const AntDashboard: React.FC = () => {
           <Row gutter={[24, 16]}>
             <Col xs={24} md={12}>
               <div style={{ 
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                background: '#FFFFFF',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #bae6fd'
+                border: '1px solid #f0f0f0'
               }}>
                 <Title level={5} style={{ margin: '0 0 16px 0', color: '#0369a1' }}>
                   💰 Performance Financeira
@@ -593,10 +597,10 @@ const AntDashboard: React.FC = () => {
             
             <Col xs={24} md={12}>
               <div style={{ 
-                background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
+                background: '#FFFFFF',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #fdba74'
+                border: '1px solid #f0f0f0'
               }}>
                 <Title level={5} style={{ margin: '0 0 16px 0', color: '#c2410c' }}>
                   📊 Taxa de Conversão

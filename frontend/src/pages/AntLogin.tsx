@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, Typography, Space, Alert } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const { Text } = Typography;
 
@@ -11,16 +12,25 @@ interface LoginForm {
 }
 
 function AntLogin() {
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form] = Form.useForm();
+
+  // Redirecionar quando o usuário estiver autenticado e carregado
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const onFinish = async (values: LoginForm) => {
     try {
       setLoading(true);
       setError(null);
       await login({ username: values.username, password: values.password });
+      // O redirecionamento será feito automaticamente pelo useEffect quando o usuário for carregado
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { detail?: string | Array<{ msg: string }> } } };
       const errorDetail = axiosError?.response?.data?.detail;
