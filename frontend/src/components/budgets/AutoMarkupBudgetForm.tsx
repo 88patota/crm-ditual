@@ -80,10 +80,11 @@ export default function AutoMarkupBudgetForm({
     setItems(newItems);
     setPreview(null); // Limpar preview quando alterar item
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
     if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
         field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
+        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi' ||
+        field === 'outras_despesas_item') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculatePreview(newItems);
@@ -465,7 +466,7 @@ export default function AutoMarkupBudgetForm({
               dataSource={items}
               columns={itemColumns}
               pagination={false}
-              rowKey={(_, index) => index!}
+              rowKey={(record) => items.indexOf(record)}
               scroll={{ x: 1200 }}
               size="small"
             />

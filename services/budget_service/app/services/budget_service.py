@@ -7,6 +7,9 @@ from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetItemCreate, Bud
 from app.services.business_rules_calculator import BusinessRulesCalculator
 import logging
 
+# Configurar logger
+logger = logging.getLogger(__name__)
+
 
 class BudgetService:
     
@@ -222,7 +225,7 @@ class BudgetService:
             logger.debug(f"Updating budget {budget_id}")
             
             # Buscar orçamento existente
-            result = await self.db.execute(
+            result = await db.execute(
                 select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
             )
             budget = result.scalar_one_or_none()

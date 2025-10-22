@@ -316,12 +316,17 @@ class BusinessRulesCalculator:
         percentual_icms_venda = item_data.get('percentual_icms_venda', 0.18)
         percentual_ipi = item_data.get('percentual_ipi', 0.0)  # IPI padrão 0%
 
-        outras_despesas_distribuidas = BusinessRulesCalculator.calculate_distributed_other_expenses(
-            peso_compra, soma_pesos_pedido, outras_despesas_totais
-        )
+        # CORREÇÃO: Usar outras_despesas_item diretamente do item, não distribuir
+        outras_despesas_item = item_data.get('outras_despesas_item', 0.0)
+        
+        # Calcular outras despesas por kg para incluir no valor sem impostos
+        if peso_compra > 0:
+            outras_despesas_por_kg = outras_despesas_item / peso_compra
+        else:
+            outras_despesas_por_kg = 0.0
 
         valor_sem_impostos_compra = BusinessRulesCalculator.calculate_purchase_value_without_taxes(
-            valor_com_icms_compra, percentual_icms_compra, outras_despesas_distribuidas
+            valor_com_icms_compra, percentual_icms_compra, outras_despesas_por_kg
         )
 
         valor_corrigido_peso = BusinessRulesCalculator.calculate_purchase_value_with_weight_correction(
@@ -406,7 +411,9 @@ class BusinessRulesCalculator:
             'percentual_icms_venda': percentual_icms_venda,
             'percentual_ipi': percentual_ipi,  # Incluir percentual de IPI
             'delivery_time': item_data.get('delivery_time', '0'),  # Prazo de entrega em dias
-            'outras_despesas_distribuidas': outras_despesas_distribuidas,
+            'outras_despesas_item': outras_despesas_item,  # Valor original das outras despesas
+            'outras_despesas_por_kg': outras_despesas_por_kg,  # Outras despesas por kg
+            'outras_despesas_distribuidas': outras_despesas_por_kg,  # Compatibilidade com código existente
             'valor_sem_impostos_compra': valor_sem_impostos_compra,
             'valor_corrigido_peso': valor_corrigido_peso,
             'valor_sem_impostos_venda': valor_sem_impostos_venda,

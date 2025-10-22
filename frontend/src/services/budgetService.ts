@@ -5,19 +5,27 @@ export interface BudgetItemSimplified {
   description: string;
   delivery_time?: string; // Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
   
-  // Bloco Compras - Purchase data
-  peso_compra: number;
-  valor_com_icms_compra: number;
-  percentual_icms_compra: number;
-  outras_despesas_item?: number;
+  // Bloco Compras - Purchase data (campos obrigatórios)
+  peso_compra: number; // Peso de compra em kg
+  valor_com_icms_compra: number; // Valor de compra com ICMS incluído
+  percentual_icms_compra: number; // Percentual ICMS compra (0-1, ex: 0.17 = 17%)
+  outras_despesas_item?: number; // Outras despesas do item (opcional)
   
-  // Bloco Vendas - Sale data  
-  peso_venda: number;
-  valor_com_icms_venda: number;
-  percentual_icms_venda: number;
+  // Bloco Vendas - Sale data (campos obrigatórios)
+  peso_venda: number; // Peso de venda em kg
+  valor_com_icms_venda: number; // Valor de venda com ICMS incluído
+  percentual_icms_venda: number; // Percentual ICMS venda (0-1, ex: 0.17 = 17%)
   
-  // IPI (Imposto sobre Produtos Industrializados)
+  // IPI (Imposto sobre Produtos Industrializados) - opcional
   percentual_ipi?: number; // 0%, 3.25% ou 5% (formato decimal: 0.0, 0.0325, 0.05)
+  
+  // Campos calculados (preenchidos pelo backend)
+  valor_sem_icms_compra?: number; // Calculado automaticamente
+  valor_sem_icms_venda?: number; // Calculado automaticamente
+  valor_ipi?: number; // Valor do IPI calculado
+  valor_total_com_ipi?: number; // Valor total incluindo IPI
+  rentabilidade?: number; // Rentabilidade calculada
+  comissao?: number; // Comissão calculada
 }
 
 export interface BudgetSimplified {

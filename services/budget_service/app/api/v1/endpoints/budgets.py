@@ -503,7 +503,9 @@ async def calculate_simplified_budget(
                 )
         
         # Calcular usando BusinessRulesCalculator
-        outras_despesas_totais = 0.0  # Pode ser adicionado ao schema se necessário
+        # CORREÇÃO: Não somar outras_despesas_item como despesas totais
+        # pois cada item já tem suas próprias outras despesas definidas
+        outras_despesas_totais = 0.0  # Não há despesas adicionais a distribuir
         
         # Calcular orçamento completo usando BusinessRulesCalculator
         budget_result = BusinessRulesCalculator.calculate_complete_budget(

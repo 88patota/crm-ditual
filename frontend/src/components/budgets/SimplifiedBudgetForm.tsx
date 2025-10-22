@@ -291,10 +291,11 @@ export default function SimplifiedBudgetForm({
     setItems(newItems);
     setPreview(null);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
     if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
         field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
+        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi' ||
+        field === 'outras_despesas_item') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculatePreview(newItems);
@@ -324,8 +325,32 @@ export default function SimplifiedBudgetForm({
       console.log('Calculate budget data:', budgetData);
       console.log('Calculate budget freight_type:', budgetData.freight_type);
       
+      // Log temporário para debug - capturar valores enviados
+      console.log('=== DEBUG: Dados enviados para o backend ===');
+      console.log('budgetData completo:', JSON.stringify(budgetData, null, 2));
+      console.log('Items com outras_despesas_item:', budgetData.items.map(item => ({
+        description: item.description,
+        outras_despesas_item: item.outras_despesas_item,
+        tipo: typeof item.outras_despesas_item
+      })));
+      
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
+      
+      // CORREÇÃO: Atualizar os campos do formulário com os valores calculados
+      // Isso garante que os valores totais e de comissão sejam atualizados também no cálculo manual
+      form.setFieldsValue({
+        total_purchase_value: calculation.total_purchase_value,
+        total_sale_value: calculation.total_sale_value,
+        total_commission: calculation.total_commission,
+        profitability_percentage: calculation.profitability_percentage,
+        markup_percentage: calculation.markup_percentage,
+        // Atualizar valores de IPI e finais se disponíveis
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
+        // Atualizar impostos totais
+        total_taxes: calculation.total_taxes,
+      });
       
       message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(1)}%`);
     } catch (error) {
@@ -378,6 +403,21 @@ export default function SimplifiedBudgetForm({
       
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
+      
+      // CORREÇÃO CRÍTICA: Atualizar os campos do formulário com os valores calculados
+      // Isso garante que os valores totais e de comissão sejam atualizados em tempo real
+      form.setFieldsValue({
+        total_purchase_value: calculation.total_purchase_value,
+        total_sale_value: calculation.total_sale_value,
+        total_commission: calculation.total_commission,
+        profitability_percentage: calculation.profitability_percentage,
+        markup_percentage: calculation.markup_percentage,
+        // Atualizar valores de IPI e finais se disponíveis
+        total_ipi_value: calculation.total_ipi_value,
+        total_final_value: calculation.total_final_value,
+        // Atualizar impostos totais
+        total_taxes: calculation.total_taxes,
+      });
       
     } catch (error) {
       // Silently handle errors in auto-calculation to avoid spamming user
@@ -863,11 +903,111 @@ export default function SimplifiedBudgetForm({
               dataSource={items}
               columns={itemColumns}
               pagination={false}
-              rowKey={(_, index) => index!}
+              rowKey={(record) => items.indexOf(record)}
               scroll={{ x: 1400 }}
               size="small"
             />
           </div>
+
+          {/* Campos de Totais */}
+          <Divider>Totais do Orçamento</Divider>
+          
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={8}>
+              <Form.Item label="Total Compra" name="total_purchase_value">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Total Venda" name="total_sale_value">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Total Comissão" name="total_commission">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={8}>
+              <Form.Item label="% Rentabilidade" name="profitability_percentage">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `${value}%`}
+                  parser={(value) => value!.replace('%', '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="% Markup" name="markup_percentage">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `${value}%`}
+                  parser={(value) => value!.replace('%', '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Total IPI" name="total_ipi_value">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Total Impostos" name="total_taxes">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Valor Final" name="total_final_value">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  readOnly
+                  precision={2}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
           {/* Preview dos Cálculos - Layout Otimizado */}
           {preview && (

@@ -100,11 +100,11 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
     if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
         field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage' || 
-        field === 'delivery_time') {
+        field === 'delivery_time' || field === 'purchase_other_expenses') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
         autoCalculateBudget(newItems);
@@ -541,7 +541,7 @@ export default function BudgetForm({
               dataSource={items}
               columns={itemColumns}
               pagination={false}
-              rowKey={(_, index) => index!}
+              rowKey={(record) => items.indexOf(record)}
               scroll={{ x: 1600 }}
               size="small"
             />

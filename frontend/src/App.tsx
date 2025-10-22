@@ -13,7 +13,7 @@ import AntLogin from './pages/AntLogin';
 import AntDashboard from './pages/AntDashboard';
 import Users from './pages/Users';
 import Budgets from './pages/Budgets';
-import BudgetCreate from './pages/BudgetCreate';
+import SimplifiedBudgetCreate from './pages/SimplifiedBudgetCreate';
 import BudgetEdit from './pages/BudgetEdit';
 import BudgetView from './pages/BudgetView';
 import Profile from './pages/Profile';
@@ -247,7 +247,7 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AntLayout>
-                        <BudgetCreate />
+                        <SimplifiedBudgetCreate />
                       </AntLayout>
                     </ProtectedRoute>
                   }
