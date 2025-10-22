@@ -28,7 +28,8 @@ import {
 } from '@ant-design/icons';
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency, convertNumericToBrazilian } from '../../lib/utils';
+import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -504,13 +505,18 @@ export default function SimplifiedBudgetForm({
       key: 'peso_compra',
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-<Input
-  value={value}
-  onChange={(e) => updateItem(index, 'peso_compra', e.target.value)}
-  style={{ width: '100%' }}
-  placeholder="Digite o peso"
-  inputMode="decimal"
-/>
+        <InputNumber
+          value={value}
+          onChange={(val) => updateItem(index, 'peso_compra', val || 0)}
+          min={0}
+          step={0.001}
+          precision={3}
+          style={{ width: '100%' }}
+          placeholder="0,000"
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
+        />
       ),
     },
     {
@@ -519,13 +525,18 @@ export default function SimplifiedBudgetForm({
       key: 'peso_venda',
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-<Input
-  value={value}
-  onChange={(e) => updateItem(index, 'peso_venda', e.target.value)}
-  style={{ width: '100%' }}
-  placeholder="Digite o peso"
-  inputMode="decimal"
-/>
+        <InputNumber
+          value={value}
+          onChange={(val) => updateItem(index, 'peso_venda', val || 0)}
+          min={0}
+          step={0.001}
+          precision={3}
+          style={{ width: '100%' }}
+          placeholder="0,000"
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
+        />
       ),
     },
     {
@@ -534,14 +545,11 @@ export default function SimplifiedBudgetForm({
       key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
-          min={0.01}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -570,14 +578,11 @@ export default function SimplifiedBudgetForm({
       key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -587,14 +592,11 @@ export default function SimplifiedBudgetForm({
       key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
-          min={0.01}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -917,8 +919,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Total Compra" name="total_purchase_value">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />
@@ -928,8 +929,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Total Venda" name="total_sale_value">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />
@@ -939,8 +939,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Total Comissão" name="total_commission">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />
@@ -975,8 +974,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Total IPI" name="total_ipi_value">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />
@@ -989,8 +987,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Total Impostos" name="total_taxes">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />
@@ -1000,8 +997,7 @@ export default function SimplifiedBudgetForm({
               <Form.Item label="Valor Final" name="total_final_value">
                 <InputNumber
                   style={{ width: '100%' }}
-                  formatter={(value) => `R$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={(value) => value!.replace(/R\$\s?|(,*)/g, '')}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
                 />

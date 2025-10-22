@@ -24,7 +24,8 @@ import {
 } from '@ant-design/icons';
 import type { Budget, BudgetItem } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { formatCurrency } from '../../lib/utils';
+import { convertNumericToBrazilian } from '../../lib/utils';
+import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -238,6 +239,9 @@ export default function BudgetForm({
           step={0.001}
           precision={3}
           style={{ width: '100%' }}
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
@@ -261,14 +265,11 @@ export default function BudgetForm({
       key: 'purchase_other_expenses',
       width: 130,
       render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -313,7 +314,7 @@ export default function BudgetForm({
       key: 'commission_value',
       width: 120,
       render: (value: number) => {
-        return value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00';
+        return convertNumericToBrazilian(value || 0);
       },
     },
     {
@@ -322,14 +323,39 @@ export default function BudgetForm({
       key: 'dunamis_cost',
       width: 130,
       render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'dunamis_cost', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: 'Valor Compra c/ ICMS',
+      dataIndex: 'purchase_value_with_icms',
+      key: 'purchase_value_with_icms',
+      width: 150,
+      render: (value: number, _: BudgetItem, index: number) => (
+        <CurrencyInput
+          value={value}
+          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
+          placeholder="0,00"
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: 'Valor Venda c/ ICMS',
+      dataIndex: 'sale_value_with_icms',
+      key: 'sale_value_with_icms',
+      width: 150,
+      render: (value: number, _: BudgetItem, index: number) => (
+        <CurrencyInput
+          value={value}
+          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -554,7 +580,7 @@ export default function BudgetForm({
               <Form.Item label="Total Compra" name="total_purchase_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -563,7 +589,7 @@ export default function BudgetForm({
               <Form.Item label="Total Venda" name="total_sale_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -572,7 +598,7 @@ export default function BudgetForm({
               <Form.Item label="Total Comissão" name="total_commission">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -594,7 +620,7 @@ export default function BudgetForm({
               <Form.Item label="Total IPI" name="total_ipi_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -603,7 +629,7 @@ export default function BudgetForm({
               <Form.Item label="Valor Final c/ IPI" name="total_final_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

@@ -27,7 +27,8 @@ import {
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
 import { ErrorHandler } from '../../utils/errorHandler';
-import { formatCurrency } from '../../lib/utils';
+import { convertNumericToBrazilian } from '../../lib/utils';
+import CurrencyInput from '../common/CurrencyInput';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -199,6 +200,9 @@ export default function AutoMarkupBudgetForm({
           style={{ width: '100%' }}
           placeholder="0,000"
           required
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
@@ -217,6 +221,9 @@ export default function AutoMarkupBudgetForm({
           style={{ width: '100%' }}
           placeholder="0,000"
           required
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
@@ -226,15 +233,12 @@ export default function AutoMarkupBudgetForm({
       key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
-          min={0.01}
-          step={0.01}
-          precision={2}
+          placeholder="0,00"
           style={{ width: '100%' }}
           required
-          placeholder="0,00"
         />
       ),
     },
@@ -264,14 +268,11 @@ export default function AutoMarkupBudgetForm({
       key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -281,14 +282,11 @@ export default function AutoMarkupBudgetForm({
       key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -499,7 +497,7 @@ export default function AutoMarkupBudgetForm({
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
-                              {formatCurrency(preview.total_commission || 0)}
+                              {convertNumericToBrazilian(preview.total_commission || 0)}
                             </div>
                           </div>
                         </Col>
@@ -526,7 +524,7 @@ export default function AutoMarkupBudgetForm({
                     }}>
                       <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
                       <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
-                        {formatCurrency(preview.total_sale_value + preview.total_taxes)}
+                        {convertNumericToBrazilian(preview.total_sale_value + preview.total_taxes)}
                       </div>
                       <Text type="secondary" style={{ fontSize: '11px' }}>
                         COM ICMS
@@ -536,7 +534,7 @@ export default function AutoMarkupBudgetForm({
                       {preview.total_ipi_value && preview.total_ipi_value > 0 && (
                         <Alert 
                           message="IPI Aplicado" 
-                          description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
+                          description={`Inclui ${convertNumericToBrazilian(preview.total_ipi_value)} de IPI`}
                           type="warning" 
                           showIcon 
                           style={{ marginTop: '12px', fontSize: '11px' }}
