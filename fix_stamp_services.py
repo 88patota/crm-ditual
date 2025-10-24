@@ -9,14 +9,19 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 def get_db_connection():
-    """Conecta ao banco de dados PostgreSQL"""
-    return psycopg2.connect(
-        host=os.getenv('POSTGRES_HOST', 'postgres'),
-        user=os.getenv('POSTGRES_USER', 'postgres'),
-        password=os.getenv('POSTGRES_PASSWORD', 'postgres'),
-        database=os.getenv('POSTGRES_DB', 'crm_ditual'),
-        port=os.getenv('POSTGRES_PORT', '5432'),
-    )
+    """Conecta ao banco de dados usando as variáveis de ambiente."""
+    try:
+        connection = psycopg2.connect(
+            host=os.getenv('POSTGRES_HOST', 'postgres'),
+            port=os.getenv('POSTGRES_PORT', '5432'),
+            database=os.getenv('POSTGRES_DB', 'crm_ditual'),
+            user=os.getenv('POSTGRES_USER', 'crm_user'),
+            password=os.getenv('POSTGRES_PASSWORD', 'crm_strong_password_2024')
+        )
+        return connection
+    except Exception as e:
+        print(f"Erro ao conectar ao banco de dados: {e}")
+        return None
 
 def get_latest_revisions():
     """Obtém as revisões mais recentes de cada serviço"""
