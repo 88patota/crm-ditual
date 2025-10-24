@@ -288,16 +288,16 @@ class BudgetCalculatorService:
             
             # Usar os nomes corretos dos campos em português
             valor_compra = item.get('valor_com_icms_compra', 0)
-            if not valor_compra or valor_compra <= 0:
+            if valor_compra is None or valor_compra <= 0:
                 errors.append(f"{item_prefix}Valor de compra deve ser maior que zero")
                 
             valor_venda = item.get('valor_com_icms_venda', 0)  
-            if not valor_venda or valor_venda <= 0:
+            if valor_venda is None or valor_venda <= 0:
                 errors.append(f"{item_prefix}Valor de venda deve ser maior que zero")
             
             # Validar peso de compra
             peso_compra = item.get('peso_compra', 0)
-            if not peso_compra or peso_compra <= 0:
+            if peso_compra is None or peso_compra <= 0:
                 errors.append(f"{item_prefix}Peso de compra deve ser maior que zero")
             
             # Validar porcentagens usando nomes corretos
@@ -456,7 +456,10 @@ class BudgetCalculatorService:
             total_commission += commission_value
             
             # Group by profitability ranges for better reporting
-            if profitability < 20:
+            # Tratar valores None ou não numéricos
+            if profitability is None or not isinstance(profitability, (int, float)):
+                range_key = "Indefinido"
+            elif profitability < 20:
                 range_key = "< 20%"
             elif profitability < 30:
                 range_key = "20-30%"

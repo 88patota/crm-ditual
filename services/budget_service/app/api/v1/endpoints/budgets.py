@@ -389,7 +389,7 @@ async def calculate_budget(
                 'weight': item['peso_compra'],
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
-                'profitability': item['rentabilidade_item'] * 100,
+                'profitability': (item['rentabilidade_item'] or 0) * 100,
                 'commission_value': item['valor_comissao'],
                 'ipi_percentage': item['percentual_ipi'],
                 'ipi_value': item['valor_ipi_total'],
@@ -509,7 +509,7 @@ async def calculate_simplified_budget(
         
         # Calcular orçamento completo usando BusinessRulesCalculator
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
-            items_data, outras_despesas_totais, total_peso_pedido
+            items_data, outras_despesas_totais, total_peso_pedido, budget_data.freight_value_total or 0.0
         )
         
         calculated_items = budget_result['items']
@@ -537,7 +537,7 @@ async def calculate_simplified_budget(
                 'peso_venda': item['peso_venda'],
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
-                'profitability': item['rentabilidade_item'] * 100,  # Converter para percentual
+                'profitability': (item['rentabilidade_item'] or 0) * 100,  # Converter para percentual
                 'commission_value': item['valor_comissao'],
                 'commission_percentage_actual': item['commission_percentage_actual'],  # Actual percentage used
                 # IPI fields
@@ -569,6 +569,68 @@ async def calculate_simplified_budget(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno no cálculo: {str(e)}"
+        )
+
+
+@router.put("/simplified/{budget_id}", response_model=BudgetResponse)
+async def update_simplified_budget(
+    budget_id: int,
+    budget_data: BudgetSimplifiedCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_active_user)
+):
+    """Atualizar orçamento simplificado"""
+    try:
+        logger.debug(f"Updating simplified budget {budget_id}")
+        
+        # Validar dados de entrada
+        budget_dict = budget_data.dict()
+        errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
+        if errors:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Dados inválidos: {'; '.join(errors)}"
+            )
+        
+        # Verificar se o orçamento existe
+        existing_budget = await BudgetService.get_budget_by_id(db, budget_id)
+        if not existing_budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        # Verificar se o número do pedido já existe em outro orçamento
+        if budget_data.order_number and budget_data.order_number != existing_budget.order_number:
+            existing_order = await BudgetService.get_budget_by_order_number(db, budget_data.order_number)
+            if existing_order and existing_order.id != budget_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Número do pedido já existe em outro orçamento"
+                )
+        
+        # Usar o método update_budget_simplified do BudgetService
+        updated_budget = await BudgetService.update_budget_simplified(db, budget_id, budget_dict)
+        
+        if not updated_budget:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Orçamento não encontrado"
+            )
+        
+        logger.info(f"Simplified budget {budget_id} updated successfully")
+        return updated_budget
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error updating simplified budget {budget_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno do servidor"
         )
 
 
@@ -650,7 +712,9 @@ async def create_simplified_budget(
                 sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                 weight_difference=calculated_item.get('diferenca_peso'),
                 ipi_percentage=calculated_item['percentual_ipi'],  # CORREÇÃO: Incluir IPI percentage
-                commission_percentage=0  # Será calculado pela rentabilidade
+                commission_percentage=0,  # Será calculado pela rentabilidade
+                # CORREÇÃO: Incluir weight_difference_display
+                weight_difference_display=calculated_item.get('weight_difference_display')
             )
             
             # 🔍 DEBUG: Log BudgetItemCreate após criação
@@ -669,6 +733,7 @@ async def create_simplified_budget(
             prazo_medio=budget_data.prazo_medio,
             outras_despesas_totais=budget_data.outras_despesas_totais,
             freight_type=budget_data.freight_type,
+            freight_value_total=budget_data.freight_value_total,  # CORREÇÃO: Incluir freight_value_total
             payment_condition=budget_data.payment_condition,
             items=items_for_creation
         )

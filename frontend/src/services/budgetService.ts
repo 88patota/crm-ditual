@@ -41,6 +41,10 @@ export interface BudgetSimplified {
   outras_despesas_totais?: number; // Outras despesas do pedido
   payment_condition?: string;
   
+  // Campos de frete
+  freight_value_total?: number; // Valor total do frete
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
+  
   items: BudgetItemSimplified[];
 }
 
@@ -124,6 +128,12 @@ export interface BudgetItem {
   sale_icms_percentage: number;
   sale_value_without_taxes: number;
   weight_difference?: number;
+  weight_difference_display?: {
+    has_difference: boolean;
+    absolute_difference: number;
+    percentage_difference: number;
+    formatted_display: string;
+  };
   
   // Calculated fields
   profitability?: number;
@@ -158,6 +168,10 @@ export interface Budget {
   // Business fields
   prazo_medio?: number; // Prazo médio em dias
   outras_despesas_totais?: number; // Outras despesas do pedido
+  
+  // Campos de frete
+  freight_value_total?: number; // Valor total do frete
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
   
   // Financial totals
   total_purchase_value?: number;
@@ -211,6 +225,9 @@ export interface BudgetCalculation {
   // IPI calculations
   total_ipi_value?: number; // Total do IPI de todos os itens
   total_final_value?: number; // Valor final incluindo IPI
+  
+  // Freight calculations
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
 }
 
 export const budgetService = {
@@ -316,6 +333,17 @@ export const budgetService = {
   // Método para criar orçamento simplificado
   async createBudgetSimplified(budget: BudgetSimplified): Promise<Budget> {
     const response = await api.post<Budget>('/budgets/simplified', budget);
+    return response.data;
+  },
+
+  // Método para atualizar orçamento simplificado
+  async updateBudgetSimplified(id: number, budget: Partial<BudgetSimplified>): Promise<Budget> {
+    console.log('[budgetService.ts] Payload para updateBudgetSimplified (PUT):', JSON.stringify(budget, null, 2));
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Sending budget data to backend:', budget);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition being sent:', budget.payment_condition);
+    const response = await api.put<Budget>(`/budgets/simplified/${id}`, budget);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Response from backend:', response.data);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition in response:', response.data.payment_condition);
     return response.data;
   },
 

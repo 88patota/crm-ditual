@@ -304,6 +304,19 @@ export default function SimplifiedBudgetForm({
     }
   };
 
+  // Função para recalcular quando o valor do frete total mudar
+  const handleFreightValueChange = (value: number | null) => {
+    const formData = form.getFieldsValue();
+    form.setFieldsValue({ freight_value_total: value });
+    
+    // Auto-recalcular se temos dados suficientes
+    if (formData.client_name && items.length > 0) {
+      setTimeout(() => {
+        autoCalculatePreview(items);
+      }, 300);
+    }
+  };
+
   const calculatePreview = async () => {
     try {
       setCalculating(true);
@@ -351,6 +364,8 @@ export default function SimplifiedBudgetForm({
         total_final_value: calculation.total_final_value,
         // Atualizar impostos totais
         total_taxes: calculation.total_taxes,
+        // Atualizar valor do frete por kg
+        valor_frete_compra: calculation.valor_frete_compra,
       });
       
       message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(1)}%`);
@@ -418,6 +433,8 @@ export default function SimplifiedBudgetForm({
         total_final_value: calculation.total_final_value,
         // Atualizar impostos totais
         total_taxes: calculation.total_taxes,
+        // Atualizar valor do frete por kg
+        valor_frete_compra: calculation.valor_frete_compra,
       });
       
     } catch (error) {
@@ -816,6 +833,15 @@ export default function SimplifiedBudgetForm({
                   precision={0}
                   style={{ width: '100%' }}
                   placeholder="Ex: 30"
+                  onChange={(value) => {
+                    // Auto-recalcular quando o prazo médio mudar
+                    const formData = form.getFieldsValue();
+                    if (formData.client_name && items.length > 0) {
+                      setTimeout(() => {
+                        autoCalculatePreview(items);
+                      }, 300);
+                    }
+                  }}
                 />
               </Form.Item>
             </Col>
@@ -829,7 +855,17 @@ export default function SimplifiedBudgetForm({
                   placeholder="Selecione as condições de pagamento"
                   style={{ width: '100%' }}
                   allowClear={false}
-                  onChange={(value) => console.log('Select onChange - payment_condition:', value)}
+                  onChange={(value) => {
+                    console.log('Select onChange - payment_condition:', value);
+                    
+                    // Auto-recalcular quando as condições de pagamento mudarem
+                    const formData = form.getFieldsValue();
+                    if (formData.client_name && items.length > 0) {
+                      setTimeout(() => {
+                        autoCalculatePreview(items);
+                      }, 300);
+                    }
+                  }}
                 >
                   <Option value="À vista">À vista</Option>
                   <Option value="7">7</Option>
@@ -856,6 +892,15 @@ export default function SimplifiedBudgetForm({
                     console.log('Frete type changed to:', value);
                     console.log('Current form values before update:', form.getFieldsValue());
                     form.setFieldsValue({ freight_type: value });
+                    
+                    // Auto-recalcular quando o tipo de frete mudar
+                    const formData = form.getFieldsValue();
+                    if (formData.client_name && items.length > 0) {
+                      setTimeout(() => {
+                        autoCalculatePreview(items);
+                      }, 300);
+                    }
+                    
                     setTimeout(() => {
                       const updatedValue = form.getFieldValue('freight_type');
                       console.log('Field value after update:', updatedValue);
@@ -865,6 +910,19 @@ export default function SimplifiedBudgetForm({
                   <Option value="CIF">CIF</Option>
                   <Option value="FOB">FOB</Option>
                 </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Valor Total Frete"
+                name="freight_value_total"
+              >
+                <CurrencyInput
+                  value={form.getFieldValue('freight_value_total')}
+                  onChange={handleFreightValueChange}
+                  placeholder="R$ 0,00"
+                  style={{ width: '100%' }}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
@@ -983,7 +1041,7 @@ export default function SimplifiedBudgetForm({
           </Row>
 
           <Row gutter={[16, 16]}>
-            <Col xs={24} md={12}>
+            <Col xs={24} md={8}>
               <Form.Item label="Total Impostos" name="total_taxes">
                 <InputNumber
                   style={{ width: '100%' }}
@@ -993,7 +1051,17 @@ export default function SimplifiedBudgetForm({
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={12}>
+            <Col xs={24} md={8}>
+              <Form.Item label="Valor Frete Compra (R$/kg)" name="valor_frete_compra">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
+                  readOnly
+                  precision={4}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
               <Form.Item label="Valor Final" name="total_final_value">
                 <InputNumber
                   style={{ width: '100%' }}

@@ -36,6 +36,7 @@ import {
 } from '@ant-design/icons';
 import { budgetService, type Budget, type BudgetItem } from '../services/budgetService';
 import dayjs from 'dayjs';
+import '../styles/budget-table.css';
 
 const { Title, Text } = Typography;
 
@@ -219,72 +220,217 @@ export default function BudgetView() {
       key: 'description',
       width: 220,
       fixed: 'left' as const,
+      render: (text: string) => (
+        <div 
+          style={{ 
+            wordWrap: 'break-word', 
+            wordBreak: 'break-word',
+            color: '#333333',
+            fontWeight: 500,
+            lineHeight: '1.4'
+          }}
+        >
+          {text}
+        </div>
+      ),
+    },
+    {
+      title: 'Diferença de Peso',
+      dataIndex: 'weight_difference_display',
+      key: 'weight_difference_display',
+      width: 150,
+      align: 'center' as const,
+      render: (weightDiffDisplay: BudgetItem['weight_difference_display']) => {
+        // Só exibe se houver diferença de peso
+        if (!weightDiffDisplay?.has_difference) {
+          return null;
+        }
+        
+        const isPositive = weightDiffDisplay.percentage_difference > 0;
+        const color = isPositive ? '#52c41a' : '#ff4d4f'; // Verde para positivo, vermelho para negativo
+        
+        return (
+          <Tooltip title={`Diferença absoluta: ${weightDiffDisplay.absolute_difference.toFixed(2)} kg`}>
+            <div style={{
+              color: color,
+              fontWeight: 600,
+              fontSize: '12px',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              backgroundColor: isPositive ? '#f6ffed' : '#fff2f0',
+              border: `1px solid ${isPositive ? '#b7eb8f' : '#ffccc7'}`,
+              textAlign: 'center',
+              lineHeight: '1.2'
+            }}>
+              {weightDiffDisplay.formatted_display}
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Prazo',
       dataIndex: 'delivery_time',
       key: 'delivery_time',
       width: 80,
-      render: (value: string) => formatDeliveryTime(value),
+      align: 'center' as const,
+      render: (value: string) => (
+        <span style={{ 
+          color: '#666666',
+          fontSize: '13px',
+          fontWeight: 500
+        }}>
+          {formatDeliveryTime(value)}
+        </span>
+      ),
     },
     {
       title: 'Peso (kg)',
       dataIndex: 'weight',
       key: 'weight',
       width: 90,
-      render: (value: number) => value ? value.toFixed(2) : '-',
+      align: 'right' as const,
+      render: (value: number) => (
+        <span style={{ 
+          color: '#666666',
+          fontSize: '13px',
+          fontFamily: 'monospace'
+        }}>
+          {value ? value.toFixed(2) : '-'}
+        </span>
+      ),
     },
     {
-      title: 'Compra',
+      title: (
+        <span style={{ 
+          color: '#2C3E50', 
+          fontWeight: 700,
+          fontSize: '14px'
+        }}>
+          Compra
+        </span>
+      ),
       children: [
         {
           title: 'Valor c/ICMS',
           dataIndex: 'purchase_value_with_icms',
           key: 'purchase_value_with_icms',
           width: 110,
-          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+          align: 'right' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#333333',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+              fontSize: '13px'
+            }}>
+              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+            </span>
+          ),
         },
         {
           title: 'ICMS %',
           dataIndex: 'purchase_icms_percentage',
           key: 'purchase_icms_percentage',
           width: 80,
-          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+          align: 'center' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#666666',
+              fontSize: '12px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: 500
+            }}>
+              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
+            </span>
+          ),
         },
       ],
     },
     {
-      title: 'Venda',
+      title: (
+        <span style={{ 
+          color: '#2C3E50', 
+          fontWeight: 700,
+          fontSize: '14px'
+        }}>
+          Venda
+        </span>
+      ),
       children: [
         {
           title: 'Valor c/ICMS',
           dataIndex: 'sale_value_with_icms',
           key: 'sale_value_with_icms',
           width: 110,
-          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+          align: 'right' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#333333',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+              fontSize: '13px'
+            }}>
+              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+            </span>
+          ),
         },
         {
           title: 'ICMS %',
           dataIndex: 'sale_icms_percentage',
           key: 'sale_icms_percentage',
           width: 80,
-          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+          align: 'center' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#666666',
+              fontSize: '12px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: 500
+            }}>
+              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
+            </span>
+          ),
         },
       ],
     },
     {
-      title: 'IPI',
+      title: (
+        <span style={{ 
+          color: '#2C3E50', 
+          fontWeight: 700,
+          fontSize: '14px'
+        }}>
+          IPI
+        </span>
+      ),
       children: [
         {
           title: '%',
           dataIndex: 'ipi_percentage',
           key: 'ipi_percentage',
           width: 70,
+          align: 'center' as const,
           render: (value: number) => {
-            if (!value || value === 0) return '0%';
-            if (value === 0.0325) return '3,25%';
-            if (value === 0.05) return '5%';
-            return `${(value * 100).toFixed(2)}%`;
+            let displayValue = '0%';
+            if (value && value !== 0) {
+              if (value === 0.0325) displayValue = '3,25%';
+              else if (value === 0.05) displayValue = '5%';
+              else displayValue = `${(value * 100).toFixed(2)}%`;
+            }
+            return (
+              <span style={{ 
+                color: '#666666',
+                fontSize: '12px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontWeight: 500
+              }}>
+                {displayValue}
+              </span>
+            );
           },
         },
         {
@@ -292,43 +438,65 @@ export default function BudgetView() {
           dataIndex: 'ipi_value',
           key: 'ipi_value',
           width: 90,
-          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-',
+          align: 'right' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#333333',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+              fontSize: '13px'
+            }}>
+              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+            </span>
+          ),
         },
       ],
     },
     {
-      title: 'Valor Final',
-      dataIndex: 'total_value_with_ipi',
-      key: 'total_value_with_ipi',
-      width: 120,
-      render: (value: number, record: BudgetItem) => {
-        // Se não tiver valor com IPI, usar o valor com ICMS
-        const weight = record.weight || 1;
-        const unitValueWithIpi = (record.sale_value_with_icms || 0) * (1 + (record.ipi_percentage || 0));
-        const finalValue = value || (unitValueWithIpi * weight);
-        return (
-          <Text strong style={{ color: '#52c41a' }}>
-            R$ {finalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </Text>
-        );
-      },
-    },
-    {
-      title: 'Comissão',
+      title: (
+        <span style={{ 
+          color: '#2C3E50', 
+          fontWeight: 700,
+          fontSize: '14px'
+        }}>
+          Comissão
+        </span>
+      ),
       children: [
         {
           title: '%',
           dataIndex: 'commission_percentage_actual',
           key: 'commission_percentage_actual',
           width: 60,
-          render: (value: number) => value ? `${(value * 100).toFixed(1)}%` : '0%',
+          align: 'center' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#666666',
+              fontSize: '12px',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              fontWeight: 500
+            }}>
+              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
+            </span>
+          ),
         },
         {
           title: 'Valor',
           dataIndex: 'commission_value',
           key: 'commission_value',
           width: 100,
-          render: (value: number) => value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00',
+          align: 'right' as const,
+          render: (value: number) => (
+            <span style={{ 
+              color: '#333333',
+              fontWeight: 600,
+              fontFamily: 'monospace',
+              fontSize: '13px'
+            }}>
+              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+            </span>
+          ),
         },
       ],
     },
@@ -518,13 +686,25 @@ export default function BudgetView() {
                 </Col>
                 <Col span={8}>
                   <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>FRETE</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
+                      R$ {(budget.freight_value_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>IPI</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa8c16' }}>
                       R$ {(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                 </Col>
-                <Col span={8}>
+              </Row>
+              
+              {/* Segunda linha de totais */}
+              <Row gutter={[12, 12]} style={{ marginTop: '12px' }}>
+                <Col span={24}>
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
@@ -552,24 +732,59 @@ export default function BudgetView() {
       {/* Items Table - Otimizada */}
       <Card 
         title={
-          <Space>
-            <FileTextOutlined />
-            <span>Itens do Orçamento ({budget.items?.length || 0})</span>
-          </Space>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px',
+            color: '#333333'
+          }}>
+            <div style={{
+              width: '4px',
+              height: '24px',
+              backgroundColor: '#93CFF0',
+              borderRadius: '2px'
+            }} />
+            <span style={{ 
+              fontSize: '16px', 
+              fontWeight: 600,
+              color: '#333333'
+            }}>
+              Itens do Orçamento
+            </span>
+            <Tag 
+              color="#E8F4FD" 
+              style={{ 
+                color: '#93CFF0', 
+                fontWeight: 500,
+                border: 'none',
+                borderRadius: '6px'
+              }}
+            >
+              {budget.items?.length || 0} {budget.items?.length === 1 ? 'item' : 'itens'}
+            </Tag>
+          </div>
         }
+        style={{ 
+          marginTop: 24,
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+          border: '1px solid #F0F0F0'
+        }}
       >
         <Table
           dataSource={budget.items}
           columns={itemColumns}
           pagination={false}
           rowKey="id"
-          scroll={{ x: 900, y: 400 }}
+          scroll={{ x: 1200 }}
           size="small"
-          bordered
-          style={{ 
-            background: '#fafafa',
-            borderRadius: '6px'
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
           }}
+          className="budget-items-table"
         />
       </Card>
 

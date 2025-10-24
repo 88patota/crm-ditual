@@ -36,8 +36,14 @@ class CommissionService:
         Returns:
             float: Percentual de comissão em decimal (ex: 0.015 = 1.5%)
         """
-        # Tratar valores nulos ou vazios
-        if rentabilidade is None or rentabilidade == "":
+        # Tratar valores nulos, vazios ou não numéricos
+        if rentabilidade is None or rentabilidade == "" or not isinstance(rentabilidade, (int, float)):
+            return 0.0
+        
+        # Converter para float se necessário e tratar valores inválidos
+        try:
+            rentabilidade = float(rentabilidade)
+        except (ValueError, TypeError):
             return 0.0
         
         # Implementação da fórmula usando as faixas definidas

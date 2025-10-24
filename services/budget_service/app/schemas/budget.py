@@ -2,6 +2,7 @@ from pydantic import BaseModel, validator
 from typing import List, Optional
 from datetime import datetime
 from app.models.budget import BudgetStatus
+from app.utils.json_utils import safe_json_loads
 
 
 # Schema simplificado - APENAS campos que o vendedor deve preencher
@@ -66,7 +67,9 @@ class BudgetSimplifiedCreate(BaseModel):
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
     
     items: List[BudgetItemSimplified]
 
@@ -118,6 +121,9 @@ class BudgetItemBase(BaseModel):
     # Commission
     commission_percentage: float = 0.0
     dunamis_cost: Optional[float] = None
+    
+    # Weight difference display info
+    weight_difference_display: Optional[dict] = None
 
 
     @validator('purchase_value_with_icms', 'sale_value_with_icms')
@@ -167,12 +173,22 @@ class BudgetItemResponse(BudgetItemBase):
     commission_value: float
     commission_percentage_actual: float  # Actual commission percentage used (for display)
     
-    # IPI calculated fields
+    # IPI calculated values
     ipi_value: Optional[float] = None  # Valor do IPI calculado
     total_value_with_ipi: Optional[float] = None  # Valor total incluindo IPI
     
+    # Weight difference display info
+    weight_difference_display: Optional[dict] = None  # Weight difference display info
+    
     created_at: datetime
     updated_at: datetime
+
+    @validator('weight_difference_display', pre=True)
+    def parse_weight_difference_display(cls, v):
+        """Convert JSON string to dict if needed"""
+        if isinstance(v, str):
+            return safe_json_loads(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -190,7 +206,9 @@ class BudgetBase(BaseModel):
     prazo_medio: Optional[int] = None  # Prazo médio em dias
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
 
     @validator('order_number')
     def validate_order_number(cls, v):
@@ -218,7 +236,9 @@ class BudgetUpdate(BaseModel):
     expires_at: Optional[datetime] = None
     items: Optional[List[BudgetItemCreate]] = None
     freight_type: Optional[str] = None  # Remove default value to properly handle updates
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
 
 
 class BudgetResponse(BudgetBase):

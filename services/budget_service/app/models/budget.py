@@ -42,7 +42,9 @@ class Budget(Base):
     prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
     outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
     freight_type = Column(String(10), nullable=False, default='FOB')
+    freight_value_total = Column(Float, nullable=True, comment='Valor total do frete')
     payment_condition = Column(String(50), nullable=True, comment='Condições de pagamento')
+    valor_frete_compra = Column(Float, nullable=True, comment='Valor do frete por kg (Valor Frete Total / Peso Total)')
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -97,6 +99,9 @@ class BudgetItem(Base):
     ipi_percentage = Column(Float, default=0.0)  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
     ipi_value = Column(Float, nullable=True)  # Valor do IPI calculado
     total_value_with_ipi = Column(Float, nullable=True)  # Valor total incluindo IPI
+    
+    # Weight difference display (JSON field for formatted display)
+    weight_difference_display = Column(Text, nullable=True)  # JSON string with weight difference display info
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
