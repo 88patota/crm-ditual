@@ -286,8 +286,8 @@ export default function BudgetView() {
     },
     {
       title: 'Peso (kg)',
-      dataIndex: 'weight',
-      key: 'weight',
+      dataIndex: 'sale_weight',
+      key: 'sale_weight',
       width: 90,
       align: 'right' as const,
       render: (value: number) => (

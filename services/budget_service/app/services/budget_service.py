@@ -525,29 +525,49 @@ class BudgetService:
     async def update_budget_simplified(db: AsyncSession, budget_id: int, budget_data: dict) -> Optional[Budget]:
         """Atualizar orçamento simplificado existente"""
         try:
-            logger.debug(f"Updating simplified budget {budget_id}")
+            logger.info(f"🔧 [SERVICE DEBUG] Starting update_budget_simplified for budget {budget_id}")
+            logger.info(f"🔧 [SERVICE DEBUG] Received data keys: {list(budget_data.keys())}")
+            
+            # Log critical budget fields
+            logger.info(f"🔧 [SERVICE DEBUG] Budget fields: client_name='{budget_data.get('client_name')}', "
+                       f"order_number='{budget_data.get('order_number')}', "
+                       f"freight_type='{budget_data.get('freight_type')}', "
+                       f"prazo_medio={budget_data.get('prazo_medio')}")
             
             # Buscar orçamento existente
+            logger.debug(f"🔧 [SERVICE DEBUG] Fetching existing budget {budget_id}...")
             result = await db.execute(
                 select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
             )
             budget = result.scalar_one_or_none()
             
             if not budget:
-                logger.warning(f"Budget {budget_id} not found")
+                logger.error(f"🔧 [SERVICE DEBUG] Budget {budget_id} not found in database")
                 return None
+            
+            logger.info(f"🔧 [SERVICE DEBUG] Found existing budget: order_number={budget.order_number}, "
+                       f"client_name='{budget.client_name}', items_count={len(budget.items)}")
             
             # Verificar se o número do pedido já existe (se fornecido e diferente do atual)
             if 'order_number' in budget_data and budget_data['order_number'] != budget.order_number:
+                logger.debug(f"🔧 [SERVICE DEBUG] Checking order number uniqueness: {budget_data['order_number']}")
                 existing_budget = await BudgetService.get_budget_by_order_number(db, budget_data['order_number'])
                 if existing_budget and existing_budget.id != budget_id:
+                    logger.error(f"🔧 [SERVICE DEBUG] Order number conflict: {budget_data['order_number']} exists in budget {existing_budget.id}")
                     raise ValueError(f"Número do pedido '{budget_data['order_number']}' já existe")
             
             # Preparar dados dos itens para cálculo
             items_data = []
             if 'items' in budget_data:
-                for item_data in budget_data['items']:
-                    items_data.append({
+                logger.info(f"🔧 [SERVICE DEBUG] Processing {len(budget_data['items'])} items...")
+                for i, item_data in enumerate(budget_data['items']):
+                    logger.debug(f"🔧 [SERVICE DEBUG] Item {i}: description='{item_data.get('description', 'N/A')}', "
+                                f"peso_compra={item_data.get('peso_compra', 'N/A')}, "
+                                f"valor_com_icms_compra={item_data.get('valor_com_icms_compra', 'N/A')}, "
+                                f"valor_com_icms_venda={item_data.get('valor_com_icms_venda', 'N/A')}, "
+                                f"percentual_ipi={item_data.get('percentual_ipi', 'N/A')}")
+                    
+                    processed_item = {
                         'description': item_data.get('description', ''),
                         'delivery_time': item_data.get('delivery_time', '0'),
                         'peso_compra': item_data.get('peso_compra', 1.0),
@@ -558,19 +578,38 @@ class BudgetService:
                         'valor_com_icms_venda': item_data.get('valor_com_icms_venda', 0),
                         'percentual_icms_venda': item_data.get('percentual_icms_venda', 0.18),
                         'percentual_ipi': item_data.get('percentual_ipi', 0.0)
-                    })
+                    }
+                    items_data.append(processed_item)
+                    logger.debug(f"🔧 [SERVICE DEBUG] Processed item {i}: {processed_item}")
             
             # Calcular valores usando BusinessRulesCalculator
             if items_data:
+                logger.info(f"🔧 [SERVICE DEBUG] Calculating budget with {len(items_data)} items...")
                 soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
                 outras_despesas_totais = budget_data.get('outras_despesas_totais', 0.0)
                 freight_value_total = budget_data.get('freight_value_total', 0.0)
+                
+                logger.debug(f"🔧 [SERVICE DEBUG] Calculation parameters: soma_pesos_pedido={soma_pesos_pedido}, "
+                            f"outras_despesas_totais={outras_despesas_totais}, freight_value_total={freight_value_total}")
                 
                 budget_result = BusinessRulesCalculator.calculate_complete_budget(
                     items_data, outras_despesas_totais, soma_pesos_pedido, freight_value_total
                 )
                 
+                logger.info(f"🔧 [SERVICE DEBUG] Calculation completed. Totals: "
+                           f"soma_total_compra={budget_result['totals']['soma_total_compra']}, "
+                           f"soma_total_venda={budget_result['totals']['soma_total_venda']}, "
+                           f"markup_pedido={budget_result['totals']['markup_pedido']}")
+                
                 # Atualizar campos do orçamento
+                logger.debug(f"🔧 [SERVICE DEBUG] Updating budget fields...")
+                original_values = {
+                    'client_name': budget.client_name,
+                    'freight_type': budget.freight_type,
+                    'prazo_medio': budget.prazo_medio,
+                    'order_number': budget.order_number
+                }
+                
                 budget.client_name = budget_data.get('client_name', budget.client_name)
                 budget.status = budget_data.get('status', budget.status)
                 budget.expires_at = budget_data.get('expires_at', budget.expires_at)
@@ -584,6 +623,12 @@ class BudgetService:
                 if 'order_number' in budget_data:
                     budget.order_number = budget_data['order_number']
                 
+                logger.info(f"🔧 [SERVICE DEBUG] Field updates: "
+                           f"client_name: '{original_values['client_name']}' -> '{budget.client_name}', "
+                           f"freight_type: '{original_values['freight_type']}' -> '{budget.freight_type}', "
+                           f"prazo_medio: {original_values['prazo_medio']} -> {budget.prazo_medio}, "
+                           f"order_number: '{original_values['order_number']}' -> '{budget.order_number}'")
+                
                 # Atualizar totais calculados
                 budget.total_purchase_value = budget_result['totals']['soma_total_compra']
                 budget.total_sale_value = budget_result['totals']['soma_total_venda']
@@ -595,11 +640,18 @@ class BudgetService:
                 budget.total_final_value = budget_result['totals'].get('total_final_com_ipi', 0.0)
                 budget.valor_frete_compra = budget_result['totals'].get('valor_frete_compra', 0.0)
                 
+                logger.debug(f"🔧 [SERVICE DEBUG] Updated calculated totals: "
+                            f"total_purchase_value={budget.total_purchase_value}, "
+                            f"total_sale_value={budget.total_sale_value}, "
+                            f"profitability_percentage={budget.profitability_percentage}")
+                
                 # Remover itens existentes
+                logger.debug(f"🔧 [SERVICE DEBUG] Removing {len(budget.items)} existing items...")
                 for item in budget.items:
                     await db.delete(item)
                 
                 # Criar novos itens
+                logger.debug(f"🔧 [SERVICE DEBUG] Creating {len(budget_data['items'])} new items...")
                 for i, item_data in enumerate(budget_data['items']):
                     calculated_item = budget_result['items'][i]
                     
@@ -613,6 +665,10 @@ class BudgetService:
                     )
                     
                     total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+                    
+                    logger.debug(f"🔧 [SERVICE DEBUG] Creating item {i}: description='{item_data.get('description', '')}', "
+                                f"peso_compra={item_data.get('peso_compra', 1.0)}, "
+                                f"ipi_percentage={ipi_percentage}, ipi_value={ipi_value}")
                     
                     budget_item = BudgetItem(
                         budget_id=budget.id,
@@ -645,13 +701,19 @@ class BudgetService:
                     )
                     db.add(budget_item)
             
+            logger.debug(f"🔧 [SERVICE DEBUG] Committing changes to database...")
             await db.commit()
             await db.refresh(budget)
-            logger.info(f"Simplified budget {budget_id} updated successfully")
+            
+            logger.info(f"🔧 [SERVICE DEBUG] Budget {budget_id} updated successfully")
+            logger.info(f"🔧 [SERVICE DEBUG] Final budget state: order_number={budget.order_number}, "
+                       f"client_name='{budget.client_name}', items_count={len(budget.items)}, "
+                       f"total_sale_value={budget.total_sale_value}")
+            
             return budget
             
         except Exception as e:
-            logger.error(f"Error updating simplified budget {budget_id}: {str(e)}")
+            logger.error(f"🔧 [SERVICE DEBUG] Error updating simplified budget {budget_id}: {str(e)}", exc_info=True)
             raise
     
     @staticmethod

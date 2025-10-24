@@ -266,7 +266,13 @@ export default function SimplifiedBudgetForm({
   };
 
   const updateItem = (index: number, field: keyof BudgetItemSimplified, value: unknown) => {
+    console.log(`🔧 [EDIT DEBUG] Updating item ${index}, field: ${field}, value:`, value);
+    
     const newItems = [...items];
+    const currentItem = { ...newItems[index] };
+    
+    // Log current item state before update
+    console.log(`🔧 [EDIT DEBUG] Current item before update:`, currentItem);
     
     // Garantir conversão correta de números, especialmente com vírgulas
     if (field === 'peso_compra' || field === 'peso_venda' || 
@@ -284,10 +290,26 @@ export default function SimplifiedBudgetForm({
         numericValue = 0;
       }
       
-      newItems[index] = { ...newItems[index], [field]: numericValue };
+      currentItem[field] = numericValue;
+      console.log(`🔧 [EDIT DEBUG] Numeric field ${field} converted to:`, numericValue);
     } else {
-      newItems[index] = { ...newItems[index], [field]: value };
+      currentItem[field] = value;
+      console.log(`🔧 [EDIT DEBUG] Non-numeric field ${field} set to:`, value);
     }
+    
+    newItems[index] = currentItem;
+    
+    // Log all items after update to ensure no data loss
+    console.log(`🔧 [EDIT DEBUG] All items after update:`, newItems.map((item, idx) => ({
+      index: idx,
+      description: item.description,
+      peso_compra: item.peso_compra,
+      peso_venda: item.peso_venda,
+      valor_com_icms_compra: item.valor_com_icms_compra,
+      valor_com_icms_venda: item.valor_com_icms_venda,
+      percentual_ipi: item.percentual_ipi,
+      delivery_time: item.delivery_time
+    })));
     
     setItems(newItems);
     setPreview(null);
@@ -299,21 +321,24 @@ export default function SimplifiedBudgetForm({
         field === 'outras_despesas_item') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
+        console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after ${field} change`);
         autoCalculatePreview(newItems);
       }, 300);
     }
   };
 
   // Função para recalcular quando o valor do frete total mudar
-  const handleFreightValueChange = (value: number | null) => {
-    const formData = form.getFieldsValue();
+  const handleFreightValueChange = (value: number) => {
+    console.log(`🔧 [EDIT DEBUG] Freight value changed to:`, value);
+    setFreightValue(value);
+    
+    // Update form field
     form.setFieldsValue({ freight_value_total: value });
     
-    // Auto-recalcular se temos dados suficientes
-    if (formData.client_name && items.length > 0) {
-      setTimeout(() => {
-        autoCalculatePreview(items);
-      }, 300);
+    // Auto-calculate if we have enough data
+    if (items.length > 0 && items.some(item => item.peso_compra > 0)) {
+      console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after freight value change`);
+      autoCalculatePreview(items);
     }
   };
 
@@ -446,13 +471,44 @@ export default function SimplifiedBudgetForm({
 
   const handleSubmit = async () => {
     try {
+      console.log('🚀 [SUBMIT DEBUG] Starting form submission...');
+      
       const formData = await form.validateFields();
-      console.log('Form data being submitted:', formData);
-      console.log('Freight type in form data:', formData.freight_type);
+      console.log('🚀 [SUBMIT DEBUG] Form validation passed. Form data:', formData);
+      console.log('🚀 [SUBMIT DEBUG] Current items state:', items);
+      
       if (items.length === 0) {
+        console.error('🚀 [SUBMIT DEBUG] No items found in budget');
         message.error('O orçamento deve conter pelo menos um item.');
         return;
       }
+
+      // Validate required fields for each item
+      const invalidItems = items.filter((item, index) => {
+        const isInvalid = !item.description || 
+                         item.peso_compra <= 0 || 
+                         item.valor_com_icms_compra <= 0 || 
+                         item.valor_com_icms_venda <= 0;
+        
+        if (isInvalid) {
+          console.error(`🚀 [SUBMIT DEBUG] Item ${index} is invalid:`, {
+            description: item.description,
+            peso_compra: item.peso_compra,
+            valor_com_icms_compra: item.valor_com_icms_compra,
+            valor_com_icms_venda: item.valor_com_icms_venda
+          });
+        }
+        
+        return isInvalid;
+      });
+
+      if (invalidItems.length > 0) {
+        console.error('🚀 [SUBMIT DEBUG] Found invalid items:', invalidItems);
+        message.error('Todos os itens devem ter descrição, peso de compra, valor de compra e valor de venda preenchidos.');
+        return;
+      }
+
+      // Prepare budget data with all required fields preserved
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado automaticamente
@@ -462,26 +518,57 @@ export default function SimplifiedBudgetForm({
         // Fix: Only include freight_type if it was explicitly set/changed
         ...(formData.freight_type !== undefined && { freight_type: formData.freight_type }),
         payment_condition: formData.payment_condition || 'À vista',
-        items: items.map(item => ({
-          ...item,
-          peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
-          peso_venda: parseFloat(item.peso_venda.toString().replace(',', '.')),
-          valor_com_icms_compra: parseFloat(item.valor_com_icms_compra.toString().replace(',', '.')),
-          valor_com_icms_venda: parseFloat(item.valor_com_icms_venda.toString().replace(',', '.')),
-          // CORREÇÃO: Garantir que o IPI seja incluído no salvamento
-          percentual_ipi: typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0,
-          // CORREÇÃO: Garantir que o delivery_time seja incluído no salvamento
-          delivery_time: item.delivery_time || '0'
-        })),
+        items: items.map((item, index) => {
+          console.log(`🚀 [SUBMIT DEBUG] Processing item ${index}:`, item);
+          
+          const processedItem = {
+            ...item, // Preserve all existing fields
+            description: item.description || '',
+            delivery_time: item.delivery_time || '0',
+            peso_compra: parseFloat(item.peso_compra.toString().replace(',', '.')),
+            peso_venda: parseFloat((item.peso_venda || item.peso_compra).toString().replace(',', '.')),
+            valor_com_icms_compra: parseFloat(item.valor_com_icms_compra.toString().replace(',', '.')),
+            valor_com_icms_venda: parseFloat(item.valor_com_icms_venda.toString().replace(',', '.')),
+            // CORREÇÃO: Garantir que o IPI seja incluído no salvamento
+            percentual_ipi: typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0,
+            // Preserve other fields that might exist
+            percentual_icms_compra: item.percentual_icms_compra || 0.18,
+            percentual_icms_venda: item.percentual_icms_venda || 0.18,
+            outras_despesas_item: item.outras_despesas_item || 0
+          };
+          
+          console.log(`🚀 [SUBMIT DEBUG] Processed item ${index}:`, processedItem);
+          return processedItem;
+        }),
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
-      console.log('Budget data being sent to backend:', budgetData);
-      console.log('Freight type in budget data:', budgetData.freight_type);
+      console.log('🚀 [SUBMIT DEBUG] Final budget data being sent to backend:', JSON.stringify(budgetData, null, 2));
+      console.log('🚀 [SUBMIT DEBUG] Items count:', budgetData.items.length);
+      console.log('🚀 [SUBMIT DEBUG] All items have required fields:', budgetData.items.every(item => 
+        item.description && item.peso_compra > 0 && item.valor_com_icms_compra > 0 && item.valor_com_icms_venda > 0
+      ));
+      
       await onSubmit(budgetData);
+      
+      console.log('🚀 [SUBMIT DEBUG] Form submission completed successfully');
     } catch (error) {
-      console.error('Erro na validação do formulário:', error);
-      message.error('Erro ao validar o formulário. Verifique os campos obrigatórios.');
+      console.error('🚀 [SUBMIT DEBUG] Form submission failed:', error);
+      
+      // Enhanced error handling
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { detail?: string; errors?: unknown } } };
+        console.error('🚀 [SUBMIT DEBUG] Backend error details:', axiosError.response?.data);
+        
+        if (axiosError.response?.data?.detail) {
+          message.error(`Erro de validação: ${axiosError.response.data.detail}`);
+        } else {
+          message.error('Erro ao validar dados no servidor. Verifique os campos obrigatórios.');
+        }
+      } else {
+        console.error('🚀 [SUBMIT DEBUG] Validation error:', error);
+        message.error('Erro ao validar o formulário. Verifique os campos obrigatórios.');
+      }
     }
   };
 
@@ -834,10 +921,12 @@ export default function SimplifiedBudgetForm({
                   style={{ width: '100%' }}
                   placeholder="Ex: 30"
                   onChange={(value) => {
+                    console.log(`🔧 [EDIT DEBUG] Prazo médio changed to:`, value);
                     // Auto-recalcular quando o prazo médio mudar
                     const formData = form.getFieldsValue();
                     if (formData.client_name && items.length > 0) {
                       setTimeout(() => {
+                        console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after prazo médio change`);
                         autoCalculatePreview(items);
                       }, 300);
                     }

@@ -184,7 +184,7 @@ class BusinessRulesCalculator:
             formatted_display = f"{float(absolute_difference):.2f}"
         else:
             percentage_difference = (absolute_difference / peso_compra_dec) * 100
-            formatted_display = f"{float(absolute_difference):.2f} ({float(percentage_difference):.1f}%)"
+            formatted_display = f"{float(percentage_difference):.1f}%"
 
         return {
             'has_difference': True,

@@ -581,53 +581,93 @@ async def update_simplified_budget(
 ):
     """Atualizar orçamento simplificado"""
     try:
-        logger.debug(f"Updating simplified budget {budget_id}")
+        logger.info(f"🔧 [UPDATE DEBUG] Starting update for budget {budget_id}")
+        logger.info(f"🔧 [UPDATE DEBUG] User: {current_user.username}")
+        
+        # Log incoming data
+        budget_dict = budget_data.dict()
+        logger.info(f"🔧 [UPDATE DEBUG] Received data keys: {list(budget_dict.keys())}")
+        logger.info(f"🔧 [UPDATE DEBUG] Items count: {len(budget_dict.get('items', []))}")
+        
+        # Log each item's critical fields
+        for i, item in enumerate(budget_dict.get('items', [])):
+            logger.info(f"🔧 [UPDATE DEBUG] Item {i}: description='{item.get('description', 'N/A')}', "
+                       f"peso_compra={item.get('peso_compra', 'N/A')}, "
+                       f"valor_com_icms_compra={item.get('valor_com_icms_compra', 'N/A')}, "
+                       f"valor_com_icms_venda={item.get('valor_com_icms_venda', 'N/A')}, "
+                       f"percentual_ipi={item.get('percentual_ipi', 'N/A')}")
         
         # Validar dados de entrada
-        budget_dict = budget_data.dict()
+        logger.debug(f"🔧 [UPDATE DEBUG] Validating budget data...")
         errors = BudgetCalculatorService.validate_simplified_budget_data(budget_dict)
         if errors:
+            logger.error(f"🔧 [UPDATE DEBUG] Validation errors: {errors}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Dados inválidos: {'; '.join(errors)}"
             )
+        logger.info(f"🔧 [UPDATE DEBUG] Validation passed successfully")
         
         # Verificar se o orçamento existe
+        logger.debug(f"🔧 [UPDATE DEBUG] Checking if budget {budget_id} exists...")
         existing_budget = await BudgetService.get_budget_by_id(db, budget_id)
         if not existing_budget:
+            logger.error(f"🔧 [UPDATE DEBUG] Budget {budget_id} not found")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Orçamento não encontrado"
             )
         
+        logger.info(f"🔧 [UPDATE DEBUG] Found existing budget: order_number={existing_budget.order_number}, "
+                   f"client_name='{existing_budget.client_name}', items_count={len(existing_budget.items)}")
+        
         # Verificar se o número do pedido já existe em outro orçamento
         if budget_data.order_number and budget_data.order_number != existing_budget.order_number:
+            logger.debug(f"🔧 [UPDATE DEBUG] Checking order number uniqueness: {budget_data.order_number}")
             existing_order = await BudgetService.get_budget_by_order_number(db, budget_data.order_number)
             if existing_order and existing_order.id != budget_id:
+                logger.error(f"🔧 [UPDATE DEBUG] Order number {budget_data.order_number} already exists in budget {existing_order.id}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Número do pedido já existe em outro orçamento"
                 )
         
+        # Log data being sent to service
+        logger.info(f"🔧 [UPDATE DEBUG] Calling BudgetService.update_budget_simplified...")
+        logger.debug(f"🔧 [UPDATE DEBUG] Budget data summary: client_name='{budget_dict.get('client_name')}', "
+                    f"order_number='{budget_dict.get('order_number')}', "
+                    f"freight_type='{budget_dict.get('freight_type')}', "
+                    f"prazo_medio={budget_dict.get('prazo_medio')}")
+        
         # Usar o método update_budget_simplified do BudgetService
         updated_budget = await BudgetService.update_budget_simplified(db, budget_id, budget_dict)
         
         if not updated_budget:
+            logger.error(f"🔧 [UPDATE DEBUG] BudgetService returned None for budget {budget_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Orçamento não encontrado"
             )
         
-        logger.info(f"Simplified budget {budget_id} updated successfully")
+        logger.info(f"🔧 [UPDATE DEBUG] Budget {budget_id} updated successfully")
+        logger.info(f"🔧 [UPDATE DEBUG] Updated budget: order_number={updated_budget.order_number}, "
+                   f"client_name='{updated_budget.client_name}', "
+                   f"items_count={len(updated_budget.items)}, "
+                   f"total_sale_value={updated_budget.total_sale_value}")
+        
         return updated_budget
         
     except ValueError as e:
+        logger.error(f"🔧 [UPDATE DEBUG] ValueError in budget {budget_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions without modification
+        raise
     except Exception as e:
-        logger.error(f"Error updating simplified budget {budget_id}: {str(e)}")
+        logger.error(f"🔧 [UPDATE DEBUG] Unexpected error updating budget {budget_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erro interno do servidor"

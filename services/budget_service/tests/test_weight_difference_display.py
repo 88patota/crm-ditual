@@ -21,7 +21,7 @@ class TestWeightDifferenceDisplay:
         assert result['has_difference'] is True
         assert result['absolute_difference'] == 30
         assert result['percentage_difference'] == 30.0
-        assert result['formatted_display'] == "30.00 (30.0%)"
+        assert result['formatted_display'] == "30.0%"
 
     def test_calculate_weight_difference_display_negative_difference(self):
         """Testa diferença negativa (peso venda < peso compra)."""
@@ -30,7 +30,7 @@ class TestWeightDifferenceDisplay:
         assert result['has_difference'] is True
         assert result['absolute_difference'] == 30
         assert result['percentage_difference'] == 30.0
-        assert result['formatted_display'] == "30.00 (30.0%)"
+        assert result['formatted_display'] == "30.0%"
 
     def test_calculate_weight_difference_display_zero_peso_compra(self):
         """Testa quando peso_compra é zero."""
@@ -48,7 +48,7 @@ class TestWeightDifferenceDisplay:
         assert result['has_difference'] is True
         assert abs(result['absolute_difference'] - 20.25) < 0.01
         assert abs(result['percentage_difference'] - 20.15) < 0.01
-        assert result['formatted_display'] == "20.25 (20.1%)"
+        assert result['formatted_display'] == "20.1%"
 
     def test_calculate_weight_difference_display_small_difference(self):
         """Testa com diferença muito pequena."""
@@ -57,7 +57,7 @@ class TestWeightDifferenceDisplay:
         assert result['has_difference'] is True
         assert abs(result['absolute_difference'] - 0.1) < 0.01
         assert abs(result['percentage_difference'] - 0.1) < 0.01
-        assert result['formatted_display'] == "0.10 (0.1%)"
+        assert result['formatted_display'] == "0.1%"
 
     def test_calculate_weight_difference_display_large_percentage(self):
         """Testa com diferença percentual grande."""
@@ -66,7 +66,7 @@ class TestWeightDifferenceDisplay:
         assert result['has_difference'] is True
         assert result['absolute_difference'] == 40
         assert result['percentage_difference'] == 400.0
-        assert result['formatted_display'] == "40.00 (400.0%)"
+        assert result['formatted_display'] == "400.0%"
 
     def test_integration_with_calculate_complete_item(self):
         """Testa a integração com calculate_complete_item."""
@@ -94,7 +94,7 @@ class TestWeightDifferenceDisplay:
         assert weight_diff['has_difference'] is True
         assert weight_diff['absolute_difference'] == 30
         assert weight_diff['percentage_difference'] == 30.0
-        assert weight_diff['formatted_display'] == "30.00 (30.0%)"
+        assert weight_diff['formatted_display'] == "30.0%"
 
     def test_integration_no_difference_scenario(self):
         """Testa integração quando não há diferença de peso."""
