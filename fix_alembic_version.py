@@ -15,7 +15,7 @@ def get_db_connection():
         connection = psycopg2.connect(
             host=os.getenv('POSTGRES_HOST', 'postgres'),
             port=os.getenv('POSTGRES_PORT', '5432'),
-            database=os.getenv('POSTGRES_DB', 'crm_db'),
+            database=os.getenv('POSTGRES_DB', 'crm_ditual'),
             user=os.getenv('POSTGRES_USER', 'crm_user'),
             password=os.getenv('POSTGRES_PASSWORD', 'crm_strong_password_2024')
         )
