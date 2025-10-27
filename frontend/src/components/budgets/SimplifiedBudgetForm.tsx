@@ -265,8 +265,12 @@ export default function SimplifiedBudgetForm({
     }
   };
 
-  const updateItem = (index: number, field: keyof BudgetItemSimplified, value: unknown) => {
-    console.log(`🔧 [EDIT DEBUG] Updating item ${index}, field: ${field}, value:`, value);
+  const updateItem = <K extends keyof BudgetItemSimplified>(
+    index: number, 
+    field: K, 
+    value: BudgetItemSimplified[K] | string | number | null | undefined
+  ) => {
+    console.log('🔧 [EDIT DEBUG] Updating item', index, 'field:', field, 'value:', value);
     
     const newItems = [...items];
     const currentItem = { ...newItems[index] };
@@ -290,11 +294,11 @@ export default function SimplifiedBudgetForm({
         numericValue = 0;
       }
       
-      currentItem[field] = numericValue;
-      console.log(`🔧 [EDIT DEBUG] Numeric field ${field} converted to:`, numericValue);
+      currentItem[field] = numericValue as BudgetItemSimplified[K];
+      console.log('🔧 [EDIT DEBUG] Numeric field', field, 'converted to:', numericValue);
     } else {
-      currentItem[field] = value;
-      console.log(`🔧 [EDIT DEBUG] Non-numeric field ${field} set to:`, value);
+      currentItem[field] = value as BudgetItemSimplified[K];
+      console.log('🔧 [EDIT DEBUG] Non-numeric field', field, 'set to:', value);
     }
     
     newItems[index] = currentItem;
@@ -321,7 +325,7 @@ export default function SimplifiedBudgetForm({
         field === 'outras_despesas_item') {
       // Debounce the auto-calculation to avoid too many API calls
       setTimeout(() => {
-        console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after ${field} change`);
+        console.log('🔧 [EDIT DEBUG] Auto-calculating preview after', field, 'change');
         autoCalculatePreview(newItems);
       }, 300);
     }
@@ -330,7 +334,6 @@ export default function SimplifiedBudgetForm({
   // Função para recalcular quando o valor do frete total mudar
   const handleFreightValueChange = (value: number) => {
     console.log(`🔧 [EDIT DEBUG] Freight value changed to:`, value);
-    setFreightValue(value);
     
     // Update form field
     form.setFieldsValue({ freight_value_total: value });
@@ -519,7 +522,7 @@ export default function SimplifiedBudgetForm({
         ...(formData.freight_type !== undefined && { freight_type: formData.freight_type }),
         payment_condition: formData.payment_condition || 'À vista',
         items: items.map((item, index) => {
-          console.log(`🚀 [SUBMIT DEBUG] Processing item ${index}:`, item);
+          console.log('🚀 [SUBMIT DEBUG] Processing item', index, ':', item);
           
           const processedItem = {
             ...item, // Preserve all existing fields
@@ -537,7 +540,7 @@ export default function SimplifiedBudgetForm({
             outras_despesas_item: item.outras_despesas_item || 0
           };
           
-          console.log(`🚀 [SUBMIT DEBUG] Processed item ${index}:`, processedItem);
+          console.log('🚀 [SUBMIT DEBUG] Processed item', index, ':', processedItem);
           return processedItem;
         }),
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,

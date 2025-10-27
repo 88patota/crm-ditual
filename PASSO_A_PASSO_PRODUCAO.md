@@ -76,7 +76,18 @@ Copie os seguintes arquivos do ambiente de desenvolvimento para produção:
 # (Conteúdo já criado e testado)
 ```
 
-### 6. 🚀 Iniciar Serviços e Aplicar Migrações
+### 6. 📁 Copiar os Novos Arquivos de Migração
+
+#### 6.1 Copiar as migrações para o servidor (CRÍTICO!)
+```bash
+# Copiar migração do budget_service
+scp services/budget_service/alembic/versions/001_initial_migration.py usuario@servidor:/caminho/para/crm-ditual/services/budget_service/alembic/versions/
+
+# Copiar migração do user_service
+scp services/user_service/alembic/versions/001_initial_migration.py usuario@servidor:/caminho/para/crm-ditual/services/user_service/alembic/versions/
+```
+
+### 7. 🚀 Iniciar Serviços e Aplicar Migrações
 ```bash
 # Iniciar todos os serviços
 docker compose -f docker-compose.prod.yml up -d
