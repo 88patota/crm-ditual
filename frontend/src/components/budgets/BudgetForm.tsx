@@ -187,6 +187,8 @@ export default function BudgetForm({
         // Update IPI totals if available
         total_ipi_value: calculation.total_ipi_value,
         total_final_value: calculation.total_final_value,
+        // Update total weight difference percentage
+        total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
     } catch (error) {

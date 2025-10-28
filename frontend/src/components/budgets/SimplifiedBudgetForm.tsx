@@ -379,6 +379,21 @@ export default function SimplifiedBudgetForm({
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
       
+      // Atualizar os itens com os dados calculados, incluindo weight_difference_display
+      if (calculation.items_calculations && calculation.items_calculations.length > 0) {
+        const updatedItems = items.map((item, index) => {
+          const calculatedItem = calculation.items_calculations[index];
+          if (calculatedItem) {
+            return {
+              ...item,
+              weight_difference_display: calculatedItem.weight_difference_display
+            };
+          }
+          return item;
+        });
+        setItems(updatedItems);
+      }
+      
       // CORREÇÃO: Atualizar os campos do formulário com os valores calculados
       // Isso garante que os valores totais e de comissão sejam atualizados também no cálculo manual
       form.setFieldsValue({
@@ -394,6 +409,8 @@ export default function SimplifiedBudgetForm({
         total_taxes: calculation.total_taxes,
         // Atualizar valor do frete por kg
         valor_frete_compra: calculation.valor_frete_compra,
+        // Atualizar diferença total de peso
+        total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
       message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(1)}%`);
@@ -448,6 +465,21 @@ export default function SimplifiedBudgetForm({
       const calculation = await budgetService.calculateBudgetSimplified(budgetData);
       setPreview(calculation);
       
+      // Atualizar os itens com os dados calculados, incluindo weight_difference_display
+      if (calculation.items_calculations && calculation.items_calculations.length > 0) {
+        const updatedItemsWithCalculation = updatedItems.map((item, index) => {
+          const calculatedItem = calculation.items_calculations[index];
+          if (calculatedItem) {
+            return {
+              ...item,
+              weight_difference_display: calculatedItem.weight_difference_display
+            };
+          }
+          return item;
+        });
+        setItems(updatedItemsWithCalculation);
+      }
+      
       // CORREÇÃO CRÍTICA: Atualizar os campos do formulário com os valores calculados
       // Isso garante que os valores totais e de comissão sejam atualizados em tempo real
       form.setFieldsValue({
@@ -463,6 +495,8 @@ export default function SimplifiedBudgetForm({
         total_taxes: calculation.total_taxes,
         // Atualizar valor do frete por kg
         valor_frete_compra: calculation.valor_frete_compra,
+        // Atualizar diferença total de peso
+        total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
     } catch (error) {
@@ -645,6 +679,26 @@ export default function SimplifiedBudgetForm({
           parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
+    },
+    {
+      title: 'Diferença de Peso',
+      dataIndex: 'weight_difference_display',
+      key: 'weight_difference_display',
+      width: 150,
+      render: (value: { has_difference: boolean; absolute_difference: number; formatted_display: string } | undefined) => {
+        if (!value || !value.has_difference) {
+          return <Text type="secondary">-</Text>;
+        }
+        
+        const isNegative = value.absolute_difference < 0;
+        const color = isNegative ? '#ff4d4f' : '#52c41a';
+        
+        return (
+          <Text style={{ color, fontWeight: 'bold' }}>
+            {value.formatted_display}
+          </Text>
+        );
+      },
     },
     {
       title: 'Valor c/ICMS (Compra) *',
@@ -1188,7 +1242,7 @@ export default function SimplifiedBudgetForm({
                       />
                       
                       <Row gutter={[16, 8]}>
-                        <Col span={12}>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
@@ -1196,11 +1250,19 @@ export default function SimplifiedBudgetForm({
                             </div>
                           </div>
                         </Col>
-                        <Col span={12}>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
                               {preview.markup_percentage.toFixed(1)}%
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={8}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa541c' }}>
+                              {(preview.total_weight_difference_percentage || 0).toFixed(2)}%
                             </div>
                           </div>
                         </Col>

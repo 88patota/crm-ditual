@@ -704,11 +704,19 @@ export default function BudgetView() {
               
               {/* Segunda linha de totais */}
               <Row gutter={[12, 12]} style={{ marginTop: '12px' }}>
-                <Col span={24}>
+                <Col span={12}>
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
                       {budget.markup_percentage.toFixed(1)}%
+                    </div>
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div style={{ textAlign: 'center' }}>
+                    <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa541c' }}>
+                      {(budget.total_weight_difference_percentage || 0).toFixed(2)}%
                     </div>
                   </div>
                 </Col>

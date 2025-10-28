@@ -26,6 +26,12 @@ export interface BudgetItemSimplified {
   valor_total_com_ipi?: number; // Valor total incluindo IPI
   rentabilidade?: number; // Rentabilidade calculada
   comissao?: number; // Comissão calculada
+  weight_difference_display?: {
+    has_difference: boolean;
+    absolute_difference: number;
+    percentage_difference: number;
+    formatted_display: string;
+  }; // Diferença de peso calculada e formatada
 }
 
 export interface BudgetSimplified {
@@ -127,7 +133,6 @@ export interface BudgetItem {
   sale_value_with_icms: number;
   sale_icms_percentage: number;
   sale_value_without_taxes: number;
-  weight_difference?: number;
   weight_difference_display?: {
     has_difference: boolean;
     absolute_difference: number;
@@ -179,6 +184,7 @@ export interface Budget {
   total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission?: number;
   profitability_percentage?: number;
+  total_weight_difference_percentage?: number; // Diferença total de peso em porcentagem
   
   // IPI totals
   total_ipi_value?: number; // Total do IPI de todos os itens
@@ -213,6 +219,7 @@ export interface BudgetCalculation {
   total_commission: number;
   profitability_percentage: number;
   markup_percentage: number;
+  total_weight_difference_percentage?: number; // Diferença total de peso em porcentagem
   items_calculations: Array<{
     description: string;
     quantity: number;
@@ -220,6 +227,12 @@ export interface BudgetCalculation {
     total_sale: number;
     profitability: number;
     commission_value: number;
+    weight_difference_display?: {
+      has_difference: boolean;
+      absolute_difference: number;
+      percentage_difference: number;
+      formatted_display: string;
+    };
   }>;
   
   // IPI calculations

@@ -493,7 +493,7 @@ export default function AutoMarkupBudgetForm({
                       />
                       
                       <Row gutter={[16, 8]}>
-                        <Col span={12}>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
@@ -501,7 +501,15 @@ export default function AutoMarkupBudgetForm({
                             </div>
                           </div>
                         </Col>
-                        <Col span={12}>
+                        <Col span={8}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f5222d' }}>
+                              {(preview.total_weight_difference_percentage || 0).toFixed(2)}%
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
