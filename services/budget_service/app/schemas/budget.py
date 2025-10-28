@@ -256,6 +256,9 @@ class BudgetResponse(BudgetBase):
     total_ipi_value: Optional[float] = None  # Total do IPI de todos os itens
     total_final_value: Optional[float] = None  # Valor final incluindo IPI (valor que o cliente paga)
     
+    # Weight difference
+    total_weight_difference_percentage: Optional[float] = None  # Diferença total de peso em porcentagem
+    
     created_by: str
     created_at: datetime
     updated_at: datetime
@@ -296,6 +299,9 @@ class BudgetCalculation(BaseModel):
     # IPI calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens
     total_final_value: float = 0.0  # Valor final incluindo IPI
+    
+    # Total weight difference
+    total_weight_difference_percentage: float = 0.0  # Diferença total de peso em porcentagem
 
 
 class BudgetPreviewCalculation(BaseModel):
@@ -319,3 +325,6 @@ class BudgetPreviewCalculation(BaseModel):
     # IPI preview calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens
     total_final_value: float = 0.0  # Valor final incluindo IPI
+    
+    # Total weight difference
+    total_weight_difference_percentage: float = 0.0  # Diferença total de peso em porcentagem

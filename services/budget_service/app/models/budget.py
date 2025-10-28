@@ -33,6 +33,9 @@ class Budget(Base):
     total_ipi_value = Column(Float, nullable=True)  # Total do IPI de todos os itens
     total_final_value = Column(Float, nullable=True)  # Valor final incluindo IPI (valor que o cliente paga)
     
+    # Weight difference
+    total_weight_difference_percentage = Column(Float, default=0.0)  # Diferença total de peso em porcentagem
+    
     # Status and metadata
     status = Column(String, nullable=False, default=BudgetStatus.DRAFT.value)
     notes = Column(Text, nullable=True)

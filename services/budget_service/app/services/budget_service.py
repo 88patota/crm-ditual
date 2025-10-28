@@ -93,7 +93,9 @@ class BudgetService:
             valor_frete_compra=budget_result['totals'].get('valor_frete_compra', 0.0),
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
             total_ipi_value=budget_result['totals'].get('total_ipi_orcamento', 0.0),
-            total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0)
+            total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0),
+            # Weight difference
+            total_weight_difference_percentage=budget_result['totals'].get('total_weight_difference_percentage', 0.0)
         )
         
         db.add(budget)
@@ -116,6 +118,10 @@ class BudgetService:
             # Use correct IPI field names from BusinessRulesCalculator
             total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
             
+            # Weight difference display
+            weight_diff_raw = calculated_item.get('weight_difference_display')
+            weight_diff_json = safe_json_dumps(weight_diff_raw) if weight_diff_raw else None
+            
             budget_item = BudgetItem(
                 budget_id=budget.id,
                 description=calculated_item['description'],
@@ -123,7 +129,7 @@ class BudgetService:
                 weight=calculated_item['peso_compra'],
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                purchase_other_expenses=calculated_item['outras_despesas_item'],
                 purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
                 purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
                 sale_weight=calculated_item['peso_venda'],
@@ -143,7 +149,9 @@ class BudgetService:
                 ipi_percentage=ipi_percentage,
                 ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
                 total_value_with_ipi=total_value_with_ipi,
-                dunamis_cost=item_data.get('dunamis_cost')
+                dunamis_cost=item_data.get('dunamis_cost'),
+                # Weight difference display
+                weight_difference_display=weight_diff_json
             )
             db.add(budget_item)
         
@@ -359,7 +367,7 @@ class BudgetService:
                         weight=calculated_item['peso_compra'],
                         purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                         purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                        purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                        purchase_other_expenses=calculated_item['outras_despesas_item'],
                         purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
                         purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
                         sale_weight=calculated_item['peso_venda'],
@@ -587,7 +595,7 @@ class BudgetService:
                 logger.info(f"🔧 [SERVICE DEBUG] Calculating budget with {len(items_data)} items...")
                 soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
                 outras_despesas_totais = budget_data.get('outras_despesas_totais', 0.0)
-                freight_value_total = budget_data.get('freight_value_total', 0.0)
+                freight_value_total = budget_data.get('freight_value_total') or 0.0
                 
                 logger.debug(f"🔧 [SERVICE DEBUG] Calculation parameters: soma_pesos_pedido={soma_pesos_pedido}, "
                             f"outras_despesas_totais={outras_despesas_totais}, freight_value_total={freight_value_total}")
@@ -639,6 +647,7 @@ class BudgetService:
                 budget.total_ipi_value = budget_result['totals'].get('total_ipi_orcamento', 0.0)
                 budget.total_final_value = budget_result['totals'].get('total_final_com_ipi', 0.0)
                 budget.valor_frete_compra = budget_result['totals'].get('valor_frete_compra', 0.0)
+                budget.total_weight_difference_percentage = budget_result['totals'].get('total_weight_difference_percentage', 0.0)
                 
                 logger.debug(f"🔧 [SERVICE DEBUG] Updated calculated totals: "
                             f"total_purchase_value={budget.total_purchase_value}, "

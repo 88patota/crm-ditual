@@ -543,7 +543,9 @@ async def calculate_simplified_budget(
                 # IPI fields
                 'ipi_percentage': item['percentual_ipi'],
                 'ipi_value': item['valor_ipi_total'],
-                'total_value_with_ipi': item['total_final_com_ipi']
+                'total_value_with_ipi': item['total_final_com_ipi'],
+                # Weight difference display
+                'weight_difference_display': item.get('weight_difference_display')
             })
         
         return BudgetCalculation(
@@ -557,7 +559,9 @@ async def calculate_simplified_budget(
             items_calculations=items_calculations,
             # IPI calculations
             total_ipi_value=round(total_ipi_value, 2),
-            total_final_value=round(total_final_value, 2)
+            total_final_value=round(total_final_value, 2),
+            # Weight difference
+            total_weight_difference_percentage=round(budget_result['totals']['total_weight_difference_percentage'], 2)
         )
         
     except ValueError as e:
@@ -743,7 +747,7 @@ async def create_simplified_budget(
                 delivery_time=delivery_time_value,  # Usar delivery_time do item original
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                purchase_other_expenses=calculated_item['outras_despesas_item'],
                 purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
                 purchase_value_with_weight_diff=calculated_item.get('valor_corrigido_peso'),
                 sale_weight=calculated_item['peso_venda'],
