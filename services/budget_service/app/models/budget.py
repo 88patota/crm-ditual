@@ -95,9 +95,6 @@ class BudgetItem(Base):
     commission_percentage_actual = Column(Float, default=0.0)  # Actual percentage used by backend
     commission_value = Column(Float, default=0.0)
     
-    # Cost reference for external system (Dunamis)
-    dunamis_cost = Column(Float, nullable=True)
-    
     # IPI (Imposto sobre Produtos Industrializados)
     ipi_percentage = Column(Float, default=0.0)  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
     ipi_value = Column(Float, nullable=True)  # Valor do IPI calculado

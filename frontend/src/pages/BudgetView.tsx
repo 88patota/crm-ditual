@@ -708,7 +708,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                      {budget.markup_percentage.toFixed(1)}%
+                      {budget.markup_percentage.toFixed(2)}%
                     </div>
                   </div>
                 </Col>

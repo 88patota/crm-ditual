@@ -486,7 +486,7 @@ export default function AutoMarkupBudgetForm({
                     <div style={{ padding: '8px 0' }}>
                       <Alert
                         message="🎯 Markup Automático Aplicado"
-                        description={`Markup calculado: ${preview.markup_percentage.toFixed(1)}% baseado nos valores de compra e venda informados.`}
+                        description={`Markup calculado: ${preview.markup_percentage.toFixed(2)}% baseado nos valores de compra e venda informados.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}
@@ -513,7 +513,7 @@ export default function AutoMarkupBudgetForm({
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                              {preview.markup_percentage.toFixed(1)}%
+                              {preview.markup_percentage.toFixed(2)}%
                             </div>
                           </div>
                         </Col>

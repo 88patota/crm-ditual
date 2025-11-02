@@ -47,7 +47,6 @@ const initialBudgetItem: BudgetItem = {
   purchase_value_without_taxes: 0,
   sale_icms_percentage: 0.17, // Decimal format (17%)
   sale_value_without_taxes: 0,
-  dunamis_cost: 0,
   purchase_value_with_icms: 0,
   sale_value_with_icms: 0,
   ipi_percentage: 0.0, // 0% por padrão (formato decimal)
@@ -318,20 +317,6 @@ export default function BudgetForm({
       render: (value: number) => {
         return convertNumericToBrazilian(value || 0);
       },
-    },
-    {
-      title: 'Custo Dunamis',
-      dataIndex: 'dunamis_cost',
-      key: 'dunamis_cost',
-      width: 130,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <CurrencyInput
-          value={value}
-          onChange={(val) => updateItem(index, 'dunamis_cost', val || 0)}
-          placeholder="0,00"
-          style={{ width: '100%' }}
-        />
-      ),
     },
     {
       title: 'Valor Compra c/ ICMS',

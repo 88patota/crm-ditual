@@ -252,6 +252,9 @@ class BusinessRulesCalculator:
         
         NOTA: Para cálculo correto de markup/rentabilidade, usar valores COM ICMS
         tanto para compra quanto para venda para comparação consistente.
+        
+        IMPORTANTE: Retorna valor em decimal (ex: 0.3077 = 30.77%), 
+        sem arredondamento prematuro para manter precisão nos cálculos subsequentes.
         """
         valor_venda_dec = BusinessRulesCalculator._to_decimal(valor_venda)
         valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_compra)
@@ -260,7 +263,8 @@ class BusinessRulesCalculator:
             return 0.0
         
         rentabilidade = (valor_venda_dec / valor_compra_dec) - Decimal('1')
-        return float(rentabilidade.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
+        # Manter alta precisão para cálculos subsequentes - arredondamento apenas na exibição
+        return float(rentabilidade)
     
     @staticmethod
     def calculate_budget_markup(soma_total_venda_pedido: float, soma_total_compra_pedido: float) -> float:
@@ -268,6 +272,9 @@ class BusinessRulesCalculator:
         REGRA 5.2.4: Markup do Pedido
         Formula Excel: IFERROR(O7/N7-1,0)
         Formula Sistema: IF soma_total_compra_pedido = 0 THEN 0 ELSE (soma_total_venda_pedido / soma_total_compra_pedido) - 1
+        
+        IMPORTANTE: Retorna valor em decimal (ex: 0.3077 = 30.77%), 
+        sem arredondamento prematuro para manter precisão nos cálculos subsequentes.
         """
         soma_venda_dec = BusinessRulesCalculator._to_decimal(soma_total_venda_pedido)
         soma_compra_dec = BusinessRulesCalculator._to_decimal(soma_total_compra_pedido)
@@ -276,36 +283,8 @@ class BusinessRulesCalculator:
             return 0.0
         
         markup = (soma_venda_dec / soma_compra_dec) - Decimal('1')
-        return float(markup.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
-    
-    @staticmethod
-    def calculate_dunamis_cost_v1(valor_sem_impostos_compra: float, percentual_icms_venda: float) -> float:
-        """
-        REGRA 7.2.1: Custo com Ajuste de Impostos (Versão 1)
-        Formula Excel: G7/(1-J7)/(1-9.25%)
-        Formula Sistema: valor_sem_impostos_compra / (1 - percentual_icms) / (1 - 0.0925)
-        """
-        valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_sem_impostos_compra)
-        percentual_icms_dec = BusinessRulesCalculator._to_decimal(percentual_icms_venda)
-        
-        # Aplicar ajustes sequenciais (divisões "por dentro")
-        custo_ajustado = valor_compra_dec / (Decimal('1') - percentual_icms_dec)
-        custo_final = custo_ajustado / (Decimal('1') - BusinessRulesCalculator.PIS_COFINS_PERCENTAGE)
-        
-        return float(custo_final.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
-    
-    @staticmethod
-    def calculate_dunamis_cost_v2(valor_sem_impostos_compra: float, percentual_icms_venda: float) -> float:
-        """
-        REGRA 7.2.2: Custo com Ajuste de Impostos (Versão 2)
-        Formula Excel: G7/(1-J7)
-        Formula Sistema: valor_sem_impostos_compra / (1 - percentual_icms)
-        """
-        valor_compra_dec = BusinessRulesCalculator._to_decimal(valor_sem_impostos_compra)
-        percentual_icms_dec = BusinessRulesCalculator._to_decimal(percentual_icms_venda)
-        
-        custo_ajustado = valor_compra_dec / (Decimal('1') - percentual_icms_dec)
-        return float(custo_ajustado.quantize(Decimal('0.000001'), rounding=ROUND_HALF_UP))
+        # Manter alta precisão para cálculos subsequentes - arredondamento apenas na exibição
+        return float(markup)
     
     @staticmethod
     def calculate_total_purchase_item(peso_compra: float, valor_sem_impostos_compra: float) -> float:

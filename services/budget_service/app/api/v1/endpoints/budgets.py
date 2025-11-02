@@ -377,7 +377,7 @@ async def calculate_budget(
         total_net_revenue = total_sale_value
         total_taxes = total_sale_with_icms - total_net_revenue
 
-        # Calculate markup
+        # Calculate markup - valores já estão em decimal
         markup_percentage = budget_result['totals']['markup_pedido']
         profitability_percentage = markup_percentage
 
@@ -389,7 +389,7 @@ async def calculate_budget(
                 'weight': item['peso_compra'],
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
-                'profitability': (item['rentabilidade_item'] or 0) * 100,
+                'profitability': round((item['rentabilidade_item'] or 0) * 100, 2),  # Conversão para % apenas aqui
                 'commission_value': item['valor_comissao'],
                 'ipi_percentage': item['percentual_ipi'],
                 'ipi_value': item['valor_ipi_total'],
@@ -402,8 +402,8 @@ async def calculate_budget(
             total_net_revenue=round(total_net_revenue, 2),
             total_taxes=round(total_taxes, 2),
             total_commission=round(total_commission, 2),
-            profitability_percentage=round(profitability_percentage, 2),
-            markup_percentage=round(markup_percentage, 2),
+            profitability_percentage=round(profitability_percentage * 100, 2),  # Conversão para % apenas aqui
+            markup_percentage=round(markup_percentage * 100, 2),  # Conversão para % apenas aqui
             items_calculations=items_calculations,
             total_ipi_value=round(total_ipi_value, 2),
             total_final_value=round(total_final_value, 2)
@@ -524,8 +524,8 @@ async def calculate_simplified_budget(
         total_net_revenue = total_sale_value  # SEM impostos
         total_taxes = total_sale_with_icms - total_net_revenue
         
-        # Calcular markup
-        markup_percentage = budget_result['totals']['markup_pedido']
+        # Calcular markup - converter de decimal para percentual
+        markup_percentage = budget_result['totals']['markup_pedido'] * 100  # Converter para percentual
         profitability_percentage = markup_percentage
         
         # Preparar resposta
@@ -924,46 +924,7 @@ async def suggest_sale_price_from_markup(
         )
 
 
-@router.post("/calculate-dunamis-cost", response_model=dict)
-async def calculate_dunamis_cost(
-    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
-    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
-    weight: float = Query(1.0, description="Peso do item")
-):
-    """
-    Calcular custo a ser lançado no Dunamis conforme Regra 10
-    Fórmula: Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
-    """
-    try:
-        dunamis_cost_unit = BudgetCalculatorService.calculate_dunamis_cost(
-            purchase_value_with_icms=purchase_value_with_icms,
-            sale_icms_percentage=sale_icms_percentage
-        )
-        
-        dunamis_cost_total = dunamis_cost_unit * weight
-        
-        return {
-            "success": True,
-            "data": {
-                "dunamis_cost_per_unit": round(dunamis_cost_unit, 6),
-                "dunamis_cost_total": round(dunamis_cost_total, 6),
-                "calculation_details": {
-                    "purchase_value_with_icms": purchase_value_with_icms,
-                    "sale_icms_percentage": sale_icms_percentage,
-                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE,
-                                        "formula": "Valor Compra c/ICMS / (1 - %ICMS Venda) / (1 - %PIS/COFINS)",
-                    "step1": f"{purchase_value_with_icms} / (1 - {sale_icms_percentage}%)",
-                    "step2": f"/ (1 - {BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE}%)",
-                    "result_per_unit": round(dunamis_cost_unit, 6)
-                }
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro no cálculo do custo Dunamis: {str(e)}"
-        )
+
 
 
 @router.get("/{budget_id}/export-pdf")

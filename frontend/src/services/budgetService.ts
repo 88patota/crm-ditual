@@ -151,7 +151,6 @@ export interface BudgetItem {
   commission_percentage?: number;  // Now calculated dynamically based on profitability
   commission_percentage_actual?: number;  // Actual percentage used by backend
   commission_value?: number;
-  dunamis_cost?: number;
   
   // IPI (Imposto sobre Produtos Industrializados)
   ipi_percentage?: number; // Percentual de IPI (formato decimal: 0.0, 0.0325, 0.05)

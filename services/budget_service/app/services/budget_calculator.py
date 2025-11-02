@@ -149,13 +149,6 @@ class BudgetCalculatorService:
         # Use the profitability already calculated for commission calculation
         commission_value = CommissionService.calculate_commission_value(total_value_with_icms, profitability)
         
-        # REGRA 10: Custo a ser lançado no Dunamis = Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
-        dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
-            purchase_value_with_icms=purchase_value_with_icms,
-            sale_icms_percentage=sale_icms_percentage
-        )
-        dunamis_cost = dunamis_cost * peso_compra  # Multiplicar pelo peso para totalizar
-        
         # Cálculos de IPI (não afetam rentabilidade ou comissão)
         from app.services.business_rules_calculator import BusinessRulesCalculator
         ipi_value_per_unit = BusinessRulesCalculator.calculate_ipi_value(sale_value_with_icms, ipi_percentage)
@@ -181,7 +174,7 @@ class BudgetCalculatorService:
             'weight_difference': round(weight_difference, 6),  # Regra 4
             
             # Campos calculados finais
-            'profitability': round(profitability * 100, 2),  # Regra 5 em percentual
+            'profitability': profitability,  # Manter em decimal para cálculos - conversão para % apenas na exibição
             'total_purchase': round(total_purchase, 2),  # Regra 6
             'total_sale': round(total_sale, 2),  # Regra 7
             'unit_value': round(unit_value, 2),  # Regra 8
@@ -189,7 +182,6 @@ class BudgetCalculatorService:
             
             # Comissão
             'commission_value': round(commission_value, 2),  # Regra 9
-            'dunamis_cost': round(dunamis_cost, 2),  # Regra 10
             
             # IPI (Imposto sobre Produtos Industrializados)
             'ipi_percentage': ipi_percentage,  # Percentual de IPI
@@ -226,8 +218,8 @@ class BudgetCalculatorService:
         
         # Calcular markup/rentabilidade resultante
         if total_purchase_value > 0:
-            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value) * 100
-            profitability_percentage = markup_percentage  # Mesmo valor conforme regras
+            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value)
+            profitability_percentage = markup_percentage  # Mesmo valor conforme regras - manter em decimal
         else:
             markup_percentage = 0.0
             profitability_percentage = 0.0
@@ -238,34 +230,13 @@ class BudgetCalculatorService:
                 'total_purchase_value': round(total_purchase_value, 2),
                 'total_sale_value': round(total_sale_value, 2),
                 'total_commission': round(total_commission, 2),
-                'profitability_percentage': round(profitability_percentage, 2),
-                'markup_percentage': round(markup_percentage, 2),
+                'profitability_percentage': profitability_percentage,  # Manter em decimal
+                'markup_percentage': markup_percentage,  # Manter em decimal
                 # Totais de IPI
                 'total_ipi_value': round(total_ipi_value, 2),
                 'total_final_value': round(total_final_value, 2),  # Valor final que o cliente pagará
             }
         }
-    
-    @staticmethod
-    def calculate_dunamis_cost(purchase_value_with_icms: float, sale_icms_percentage: Optional[float] = None) -> float:
-        """
-        REGRA 10: Calcula o custo a ser lançado no Dunamis
-        Fórmula: Valor c/ICMS (Compra) / (1 - %ICMS (Venda)) / (1 - Taxa PIS/COFINS)
-        
-        Args:
-            purchase_value_with_icms: Valor de compra com ICMS
-            sale_icms_percentage: Percentual de ICMS na venda (usa padrão se não fornecido)
-            
-        Returns:
-            float: Custo ajustado para lançamento no Dunamis
-        """
-        if sale_icms_percentage is None:
-            sale_icms_percentage = BudgetCalculatorService.DEFAULT_SALE_ICMS_PERCENTAGE
-            
-        # Aplicar fórmula da regra 10: divisão sequencial "por dentro"
-        dunamis_cost = purchase_value_with_icms / (1 - sale_icms_percentage / 100) / (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        
-        return round(dunamis_cost, 6)
 
     @staticmethod
     def validate_simplified_budget_data(budget_data: dict) -> List[str]:
@@ -357,7 +328,7 @@ class BudgetCalculatorService:
             'total_sale': round(total_sale, 2),
             'unit_value': round(unit_value, 2),
             'total_value': round(total_value, 2),
-            'profitability': round(profitability * 100, 2),  # Convert to percentage for display
+            'profitability': profitability,  # Manter em decimal - conversão para % apenas na exibição
             'commission_value': round(commission_value, 2),
             'weight_difference': round(weight_difference, 6)
         }
@@ -455,22 +426,22 @@ class BudgetCalculatorService:
             
             total_commission += commission_value
             
-            # Group by profitability ranges for better reporting
+            # Group by profitability ranges for better reporting - ATUALIZADO
             # Tratar valores None ou não numéricos
             if profitability is None or not isinstance(profitability, (int, float)):
                 range_key = "Indefinido"
-            elif profitability < 20:
-                range_key = "< 20%"
-            elif profitability < 30:
-                range_key = "20-30%"
-            elif profitability < 40:
-                range_key = "30-40%"
-            elif profitability < 50:
-                range_key = "40-50%"
-            elif profitability < 60:
-                range_key = "50-60%"
-            elif profitability < 80:
-                range_key = "60-80%"
+            elif profitability < 19.99:
+                range_key = "< 19,99%"
+            elif profitability < 29.99:
+                range_key = "20-29,99%"
+            elif profitability < 39.99:
+                range_key = "30-39,99%"
+            elif profitability < 49.99:
+                range_key = "40-49,99%"
+            elif profitability < 59.99:
+                range_key = "50-59,99%"
+            elif profitability < 79.99:
+                range_key = "60-79,99%"
             else:
                 range_key = ">= 80%"
             

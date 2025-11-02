@@ -94,17 +94,6 @@ def test_regras_planilha():
     print(f"    Esperado: valor calculado com fórmula da regra 10")
     print()
     
-    # Testar cálculo específico do Dunamis
-    dunamis_unitario = BudgetCalculatorService.calculate_dunamis_cost(
-        purchase_value_with_icms=6.5,
-        sale_icms_percentage=17.0
-    )
-    print(f"Dunamis Unitário: R$ {dunamis_unitario}")
-    print(f"Fórmula: 6.5 / (1 - 0.17) / (1 - 0.0925)")
-    print(f"= 6.5 / 0.83 / 0.9075")
-    print(f"≈ {6.5 / 0.83 / 0.9075:.6f}")
-    print()
-
 def test_markup_automatico():
     """Teste do cálculo automático de markup"""
     print("=== TESTE MARKUP AUTOMÁTICO ===\n")

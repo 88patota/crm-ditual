@@ -413,7 +413,7 @@ export default function SimplifiedBudgetForm({
         total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
-      message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(1)}%`);
+      message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(2)}%`);
     } catch (error) {
       console.error('Erro ao calcular orçamento:', error);
       message.error('Erro ao calcular orçamento. Verifique se todos os campos obrigatórios estão preenchidos.');
@@ -1235,7 +1235,7 @@ export default function SimplifiedBudgetForm({
                     <div style={{ padding: '8px 0' }}>
                       <Alert
                         message="🎯 Cálculo Concluído"
-                        description={`Orçamento calculado com markup de ${preview.markup_percentage.toFixed(1)}%. Todos os valores estão prontos para revisão.`}
+                        description={`Orçamento calculado com markup de ${preview.markup_percentage.toFixed(2)}%. Todos os valores estão prontos para revisão.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}
@@ -1254,7 +1254,7 @@ export default function SimplifiedBudgetForm({
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                              {preview.markup_percentage.toFixed(1)}%
+                              {preview.markup_percentage.toFixed(2)}%
                             </div>
                           </div>
                         </Col>

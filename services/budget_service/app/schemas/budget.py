@@ -118,9 +118,8 @@ class BudgetItemBase(BaseModel):
     # IPI (Imposto sobre Produtos Industrializados)
     ipi_percentage: float = 0.0  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
     
-    # Commission
+    # Comissão
     commission_percentage: float = 0.0
-    dunamis_cost: Optional[float] = None
     
     # Weight difference display info
     weight_difference_display: Optional[dict] = None
@@ -157,7 +156,6 @@ class BudgetItemUpdate(BaseModel):
     sale_value_without_taxes: Optional[float] = None
     ipi_percentage: Optional[float] = None  # IPI percentual
     commission_percentage: Optional[float] = None
-    dunamis_cost: Optional[float] = None
 
 
 class BudgetItemResponse(BudgetItemBase):

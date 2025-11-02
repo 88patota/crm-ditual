@@ -47,7 +47,6 @@ export default function BudgetEditSimplified() {
           sale_value_with_icms: item.valor_com_icms_venda,
           sale_icms_percentage: item.percentual_icms_venda, // Keep as decimal (0.18 for 18%)
           sale_value_without_taxes: 0, // Será calculado
-          dunamis_cost: 0,
           // CORREÇÃO CRÍTICA: Incluir IPI na conversão de volta para o backend
           ipi_percentage: item.percentual_ipi || 0.0, // Manter formato decimal (0.0, 0.0325, 0.05)
         })),
