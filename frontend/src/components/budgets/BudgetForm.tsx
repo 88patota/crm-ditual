@@ -105,10 +105,7 @@ export default function BudgetForm({
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
         field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage' || 
         field === 'delivery_time' || field === 'purchase_other_expenses') {
-      // Debounce the auto-calculation to avoid too many API calls
-      setTimeout(() => {
-        autoCalculateBudget(newItems);
-      }, 300);
+      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
     }
   };
 
@@ -130,7 +127,6 @@ export default function BudgetForm({
       form.setFieldsValue({
         total_purchase_value: calculation.total_purchase_value,
         total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
         // Update IPI totals if available
         total_ipi_value: calculation.total_ipi_value,
@@ -146,55 +142,7 @@ export default function BudgetForm({
     }
   };
 
-  // Auto-calculation function for real-time updates when ICMS changes
-  const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
-    try {
-      const formData = form.getFieldsValue();
-      
-      // Only auto-calculate if we have basic required data
-      if (!formData.client_name || updatedItems.length === 0) {
-        return;
-      }
-      
-      // Check if all items have minimum required fields for calculation
-      const hasValidItems = updatedItems.every(item => 
-        item.description && 
-        (item.weight ?? 0) > 0 &&
-        (item.purchase_value_with_icms ?? 0) > 0 &&
-        (item.sale_value_with_icms ?? 0) > 0
-      );
-      
-      if (!hasValidItems) {
-        return; // Skip auto-calculation if items are incomplete
-      }
-      
-      const budgetData: Budget = {
-        ...formData,
-        items: updatedItems,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        freight_type: formData.freight_type || 'FOB',
-      };
-      
-      const calculation = await budgetService.calculateBudget(budgetData);
-      
-      // Update form with calculated values (without showing success message)
-      form.setFieldsValue({
-        total_purchase_value: calculation.total_purchase_value,
-        total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
-        profitability_percentage: calculation.profitability_percentage,
-        // Update IPI totals if available
-        total_ipi_value: calculation.total_ipi_value,
-        total_final_value: calculation.total_final_value,
-        // Update total weight difference percentage
-        total_weight_difference_percentage: calculation.total_weight_difference_percentage,
-      });
-      
-    } catch (error) {
-      // Silently handle errors in auto-calculation to avoid spamming user
-      console.warn('Auto-calculation failed:', error);
-    }
-  };
+  // Função de auto-cálculo removida - cálculos agora são feitos apenas no backend
 
   const handleSubmit = async () => {
     try {
@@ -582,15 +530,6 @@ export default function BudgetForm({
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item label="Total Comissão" name="total_commission">
-                <InputNumber
-                  readOnly
-                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   readOnly
@@ -605,15 +544,6 @@ export default function BudgetForm({
           <Row gutter={[16, 16]} style={{ marginTop: '16px' }}>
             <Col xs={24} md={6}>
               <Form.Item label="Total IPI" name="total_ipi_value">
-                <InputNumber
-                  readOnly
-                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item label="Valor Final c/ IPI" name="total_final_value">
                 <InputNumber
                   readOnly
                   formatter={(value) => convertNumericToBrazilian(Number(value || 0))}

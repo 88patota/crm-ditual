@@ -113,6 +113,7 @@ async def get_budgets(
             total_sale_with_icms=budget.total_sale_with_icms or 0.0,
             total_commission=budget.total_commission,
             profitability_percentage=budget.profitability_percentage,
+            commission_percentage_actual=budget.commission_percentage_actual if budget.commission_percentage_actual is not None else 0.0,
             items_count=len(budget.items),
             created_at=budget.created_at
         ))
@@ -346,7 +347,7 @@ async def calculate_budget(
                 'percentual_ipi': item_dict.get('ipi_percentage', 0.0),
                 'dunamis_cost': item_dict.get('dunamis_cost')
             }
-            total_peso_pedido += converted_item['peso_compra']
+            total_peso_pedido += converted_item['peso_compra']  # CORREÇÃO: Usar peso_compra para distribuição do frete
             items_data.append(converted_item)
 
         # Validate items using business rules
@@ -490,6 +491,7 @@ async def calculate_simplified_budget(
         
         for item in budget_data.items:
             item_dict = item.dict()
+            # CORREÇÃO: Usar peso_compra para distribuição do frete, pois frete é custo de compra
             total_peso_pedido += item_dict.get('peso_compra', 1.0)
             items_data.append(item_dict)
         
@@ -528,6 +530,11 @@ async def calculate_simplified_budget(
         markup_percentage = budget_result['totals']['markup_pedido'] * 100  # Converter para percentual
         profitability_percentage = markup_percentage
         
+        # Calcular percentual de comissão real baseado no total de comissão e valor de venda
+        commission_percentage_actual = 0.0
+        if total_sale_value > 0:
+            commission_percentage_actual = (total_commission / total_sale_value) * 100
+        
         # Preparar resposta
         items_calculations = []
         for item in calculated_items:
@@ -539,7 +546,7 @@ async def calculate_simplified_budget(
                 'total_sale': item['total_venda_item'],
                 'profitability': (item['rentabilidade_item'] or 0) * 100,  # Converter para percentual
                 'commission_value': item['valor_comissao'],
-                'commission_percentage_actual': item['commission_percentage_actual'],  # Actual percentage used
+                'commission_percentage_actual': item.get('commission_percentage_actual', 0.0),  # Actual percentage used
                 # IPI fields
                 'ipi_percentage': item['percentual_ipi'],
                 'ipi_value': item['valor_ipi_total'],
@@ -554,6 +561,7 @@ async def calculate_simplified_budget(
             total_net_revenue=round(total_net_revenue, 2),  # SEM impostos (mesmo que total_sale_value)
             total_taxes=round(total_taxes, 2),  # Impostos totais
             total_commission=round(total_commission, 2),
+            commission_percentage_actual=round(commission_percentage_actual, 2),  # CORREÇÃO: Campo obrigatório adicionado
             profitability_percentage=round(profitability_percentage, 2),
             markup_percentage=round(markup_percentage, 2),
             items_calculations=items_calculations,
@@ -721,6 +729,7 @@ async def create_simplified_budget(
         for i, item_data in enumerate(items_data):
             print(f"🔍 DEBUG - Item {i}: delivery_time = {repr(item_data.get('delivery_time'))}")
         
+        # CORREÇÃO: Usar peso_compra para distribuir frete (não peso_venda)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
         outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
         

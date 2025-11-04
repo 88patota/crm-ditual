@@ -81,11 +81,12 @@ class CommissionService:
             rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
             return CommissionService.calculate_commission_value(total_venda_item_com_icms, rentabilidade_unitaria)
         
-        # Para casos com diferença de peso, calcular rentabilidade baseada nos totais reais COM ICMS
-        rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item_com_icms, total_compra_item_com_icms)
+        # Para casos com diferença de peso, calcular rentabilidade baseada nos valores unitários COM ICMS
+        # Isso garante que a rentabilidade seja calculada corretamente independente da quantidade
+        rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
         
-        # Aplicar comissão sobre o valor total de venda COM ICMS
-        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
+        # Aplicar comissão sobre o valor total de venda COM ICMS usando a rentabilidade unitária
+        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_unitaria)
         valor_comissao = total_venda_item_com_icms * percentual_comissao
         
         return round(valor_comissao, 2)

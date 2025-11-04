@@ -21,11 +21,12 @@ class Budget(Base):
     client_name = Column(String, nullable=False)
     client_id = Column(Integer, nullable=True)  # Future FK to client service
     
-    # Financial fields
+    # Calculated values
     total_purchase_value = Column(Float, default=0.0)
     total_sale_value = Column(Float, default=0.0)  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms = Column(Float, default=0.0)  # COM ICMS - valor real sem IPI
     total_commission = Column(Float, default=0.0)
+    commission_percentage_actual = Column(Float, default=0.0)  # Percentual de comissão real calculado
     markup_percentage = Column(Float, default=0.0)
     profitability_percentage = Column(Float, default=0.0)
     

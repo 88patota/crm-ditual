@@ -81,16 +81,7 @@ export default function AutoMarkupBudgetForm({
     setItems(newItems);
     setPreview(null); // Limpar preview quando alterar item
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
-    if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
-        field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi' ||
-        field === 'outras_despesas_item') {
-      // Debounce the auto-calculation to avoid too many API calls
-      setTimeout(() => {
-        autoCalculatePreview(newItems);
-      }, 300);
-    }
+    // Cálculos automáticos removidos - todos os cálculos são feitos no backend
   };
 
   const calculatePreview = async () => {
@@ -116,44 +107,7 @@ export default function AutoMarkupBudgetForm({
     }
   };
 
-  // Auto-calculation function for real-time updates when ICMS changes
-  const autoCalculatePreview = async (updatedItems: BudgetItemSimplified[]) => {
-    try {
-      const formData = form.getFieldsValue();
-      
-      // Only auto-calculate if we have basic required data
-      if (!formData.client_name || updatedItems.length === 0) {
-        return;
-      }
-      
-      // Check if all items have minimum required fields for calculation
-      const hasValidItems = updatedItems.every(item => 
-        item.description && 
-        item.peso_compra > 0 && 
-        item.peso_venda > 0 &&
-        item.valor_com_icms_compra > 0 &&
-        item.valor_com_icms_venda > 0
-      );
-      
-      if (!hasValidItems) {
-        return; // Skip auto-calculation if items are incomplete
-      }
-      
-      const budgetData: BudgetSimplified = {
-        ...formData,
-        items: updatedItems,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-      };
-      
-      const calculation = await budgetService.calculateBudgetSimplified(budgetData);
-      setPreview(calculation);
-      
-    } catch (error) {
-      // Silently handle errors in auto-calculation to avoid spamming user
-      console.warn('Auto-calculation failed:', error);
-      setPreview(null);
-    }
-  };
+  // Função de auto-cálculo removida - cálculos agora são feitos apenas no backend
 
   const handleSubmit = async () => {
     try {
@@ -485,8 +439,8 @@ export default function AutoMarkupBudgetForm({
                   <Col xs={24} lg={16}>
                     <div style={{ padding: '8px 0' }}>
                       <Alert
-                        message="🎯 Markup Automático Aplicado"
-                        description={`Markup calculado: ${preview.markup_percentage.toFixed(2)}% baseado nos valores de compra e venda informados.`}
+                        message="🎯 Cálculo Realizado pelo Backend"
+                        description={`Markup calculado pelo backend: ${preview.markup_percentage.toFixed(2)}% baseado nos valores de compra e venda informados.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}

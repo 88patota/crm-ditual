@@ -318,17 +318,7 @@ export default function SimplifiedBudgetForm({
     setItems(newItems);
     setPreview(null);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
-    if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
-        field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi' ||
-        field === 'outras_despesas_item') {
-      // Debounce the auto-calculation to avoid too many API calls
-      setTimeout(() => {
-        console.log('🔧 [EDIT DEBUG] Auto-calculating preview after', field, 'change');
-        autoCalculatePreview(newItems);
-      }, 300);
-    }
+    // Cálculos automáticos removidos - todos os cálculos são feitos no backend
   };
 
   // Função para recalcular quando o valor do frete total mudar
@@ -340,8 +330,7 @@ export default function SimplifiedBudgetForm({
     
     // Auto-calculate if we have enough data
     if (items.length > 0 && items.some(item => item.peso_compra > 0)) {
-      console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after freight value change`);
-      autoCalculatePreview(items);
+      console.log(`🔧 [EDIT DEBUG] Auto-cálculo removido - cálculos agora são feitos apenas no backend`);
     }
   };
 
@@ -399,7 +388,6 @@ export default function SimplifiedBudgetForm({
       form.setFieldsValue({
         total_purchase_value: calculation.total_purchase_value,
         total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
         markup_percentage: calculation.markup_percentage,
         // Atualizar valores de IPI e finais se disponíveis
@@ -413,7 +401,7 @@ export default function SimplifiedBudgetForm({
         total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
-      message.success(`Cálculos realizados! Markup: ${calculation.markup_percentage.toFixed(2)}%`);
+      message.success(`Cálculos realizados! Markup calculado pelo backend: ${calculation.markup_percentage.toFixed(2)}%`);
     } catch (error) {
       console.error('Erro ao calcular orçamento:', error);
       message.error('Erro ao calcular orçamento. Verifique se todos os campos obrigatórios estão preenchidos.');
@@ -422,89 +410,7 @@ export default function SimplifiedBudgetForm({
     }
   };
 
-  // Auto-calculation function for real-time updates
-  const autoCalculatePreview = async (updatedItems: BudgetItemSimplified[]) => {
-    try {
-      const formData = form.getFieldsValue();
-      console.log('Auto-calculate form data:', formData);
-      console.log('Auto-calculate freight_type:', formData.freight_type);
-      
-      // Only auto-calculate if we have basic required data
-      if (!formData.client_name || updatedItems.length === 0) {
-        return;
-      }
-      
-      // Check if all items have minimum required fields for calculation
-      const hasValidItems = updatedItems.every(item => 
-        item.description && 
-        item.peso_compra > 0 && 
-        item.peso_venda > 0 &&
-        item.valor_com_icms_compra > 0 &&
-        item.valor_com_icms_venda > 0
-      );
-      
-      if (!hasValidItems) {
-        return; // Skip auto-calculation if items are incomplete
-      }
-      
-      const budgetData: BudgetSimplified = {
-        ...formData,
-        order_number: orderNumber,
-        // CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
-        prazo_medio: formData.prazo_medio || undefined,
-        outras_despesas_totais: formData.outras_despesas_totais || undefined,
-        freight_type: formData.freight_type || 'FOB',
-        payment_condition: formData.payment_condition || 'À vista',
-        items: updatedItems,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-      };
-      
-      console.log('Auto-calculate budget data:', budgetData);
-      console.log('Auto-calculate budget freight_type:', budgetData.freight_type);
-      
-      const calculation = await budgetService.calculateBudgetSimplified(budgetData);
-      setPreview(calculation);
-      
-      // Atualizar os itens com os dados calculados, incluindo weight_difference_display
-      if (calculation.items_calculations && calculation.items_calculations.length > 0) {
-        const updatedItemsWithCalculation = updatedItems.map((item, index) => {
-          const calculatedItem = calculation.items_calculations[index];
-          if (calculatedItem) {
-            return {
-              ...item,
-              weight_difference_display: calculatedItem.weight_difference_display
-            };
-          }
-          return item;
-        });
-        setItems(updatedItemsWithCalculation);
-      }
-      
-      // CORREÇÃO CRÍTICA: Atualizar os campos do formulário com os valores calculados
-      // Isso garante que os valores totais e de comissão sejam atualizados em tempo real
-      form.setFieldsValue({
-        total_purchase_value: calculation.total_purchase_value,
-        total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
-        profitability_percentage: calculation.profitability_percentage,
-        markup_percentage: calculation.markup_percentage,
-        // Atualizar valores de IPI e finais se disponíveis
-        total_ipi_value: calculation.total_ipi_value,
-        total_final_value: calculation.total_final_value,
-        // Atualizar impostos totais
-        total_taxes: calculation.total_taxes,
-        // Atualizar valor do frete por kg
-        valor_frete_compra: calculation.valor_frete_compra,
-        // Atualizar diferença total de peso
-        total_weight_difference_percentage: calculation.total_weight_difference_percentage,
-      });
-      
-    } catch (error) {
-      // Silently handle errors in auto-calculation to avoid spamming user
-      console.warn('Auto-calculation failed:', error);
-      setPreview(null);
-    }
-  };
+  // Função de auto-cálculo removida - cálculos agora são feitos apenas no backend
 
   const handleSubmit = async () => {
     try {
@@ -982,10 +888,7 @@ export default function SimplifiedBudgetForm({
                     // Auto-recalcular quando o prazo médio mudar
                     const formData = form.getFieldsValue();
                     if (formData.client_name && items.length > 0) {
-                      setTimeout(() => {
-                        console.log(`🔧 [EDIT DEBUG] Auto-calculating preview after prazo médio change`);
-                        autoCalculatePreview(items);
-                      }, 300);
+                      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
                     }
                   }}
                 />
@@ -1007,9 +910,7 @@ export default function SimplifiedBudgetForm({
                     // Auto-recalcular quando as condições de pagamento mudarem
                     const formData = form.getFieldsValue();
                     if (formData.client_name && items.length > 0) {
-                      setTimeout(() => {
-                        autoCalculatePreview(items);
-                      }, 300);
+                      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
                     }
                   }}
                 >
@@ -1042,9 +943,7 @@ export default function SimplifiedBudgetForm({
                     // Auto-recalcular quando o tipo de frete mudar
                     const formData = form.getFieldsValue();
                     if (formData.client_name && items.length > 0) {
-                      setTimeout(() => {
-                        autoCalculatePreview(items);
-                      }, 300);
+                      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
                     }
                     
                     setTimeout(() => {
@@ -1140,19 +1039,6 @@ export default function SimplifiedBudgetForm({
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label="Total Comissão" name="total_commission">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
-                  readOnly
-                  precision={2}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={8}>
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   style={{ width: '100%' }}
@@ -1234,8 +1120,8 @@ export default function SimplifiedBudgetForm({
                   <Col xs={24} lg={16}>
                     <div style={{ padding: '8px 0' }}>
                       <Alert
-                        message="🎯 Cálculo Concluído"
-                        description={`Orçamento calculado com markup de ${preview.markup_percentage.toFixed(2)}%. Todos os valores estão prontos para revisão.`}
+                        message="🎯 Cálculo Realizado pelo Backend"
+                        description={`Orçamento calculado pelo backend com markup de ${preview.markup_percentage.toFixed(2)}%. Todos os valores estão prontos para revisão.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}

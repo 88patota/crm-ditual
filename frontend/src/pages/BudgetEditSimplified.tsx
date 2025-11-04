@@ -33,6 +33,9 @@ export default function BudgetEditSimplified() {
         notes: budgetData.notes,
         freight_type: budgetData.freight_type, // CORREÇÃO: Incluir freight_type
         payment_condition: budgetData.payment_condition, // CORREÇÃO: Incluir payment_condition
+        freight_value_total: budgetData.freight_value_total, // CORREÇÃO: Incluir freight_value_total
+        prazo_medio: budgetData.prazo_medio, // CORREÇÃO: Incluir prazo_medio
+        outras_despesas_totais: budgetData.outras_despesas_totais, // CORREÇÃO: Incluir outras_despesas_totais
         markup_percentage: 0, // Será calculado automaticamente
         items: budgetData.items.map(item => ({
           description: item.description,
@@ -106,6 +109,7 @@ export default function BudgetEditSimplified() {
       notes: budget.notes,
       freight_type: budget.freight_type || 'FOB',
       payment_condition: budget.payment_condition, // CORREÇÃO: Mapear payment_condition do backend
+      freight_value_total: budget.freight_value_total, // CORREÇÃO: Mapear freight_value_total do backend
       prazo_medio: budget.prazo_medio || 30, // CORREÇÃO: Mapear prazo_medio do backend ou usar valor padrão
       outras_despesas_totais: budget.outras_despesas_totais || 0, // CORREÇÃO: Mapear outras_despesas_totais do backend ou usar valor padrão
       items: budget.items?.map((item) => ({

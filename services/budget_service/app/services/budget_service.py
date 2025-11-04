@@ -52,6 +52,7 @@ class BudgetService:
                 raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
         
         # Calculate totals using business rules calculator
+        # CORREÇÃO: Usar peso_compra para distribuir frete (não peso_venda)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
         outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
         
@@ -81,6 +82,8 @@ class BudgetService:
             total_sale_with_icms=budget_result['totals']['soma_total_venda_com_icms'],
             total_commission=totals['total_commission'],
             profitability_percentage=totals['profitability_percentage'],
+            # Calcular commission_percentage_actual médio ponderado
+            commission_percentage_actual=BudgetService._calculate_weighted_commission_percentage(budget_result['items']),
             # Add freight_type field
             freight_type=budget_data.freight_type,
             # Add payment_condition field - FIX: Campo estava faltando no mapeamento
@@ -528,6 +531,18 @@ class BudgetService:
         await db.commit()
         await db.refresh(budget)
         return budget
+    
+    @staticmethod
+    def _calculate_weighted_commission_percentage(items: List[dict]) -> float:
+        """Calcula o percentual de comissão médio ponderado baseado nos itens do orçamento"""
+        total_sale_value = sum(item['total_venda_com_icms_item'] for item in items)
+        if total_sale_value > 0:
+            weighted_commission_percentage = sum(
+                item['commission_percentage_actual'] * item['total_venda_com_icms_item'] 
+                for item in items
+            ) / total_sale_value
+            return weighted_commission_percentage
+        return 0.0
 
     @staticmethod
     async def update_budget_simplified(db: AsyncSession, budget_id: int, budget_data: dict) -> Optional[Budget]:
@@ -642,6 +657,10 @@ class BudgetService:
                 budget.total_sale_value = budget_result['totals']['soma_total_venda']
                 budget.total_sale_with_icms = budget_result['totals']['soma_total_venda_com_icms']
                 budget.total_commission = cast(float, sum(item['valor_comissao'] for item in budget_result['items']))
+                
+                # Calcular commission_percentage_actual médio ponderado
+                budget.commission_percentage_actual = BudgetService._calculate_weighted_commission_percentage(budget_result['items'])
+                
                 budget.profitability_percentage = budget_result['totals']['markup_pedido']
                 budget.markup_percentage = budget_result['totals']['markup_pedido']
                 budget.total_ipi_value = budget_result['totals'].get('total_ipi_orcamento', 0.0)

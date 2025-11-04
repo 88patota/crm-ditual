@@ -436,21 +436,32 @@ class BusinessRulesCalculator:
         
         valor_unitario_venda = BusinessRulesCalculator.calculate_unit_sale_value(valor_sem_impostos_venda, peso_venda)
         
-        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_corrigido_peso)
+        # CORREÇÃO: Para rentabilidade, incluir frete no valor de compra COM ICMS unitário
+        # Calcular valor de compra COM ICMS unitário incluindo frete distribuído por kg
+        valor_com_icms_compra_unitario_com_frete = valor_com_icms_compra + frete_distribuido_por_kg
+        
+        # CORREÇÃO: Usar valores COM ICMS unitários para calcular rentabilidade (incluindo frete)
+        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete)
         
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
         
         total_venda_item = peso_venda * valor_sem_impostos_venda
         
-        total_compra_item_com_icms = peso_compra * valor_com_icms_compra
+        # CORREÇÃO: Calcular total COM ICMS incluindo frete distribuído
+        total_compra_item_com_icms = peso_compra * valor_com_icms_compra_unitario_com_frete
         
         total_venda_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_venda, valor_com_icms_venda)
         
-        # Calcular comissão
+        # Calcular comissão usando valores COM ICMS incluindo frete
         valor_comissao = CommissionService.calculate_commission_value_with_quantity_adjustment(
-            total_venda_item_com_icms, total_compra_item_com_icms, peso_venda, peso_compra, valor_com_icms_venda, valor_com_icms_compra
+            total_venda_item_com_icms, total_compra_item_com_icms, peso_venda, peso_compra, valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete
         )
-        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_item)
+        
+        # CORREÇÃO: Calcular percentual de comissão usando a mesma rentabilidade unitária que o método de comissão usa
+        rentabilidade_unitaria_para_comissao = CommissionService._calculate_unit_profitability_with_icms(
+            valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete
+        )
+        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_unitaria_para_comissao)
         
         # Calcular IPI
         valor_ipi_unitario = BusinessRulesCalculator.calculate_ipi_value(valor_com_icms_venda, percentual_ipi)
@@ -544,7 +555,11 @@ class BusinessRulesCalculator:
         # Totais do orçamento
         soma_total_compra = 0.0
         soma_total_venda = 0.0
+        soma_total_compra_com_icms = 0.0  # CORREÇÃO: Adicionar soma COM ICMS para compra
         soma_total_venda_com_icms = 0.0
+        # Para cálculo de markup unitário (exibição)
+        soma_valores_unitarios_venda_com_icms = 0.0
+        soma_valores_unitarios_compra_com_icms = 0.0
         total_comissao = 0.0
         total_ipi_orcamento = 0.0
         total_final_com_ipi = 0.0
@@ -561,15 +576,19 @@ class BusinessRulesCalculator:
             # Somar totais
             soma_total_compra += calculated_item['total_compra_item']
             soma_total_venda += calculated_item['total_venda_item']
+            soma_total_compra_com_icms += calculated_item['total_compra_item_com_icms']  # CORREÇÃO: Somar compra COM ICMS
             soma_total_venda_com_icms += calculated_item['total_venda_com_icms_item']
+            # Acumular valores unitários para markup de exibição
+            soma_valores_unitarios_venda_com_icms += calculated_item['valor_com_icms_venda']
+            soma_valores_unitarios_compra_com_icms += calculated_item['valor_com_icms_compra']
             total_comissao += calculated_item['valor_comissao']
             total_ipi_orcamento += calculated_item['valor_ipi_total']
             total_final_com_ipi += calculated_item['total_final_com_ipi']
             total_peso_compra += calculated_item['peso_compra']
             total_peso_venda += calculated_item['peso_venda']
         
-        # Calcular markup do pedido
-        markup_pedido = BusinessRulesCalculator.calculate_budget_markup(soma_total_venda, soma_total_compra)
+        # CORREÇÃO: Calcular markup do pedido usando totais reais (não valores unitários)
+        markup_pedido = BusinessRulesCalculator.calculate_budget_markup(soma_total_venda_com_icms, soma_total_compra_com_icms)
         
         # Calcular diferença total de peso
         total_weight_difference_percentage = BusinessRulesCalculator.calculate_total_weight_difference_percentage(

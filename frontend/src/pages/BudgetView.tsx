@@ -40,40 +40,7 @@ import '../styles/budget-table.css';
 
 const { Title, Text } = Typography;
 
-// Helper function to calculate financial data from backend values
-const calculateBudgetFinancials = (budget: Budget) => {
-  if (!budget.items || budget.items.length === 0) {
-    return {
-      totalSaleWithIcms: 0,
-      totalNetRevenue: 0,
-      totalTaxes: 0,
-      taxPercentage: 0
-    };
-  }
-
-  // Calcular total de venda COM ICMS (valor real que o cliente paga)
-  let totalSaleWithIcms = 0;
-  
-  budget.items.forEach((item: BudgetItem) => {
-    const saleWeight = item.sale_weight || item.weight || 0;
-    const saleValueWithIcms = item.sale_value_with_icms || 0;
-    totalSaleWithIcms += saleWeight * saleValueWithIcms;
-  });
-
-  // O total_sale_value do backend já é a receita líquida (SEM impostos)
-  const totalNetRevenue = budget.total_sale_value || 0;
-  
-  // Impostos = Valor COM ICMS - Valor SEM impostos
-  const totalTaxes = totalSaleWithIcms - totalNetRevenue;
-  const taxPercentage = totalSaleWithIcms > 0 ? (totalTaxes / totalSaleWithIcms) * 100 : 0;
-
-  return {
-    totalSaleWithIcms,
-    totalNetRevenue,
-    totalTaxes,
-    taxPercentage
-  };
-};
+// Função removida - agora usamos os valores calculados que vêm do backend
 
 export default function BudgetView() {
   const { id } = useParams<{ id: string }>();
@@ -94,8 +61,14 @@ export default function BudgetView() {
     }
   }, [budget]);
 
-  // Calculate net revenue and taxes dynamically
-  const financialData = budget ? calculateBudgetFinancials(budget) : {
+  // Usar valores calculados que vêm do backend
+  const financialData = budget ? {
+    totalSaleWithIcms: budget.total_sale_with_icms || 0,
+    totalNetRevenue: budget.total_sale_value || 0,
+    totalTaxes: (budget.total_sale_with_icms || 0) - (budget.total_sale_value || 0),
+    // Percentual de impostos removido - cálculos agora são feitos no backend
+    taxPercentage: 0
+  } : {
     totalSaleWithIcms: 0,
     totalNetRevenue: 0,
     totalTaxes: 0,
@@ -464,21 +437,31 @@ export default function BudgetView() {
       ),
       children: [
         {
-          title: '%',
+          title: (
+            <Tooltip title="Percentual real calculado pelo backend baseado na rentabilidade">
+              <span style={{ color: '#1890ff', fontWeight: 600 }}>% Real</span>
+            </Tooltip>
+          ),
           dataIndex: 'commission_percentage_actual',
           key: 'commission_percentage_actual',
-          width: 60,
+          width: 80,
           align: 'center' as const,
           render: (value: number) => (
-            <span style={{ 
-              color: '#666666',
-              fontSize: '12px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              fontWeight: 500
-            }}>
-              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
-            </span>
+            <Tooltip title={`Valor real da comissão: ${value ? `${(value * 100).toFixed(4)}%` : '0%'} (calculado pelo backend)`}>
+              <span style={{ 
+                color: '#1890ff',
+                fontSize: '12px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                backgroundColor: '#f0f8ff',
+                border: '1px solid #d6e4ff',
+                display: 'inline-block',
+                minWidth: '50px'
+              }}>
+                {value ? `${(value * 100).toFixed(2)}%` : '0%'}
+              </span>
+            </Tooltip>
           ),
         },
         {

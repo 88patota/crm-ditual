@@ -248,6 +248,7 @@ class BudgetResponse(BudgetBase):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     
     # IPI totals
@@ -275,6 +276,7 @@ class BudgetSummary(BaseModel):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: Optional[float] = 0.0  # Percentual de comissão real calculado
     profitability_percentage: float
     items_count: int
     created_at: datetime
@@ -284,12 +286,13 @@ class BudgetSummary(BaseModel):
 
 
 class BudgetCalculation(BaseModel):
-    """Response model for budget calculations"""
+    # Valores principais
     total_purchase_value: float
     total_sale_value: float  # COM ICMS - valor real pago pelo cliente
     total_net_revenue: float  # SEM impostos - receita líquida após impostos
     total_taxes: float  # Impostos totais = total_sale_value - total_net_revenue
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     markup_percentage: float
     items_calculations: List[dict]
@@ -308,6 +311,7 @@ class BudgetPreviewCalculation(BaseModel):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     markup_percentage: float  # CALCULADO AUTOMATICAMENTE
     items_preview: List[dict]
