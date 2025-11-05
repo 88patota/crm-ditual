@@ -152,7 +152,6 @@ class BudgetService:
                 ipi_percentage=ipi_percentage,
                 ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
                 total_value_with_ipi=total_value_with_ipi,
-                dunamis_cost=item_data.get('dunamis_cost'),
                 # Weight difference display
                 weight_difference_display=weight_diff_json
             )
