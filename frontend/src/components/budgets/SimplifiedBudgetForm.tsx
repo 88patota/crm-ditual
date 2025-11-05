@@ -28,7 +28,7 @@ import {
 } from '@ant-design/icons';
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { formatCurrency, convertNumericToBrazilian } from '../../lib/utils';
+import { formatCurrency, convertNumericToBrazilian, formatPercentageValue, formatPercentageValueNoRound, parsePercentageValue, formatPercentFromFraction } from '../../lib/utils';
 import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
@@ -341,6 +341,50 @@ export default function SimplifiedBudgetForm({
       console.log('Calculate form data:', formData);
       console.log('Calculate freight_type:', formData.freight_type);
       
+      // Normalizar itens antes da chamada ao backend (converter números e garantir defaults)
+      const processedItems = items.map((item, index) => {
+        const pesoCompra = parseFloat(item.peso_compra?.toString().replace(',', '.') || '0');
+        const pesoVenda = parseFloat((item.peso_venda ?? item.peso_compra)?.toString().replace(',', '.') || '0');
+        const valorCompra = parseFloat(item.valor_com_icms_compra?.toString().replace(',', '.') || '0');
+        const valorVenda = parseFloat(item.valor_com_icms_venda?.toString().replace(',', '.') || '0');
+        const outrasDespesas = parseFloat((item.outras_despesas_item ?? 0).toString().replace(',', '.') || '0');
+        const percIpi = typeof item.percentual_ipi === 'number' ? item.percentual_ipi : 0.0;
+        const percIcmsCompra = typeof item.percentual_icms_compra === 'number' ? item.percentual_icms_compra : 0.18;
+        const percIcmsVenda = typeof item.percentual_icms_venda === 'number' ? item.percentual_icms_venda : 0.18;
+
+        const normalized = {
+          ...item,
+          description: item.description || '',
+          delivery_time: item.delivery_time || '0',
+          peso_compra: pesoCompra,
+          peso_venda: pesoVenda,
+          valor_com_icms_compra: valorCompra,
+          valor_com_icms_venda: valorVenda,
+          outras_despesas_item: outrasDespesas,
+          percentual_ipi: percIpi,
+          percentual_icms_compra: percIcmsCompra,
+          percentual_icms_venda: percIcmsVenda,
+        };
+
+        console.log('🔍 [CALC PREVIEW] Processed item', index, ':', normalized);
+        return normalized;
+      });
+      
+      // Validação básica antes da requisição
+      const invalidIndex = processedItems.findIndex((it) => (
+        !it.description ||
+        (typeof it.peso_compra !== 'number' || it.peso_compra <= 0) ||
+        (typeof it.valor_com_icms_compra !== 'number' || it.valor_com_icms_compra <= 0) ||
+        (typeof it.valor_com_icms_venda !== 'number' || it.valor_com_icms_venda <= 0) ||
+        (typeof it.percentual_icms_compra !== 'number' || it.percentual_icms_compra < 0 || it.percentual_icms_compra > 1) ||
+        (typeof it.percentual_icms_venda !== 'number' || it.percentual_icms_venda < 0 || it.percentual_icms_venda > 1) ||
+        (typeof it.percentual_ipi !== 'number' || ![0.0, 0.0325, 0.05].includes(it.percentual_ipi))
+      ));
+      if (invalidIndex !== -1) {
+        message.error(`Preencha todos os campos obrigatórios do item ${invalidIndex + 1} e garanta percentuais válidos.`);
+        return;
+      }
+      
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado
@@ -349,7 +393,7 @@ export default function SimplifiedBudgetForm({
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         freight_type: formData.freight_type || 'FOB',
         payment_condition: formData.payment_condition || 'À vista',
-        items: items,
+        items: processedItems,
         expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
       };
       
@@ -401,10 +445,18 @@ export default function SimplifiedBudgetForm({
         total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
-      message.success(`Cálculos realizados! Markup calculado pelo backend: ${calculation.markup_percentage.toFixed(2)}%`);
+      message.success(`Cálculos realizados! Markup calculado pelo backend: ${formatPercentFromFraction(calculation.markup_percentage, 1)}`);
     } catch (error) {
       console.error('Erro ao calcular orçamento:', error);
-      message.error('Erro ao calcular orçamento. Verifique se todos os campos obrigatórios estão preenchidos.');
+      const backendDetail =
+        typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : undefined;
+      if (backendDetail) {
+        message.error(`Erro ao calcular orçamento: ${backendDetail}`);
+      } else {
+        message.error('Erro ao calcular orçamento. Verifique se todos os campos obrigatórios estão preenchidos.');
+      }
     } finally {
       setCalculating(false);
     }
@@ -627,14 +679,14 @@ export default function SimplifiedBudgetForm({
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 18) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val ?? 18) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
         />
       ),
@@ -674,14 +726,14 @@ export default function SimplifiedBudgetForm({
       width: 140,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val ?? 18) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => parseFloat(value!.replace('%', '')) || 0}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
         />
       ),
@@ -1121,7 +1173,7 @@ export default function SimplifiedBudgetForm({
                     <div style={{ padding: '8px 0' }}>
                       <Alert
                         message="🎯 Cálculo Realizado pelo Backend"
-                        description={`Orçamento calculado pelo backend com markup de ${preview.markup_percentage.toFixed(2)}%. Todos os valores estão prontos para revisão.`}
+                description={`Orçamento calculado pelo backend com rentabilidade de ${formatPercentageValueNoRound(preview.profitability_percentage)}. Todos os valores estão prontos para revisão.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}
@@ -1138,9 +1190,9 @@ export default function SimplifiedBudgetForm({
                         </Col>
                         <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
-                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                              {preview.markup_percentage.toFixed(2)}%
+                {formatPercentageValueNoRound(preview.profitability_percentage)}
                             </div>
                           </div>
                         </Col>
@@ -1148,7 +1200,7 @@ export default function SimplifiedBudgetForm({
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa541c' }}>
-                              {(preview.total_weight_difference_percentage || 0).toFixed(2)}%
+                              {formatPercentageValue(preview.total_weight_difference_percentage || 0)}
                             </div>
                           </div>
                         </Col>

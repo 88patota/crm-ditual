@@ -3,8 +3,11 @@ Calculadora de Regras de Negócio para Orçamentos
 Implementação completa baseada no documento REGRAS_NEGOCIO_ORCAMENTOS_SISTEMA.md
 """
 from typing import List, Dict, Any
+import logging
 from decimal import Decimal, ROUND_HALF_UP
 from app.services.commission_service import CommissionService
+
+logger = logging.getLogger(__name__)
 
 class BusinessRulesCalculator:
     @staticmethod
@@ -21,8 +24,10 @@ class BusinessRulesCalculator:
             float: Valor do frete por kg
             
         Raises:
-            ValueError: Se peso_total for zero ou negativo
+            ValueError: Se peso_total for zero ou negativo ou frete total negativo
         """
+        if valor_frete_total < 0:
+            raise ValueError("Valor do frete não pode ser negativo")
         if peso_total <= 0:
             raise ValueError("Peso total deve ser maior que zero para calcular valor frete por kg")
         
@@ -412,7 +417,8 @@ class BusinessRulesCalculator:
         else:
             outras_despesas_por_kg = 0.0
 
-        # Calcular frete distribuído por item
+        # REGRA 3.1.1: Frete por KG (distribuído)
+        # O frete é sempre distribuído, independentemente do tipo (CIF/FOB)
         frete_distribuido_por_kg = 0.0
         if freight_value_total is not None and freight_value_total > 0 and soma_pesos_pedido > 0:
             frete_distribuido_por_kg = BusinessRulesCalculator.calculate_freight_value_per_kg(
@@ -440,8 +446,8 @@ class BusinessRulesCalculator:
         # Calcular valor de compra COM ICMS unitário incluindo frete distribuído por kg
         valor_com_icms_compra_unitario_com_frete = valor_com_icms_compra + frete_distribuido_por_kg
         
-        # CORREÇÃO: Usar valores COM ICMS unitários para calcular rentabilidade (incluindo frete)
-        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete)
+        # Ajuste: Rentabilidade exibida deve usar valores SEM ICMS (inclui frete diluído no valor de compra sem impostos)
+        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
         
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
         
@@ -452,16 +458,19 @@ class BusinessRulesCalculator:
         
         total_venda_item_com_icms = BusinessRulesCalculator.calculate_total_sale_item_with_icms(peso_venda, valor_com_icms_venda)
         
-        # Calcular comissão usando valores COM ICMS incluindo frete
-        valor_comissao = CommissionService.calculate_commission_value_with_quantity_adjustment(
-            total_venda_item_com_icms, total_compra_item_com_icms, peso_venda, peso_compra, valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete
+        # Comissão: percentual baseado em rentabilidade SEM ICMS; valor aplicado sobre TOTAL COM ICMS
+        if peso_venda == peso_compra:
+            rentabilidade_comissao = CommissionService._calculate_unit_profitability(
+                valor_sem_impostos_venda, valor_sem_impostos_compra_unitario_com_frete
+            )
+        else:
+            rentabilidade_comissao = CommissionService._calculate_total_profitability(
+                total_venda_item, total_compra_item
+            )
+        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_comissao)
+        valor_comissao = CommissionService.calculate_commission_value(
+            total_venda_item_com_icms, rentabilidade_comissao
         )
-        
-        # CORREÇÃO: Calcular percentual de comissão usando a mesma rentabilidade unitária que o método de comissão usa
-        rentabilidade_unitaria_para_comissao = CommissionService._calculate_unit_profitability_with_icms(
-            valor_com_icms_venda, valor_com_icms_compra_unitario_com_frete
-        )
-        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_unitaria_para_comissao)
         
         # Calcular IPI
         valor_ipi_unitario = BusinessRulesCalculator.calculate_ipi_value(valor_com_icms_venda, percentual_ipi)
@@ -488,6 +497,7 @@ class BusinessRulesCalculator:
             'diferenca_peso': diferenca_peso,
             'valor_unitario_venda': valor_unitario_venda,
             'rentabilidade_item': rentabilidade_item,
+            'rentabilidade_comissao': rentabilidade_comissao,
             'total_compra_item': total_compra_item,
             'total_venda_item': total_venda_item,
             'total_compra_item_com_icms': total_compra_item_com_icms,
@@ -534,6 +544,30 @@ class BusinessRulesCalculator:
             if percentual < 0 or percentual > 1:
                 errors.append(f"Percentual de {field_label} deve estar entre 0 e 1")
         
+        # Sanitizar percentual_ipi com fallback e logs
+        raw_ipi = item_data.get('percentual_ipi', None)
+        if raw_ipi is None or raw_ipi == "":
+            # Ausente: padronizar para 0.0
+            item_data['percentual_ipi'] = 0.0
+            logger.debug("percentual_ipi ausente, aplicando fallback 0.0")
+        else:
+            try:
+                ipi_dec = BusinessRulesCalculator._to_decimal(raw_ipi)
+                # Se valor vier como percentual (ex.: 5 ou 3.25), normalizar para decimal (0.05/0.0325)
+                if ipi_dec > Decimal('1'):
+                    ipi_dec = (ipi_dec / Decimal('100')).quantize(Decimal('0.0001'), rounding=ROUND_HALF_UP)
+                    logger.warning(f"percentual_ipi recebido como percentual {raw_ipi}, normalizado para {ipi_dec}")
+                # Validar contra lista de percentuais válidos
+                if ipi_dec not in BusinessRulesCalculator.IPI_VALID_PERCENTAGES:
+                    logger.warning(f"percentual_ipi inválido: {raw_ipi}. Permitidos: 0.0, 0.0325, 0.05. Aplicando fallback 0.0")
+                    item_data['percentual_ipi'] = 0.0
+                else:
+                    item_data['percentual_ipi'] = float(ipi_dec)
+            except Exception:
+                # Parsing falhou: aplicar fallback
+                item_data['percentual_ipi'] = 0.0
+                logger.warning(f"Falha ao interpretar percentual_ipi '{raw_ipi}'. Aplicando fallback 0.0")
+        
         return errors
 
     @staticmethod
@@ -550,6 +584,10 @@ class BusinessRulesCalculator:
         Returns:
             Dict contendo itens calculados e totais do orçamento
         """
+        # Validar frete negativo
+        if freight_value_total is not None and freight_value_total < 0:
+            raise ValueError("Valor do frete não pode ser negativo")
+
         calculated_items = []
         
         # Totais do orçamento
@@ -589,11 +627,20 @@ class BusinessRulesCalculator:
         
         # CORREÇÃO: Calcular markup do pedido usando totais reais (não valores unitários)
         markup_pedido = BusinessRulesCalculator.calculate_budget_markup(soma_total_venda_com_icms, soma_total_compra_com_icms)
+        # NOVO: Calcular markup do pedido SEM impostos (SEM ICMS) para rentabilidade consistente com itens
+        markup_pedido_sem_impostos = BusinessRulesCalculator.calculate_budget_markup(soma_total_venda, soma_total_compra)
         
         # Calcular diferença total de peso
         total_weight_difference_percentage = BusinessRulesCalculator.calculate_total_weight_difference_percentage(
             total_peso_venda, total_peso_compra
         )
+
+        # Calcular valor de frete por kg para o orçamento (totais)
+        valor_frete_compra = 0.0
+        if freight_value_total is not None and freight_value_total > 0 and soma_pesos_pedido > 0:
+            valor_frete_compra = BusinessRulesCalculator.calculate_freight_value_per_kg(
+                freight_value_total, soma_pesos_pedido
+            )
         
         return {
             'items': calculated_items,
@@ -603,10 +650,12 @@ class BusinessRulesCalculator:
                 'soma_total_venda_com_icms': soma_total_venda_com_icms,
                 'total_comissao': total_comissao,
                 'markup_pedido': markup_pedido,
+                'markup_pedido_sem_impostos': markup_pedido_sem_impostos,
                 'total_ipi_orcamento': total_ipi_orcamento,
                 'total_final_com_ipi': total_final_com_ipi,
                 'total_peso_compra': total_peso_compra,
                 'total_peso_venda': total_peso_venda,
-                'total_weight_difference_percentage': total_weight_difference_percentage
+                'total_weight_difference_percentage': total_weight_difference_percentage,
+                'valor_frete_compra': valor_frete_compra
             }
         }

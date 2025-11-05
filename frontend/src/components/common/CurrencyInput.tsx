@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from 'antd';
-import { formatCurrencyAsYouType, convertBrazilianToNumeric, convertNumericToBrazilian } from '../../lib/utils';
+import { formatCurrencyAsYouType, parseCurrencyInputValue, convertNumericToBrazilian } from '../../lib/utils';
 
 interface CurrencyInputProps {
   value?: number;
@@ -64,14 +64,14 @@ const CurrencyInput: React.FC<CurrencyInputProps> = ({
     setDisplayValue(formatted);
 
     // Converter para número e chamar onChange
-    const numericValue = convertBrazilianToNumeric(formatted);
+    const numericValue = parseCurrencyInputValue(formatted);
     onChange?.(numericValue);
   };
 
   const handleBlur = () => {
     // Garantir formatação correta ao sair do campo
     if (displayValue && displayValue !== 'R$ 0,00') {
-      const numericValue = convertBrazilianToNumeric(displayValue);
+      const numericValue = parseCurrencyInputValue(displayValue);
       if (numericValue > 0) {
         const properlyFormatted = convertNumericToBrazilian(numericValue);
         setDisplayValue(properlyFormatted);

@@ -65,7 +65,7 @@ class BudgetService:
             'total_purchase_value': budget_result['totals']['soma_total_compra'],
             'total_sale_value': budget_result['totals']['soma_total_venda'],
             'total_commission': sum(item['valor_comissao'] for item in budget_result['items']),
-            'profitability_percentage': budget_result['totals']['markup_pedido']
+            'profitability_percentage': budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido'])
         }
         
         # Create budget
@@ -481,7 +481,7 @@ class BudgetService:
         setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
         setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
-        setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
+        setattr(budget, 'profitability_percentage', budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido']))
         setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
         # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
         setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
@@ -780,7 +780,8 @@ class BudgetService:
         setattr(budget, 'total_sale_value', result['totals']['soma_total_venda'])
         setattr(budget, 'total_sale_with_icms', result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in result['items'])))
-        setattr(budget, 'profitability_percentage', cast(float, markup_percentage))  # Set to desired markup
+        # Ajustar rentabilidade do orçamento para SEM ICMS baseada nos totais calculados
+        setattr(budget, 'profitability_percentage', result['totals'].get('markup_pedido_sem_impostos', cast(float, markup_percentage)))
         # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
         setattr(budget, 'total_ipi_value', result['totals'].get('total_ipi_orcamento', 0.0))
         setattr(budget, 'total_final_value', result['totals'].get('total_final_com_ipi', 0.0))

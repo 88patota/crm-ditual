@@ -27,7 +27,7 @@ import {
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
 import { ErrorHandler } from '../../utils/errorHandler';
-import { convertNumericToBrazilian } from '../../lib/utils';
+import { convertNumericToBrazilian, formatPercentageValue, formatPercentageValueNoRound, parsePercentageValue } from '../../lib/utils';
 import CurrencyInput from '../common/CurrencyInput';
 
 const { Title, Text } = Typography;
@@ -203,14 +203,14 @@ export default function AutoMarkupBudgetForm({
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 17) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val ?? 17) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => Number(value!.replace('%', ''))}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
           required
         />
@@ -251,14 +251,14 @@ export default function AutoMarkupBudgetForm({
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val ?? 18) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => Number(value!.replace('%', ''))}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
           required
         />
@@ -440,7 +440,7 @@ export default function AutoMarkupBudgetForm({
                     <div style={{ padding: '8px 0' }}>
                       <Alert
                         message="🎯 Cálculo Realizado pelo Backend"
-                        description={`Markup calculado pelo backend: ${preview.markup_percentage.toFixed(2)}% baseado nos valores de compra e venda informados.`}
+            description={`Rentabilidade calculada pelo backend: ${formatPercentageValueNoRound(preview.profitability_percentage)} baseada nos valores de compra e venda informados.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}
@@ -459,15 +459,15 @@ export default function AutoMarkupBudgetForm({
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f5222d' }}>
-                              {(preview.total_weight_difference_percentage || 0).toFixed(2)}%
+                              {formatPercentageValue(preview.total_weight_difference_percentage || 0)}
                             </div>
                           </div>
                         </Col>
                         <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
-                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                              {preview.markup_percentage.toFixed(2)}%
+              {formatPercentageValueNoRound(preview.profitability_percentage)}
                             </div>
                           </div>
                         </Col>

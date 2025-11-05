@@ -23,22 +23,13 @@ import {
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../../services/budgetService';
+import { formatCurrency, formatPercentageValue } from '../../lib/utils';
 import type { MarkupConfiguration } from '../../services/budgetService';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Funções utilitárias para formatação de moeda brasileira
-const formatBRLCurrency = (value: number | string | undefined): string => {
-  if (!value && value !== 0) return '';
-  const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(numValue);
-};
+// Utiliza utilitário central de moeda (ROUND_HALF_UP)
 
 const parseBRLCurrency = (value: string | undefined): number => {
   if (!value) return 0;
@@ -312,7 +303,7 @@ export default function MarkupSettings() {
                     min={0}
                     step={0.01}
                     precision={2}
-                    formatter={formatBRLCurrency}
+                    formatter={(value) => formatCurrency(typeof value === 'string' ? parseFloat(value) || 0 : (value || 0))}
                     parser={parseBRLCurrency}
                     style={{ width: '100%' }}
                   />
@@ -332,7 +323,7 @@ export default function MarkupSettings() {
                     <Statistic
                       title="Markup Mínimo"
                       value={settings.minimum_markup_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
+                      formatter={(value) => formatPercentageValue(Number(value))}
                       valueStyle={{ color: '#ff4d4f' }}
                     />
                   </Card>
@@ -342,7 +333,7 @@ export default function MarkupSettings() {
                     <Statistic
                       title="Markup Máximo"
                       value={settings.maximum_markup_percentage}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
+                      formatter={(value) => formatPercentageValue(Number(value))}
                       valueStyle={{ color: '#52c41a' }}
                     />
                   </Card>
@@ -352,7 +343,7 @@ export default function MarkupSettings() {
                     <Statistic
                       title="ICMS Venda"
                       value={settings.icms_sale_default}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
+                      formatter={(value) => formatPercentageValue(Number(value))}
                       valueStyle={{ color: '#1890ff' }}
                     />
                   </Card>
@@ -362,7 +353,7 @@ export default function MarkupSettings() {
                     <Statistic
                       title="Comissão"
                       value={settings.commission_default}
-                      formatter={(value) => `${Number(value).toFixed(1)}%`}
+                      formatter={(value) => formatPercentageValue(Number(value))}
                       valueStyle={{ color: '#fa541c' }}
                     />
                   </Card>
@@ -376,7 +367,7 @@ export default function MarkupSettings() {
                      settings.default_market_position === 'premium' ? 'Premium' : 'Competitivo'}
                   </Descriptions.Item>
                   <Descriptions.Item label="Outras Despesas">
-                    R$ {settings.other_expenses_default.toFixed(2)}
+                    {formatCurrency(settings.other_expenses_default)}
                   </Descriptions.Item>
                 </Descriptions>
               </Card>

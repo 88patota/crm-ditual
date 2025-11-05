@@ -43,6 +43,7 @@ import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
 import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -322,7 +323,7 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => (a.total_sale_with_icms || 0) - (b.total_sale_with_icms || 0),
       render: (value: number) => (
         <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-          R$ {(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrency(value || 0)}
         </Text>
       ),
     },
@@ -335,7 +336,7 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => a.total_commission - b.total_commission,
       render: (value: number) => (
         <Text style={{ color: '#fa541c' }}>
-          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrency(value || 0)}
         </Text>
       ),
     },
@@ -348,7 +349,7 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => a.profitability_percentage - b.profitability_percentage,
       render: (percentage: number) => (
         <Badge 
-          count={`${percentage.toFixed(1)}%`}
+          count={formatPercentageValue(percentage)}
           style={{ 
             backgroundColor: percentage > 20 ? '#52c41a' : 
                           percentage > 10 ? '#faad14' : '#ff4d4f'
@@ -604,7 +605,7 @@ export default function Budgets() {
         extra={
           <Space>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              Total: R$ {filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              Total: {formatCurrency(filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0))}
             </Text>
           </Space>
         }

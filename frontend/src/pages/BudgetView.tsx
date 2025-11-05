@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDeliveryTime } from '../lib/formatters';
+import { formatCurrency, formatPercentageValue, formatPercentFromFraction, roundHalfUp } from '../lib/utils';
 import {
   Card,
   Row,
@@ -223,7 +224,7 @@ export default function BudgetView() {
         const color = isPositive ? '#52c41a' : '#ff4d4f'; // Verde para positivo, vermelho para negativo
         
         return (
-          <Tooltip title={`Diferença absoluta: ${weightDiffDisplay.absolute_difference.toFixed(2)} kg`}>
+          <Tooltip title={`Diferença absoluta: ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundHalfUp(weightDiffDisplay.absolute_difference || 0, 2))} kg`}>
             <div style={{
               color: color,
               fontWeight: 600,
@@ -269,7 +270,7 @@ export default function BudgetView() {
           fontSize: '13px',
           fontFamily: 'monospace'
         }}>
-          {value ? value.toFixed(2) : '-'}
+          {value ? new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(roundHalfUp(value, 2)) : '-'}
         </span>
       ),
     },
@@ -297,7 +298,7 @@ export default function BudgetView() {
               fontFamily: 'monospace',
               fontSize: '13px'
             }}>
-              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+              {formatCurrency(value || 0)}
             </span>
           ),
         },
@@ -315,7 +316,7 @@ export default function BudgetView() {
               borderRadius: '4px',
               fontWeight: 500
             }}>
-              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
+              {value ? formatPercentageValue(value * 100) : '0%'}
             </span>
           ),
         },
@@ -345,7 +346,7 @@ export default function BudgetView() {
               fontFamily: 'monospace',
               fontSize: '13px'
             }}>
-              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+              {formatCurrency(value || 0)}
             </span>
           ),
         },
@@ -363,7 +364,7 @@ export default function BudgetView() {
               borderRadius: '4px',
               fontWeight: 500
             }}>
-              {value ? `${(value * 100).toFixed(1)}%` : '0%'}
+              {value ? formatPercentageValue(value * 100) : '0%'}
             </span>
           ),
         },
@@ -389,9 +390,7 @@ export default function BudgetView() {
           render: (value: number) => {
             let displayValue = '0%';
             if (value && value !== 0) {
-              if (value === 0.0325) displayValue = '3,25%';
-              else if (value === 0.05) displayValue = '5%';
-              else displayValue = `${(value * 100).toFixed(2)}%`;
+              displayValue = formatPercentFromFraction(value, 2);
             }
             return (
               <span style={{ 
@@ -419,7 +418,7 @@ export default function BudgetView() {
               fontFamily: 'monospace',
               fontSize: '13px'
             }}>
-              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+              {value ? formatCurrency(value) : '-'}
             </span>
           ),
         },
@@ -447,7 +446,7 @@ export default function BudgetView() {
           width: 80,
           align: 'center' as const,
           render: (value: number) => (
-            <Tooltip title={`Valor real da comissão: ${value ? `${(value * 100).toFixed(4)}%` : '0%'} (calculado pelo backend)`}>
+            <Tooltip title={`Valor real da comissão: ${value ? formatPercentFromFraction(value, 4) : '0%'} (calculado pelo backend)`}>
               <span style={{ 
                 color: '#1890ff',
                 fontSize: '12px',
@@ -459,7 +458,7 @@ export default function BudgetView() {
                 display: 'inline-block',
                 minWidth: '50px'
               }}>
-                {value ? `${(value * 100).toFixed(2)}%` : '0%'}
+                {value ? formatPercentFromFraction(value, 2) : '0%'}
               </span>
             </Tooltip>
           ),
@@ -477,7 +476,7 @@ export default function BudgetView() {
               fontFamily: 'monospace',
               fontSize: '13px'
             }}>
-              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+              {formatCurrency(value || 0)}
             </span>
           ),
         },
@@ -652,7 +651,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
-                      R$ {financialData.totalSaleWithIcms.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(financialData.totalSaleWithIcms)}
                     </div>
                     <Text type="secondary" style={{ fontSize: '11px' }}>
                       COM ICMS
@@ -663,7 +662,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
-                      R$ {(budget.total_commission || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(budget.total_commission || 0)}
                     </div>
                   </div>
                 </Col>
@@ -671,7 +670,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>FRETE</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
-                      R$ {(budget.freight_value_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(budget.freight_value_total || 0)}
                     </div>
                   </div>
                 </Col>
@@ -679,7 +678,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>IPI</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa8c16' }}>
-                      R$ {(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      {formatCurrency(budget.total_ipi_value || 0)}
                     </div>
                   </div>
                 </Col>
@@ -691,7 +690,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                      {budget.markup_percentage.toFixed(2)}%
+                      {formatPercentageValue(budget.markup_percentage)}
                     </div>
                   </div>
                 </Col>
@@ -699,7 +698,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fa541c' }}>
-                      {(budget.total_weight_difference_percentage || 0).toFixed(2)}%
+                      {formatPercentageValue(budget.total_weight_difference_percentage || 0)}
                     </div>
                   </div>
                 </Col>
@@ -709,7 +708,7 @@ export default function BudgetView() {
               {budget.total_ipi_value && budget.total_ipi_value > 0 && (
                 <Alert 
                   message="IPI Aplicado" 
-                  description={`Inclui R$ ${(budget.total_ipi_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de IPI`}
+                  description={`Inclui ${formatCurrency(budget.total_ipi_value || 0)} de IPI`}
                   type="warning" 
                   showIcon 
                   style={{ marginTop: '12px', fontSize: '11px' }}

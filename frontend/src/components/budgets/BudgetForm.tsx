@@ -24,7 +24,7 @@ import {
 } from '@ant-design/icons';
 import type { Budget, BudgetItem } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { convertNumericToBrazilian } from '../../lib/utils';
+import { convertNumericToBrazilian, formatPercentageValue, parsePercentageValue } from '../../lib/utils';
 import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
@@ -226,32 +226,17 @@ export default function BudgetForm({
       title: 'ICMS Venda (%)',
       dataIndex: 'sale_icms_percentage',
       key: 'sale_icms_percentage',
-      width: 150,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
-          placeholder="0,00"
-        />
-      ),
-    },
-    {
-      title: '%ICMS (Venda)',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
       width: 120,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val ?? 0) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           addonAfter="%"
           style={{ width: '100%' }}
         />
@@ -533,7 +518,7 @@ export default function BudgetForm({
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
+                  formatter={(value) => formatPercentageValue(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

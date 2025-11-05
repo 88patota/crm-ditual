@@ -15,6 +15,7 @@ from app.schemas.budget import (
 from app.services.budget_service import BudgetService
 from app.services.budget_calculator import BudgetCalculatorService
 from app.services.pdf_export_service import pdf_export_service
+from app.utils.rounding import round_currency, round_percent, round_percent_display
 import logging
 
 # Configurar logger
@@ -378,9 +379,9 @@ async def calculate_budget(
         total_net_revenue = total_sale_value
         total_taxes = total_sale_with_icms - total_net_revenue
 
-        # Calculate markup - valores já estão em decimal
+        # Calculate markup (COM ICMS) e rentabilidade para comissão (SEM ICMS)
         markup_percentage = budget_result['totals']['markup_pedido']
-        profitability_percentage = markup_percentage
+        profitability_percentage = budget_result['totals']['markup_pedido_sem_impostos']
 
         # Prepare response
         items_calculations = []
@@ -390,7 +391,8 @@ async def calculate_budget(
                 'weight': item['peso_compra'],
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
-                'profitability': round((item['rentabilidade_item'] or 0) * 100, 2),  # Conversão para % apenas aqui
+                'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Conversão para % com HALF_UP
+                'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'ipi_percentage': item['percentual_ipi'],
                 'ipi_value': item['valor_ipi_total'],
@@ -398,16 +400,17 @@ async def calculate_budget(
             })
 
         return BudgetCalculation(
-            total_purchase_value=round(total_purchase_value, 2),
-            total_sale_value=round(total_sale_value, 2),
-            total_net_revenue=round(total_net_revenue, 2),
-            total_taxes=round(total_taxes, 2),
-            total_commission=round(total_commission, 2),
-            profitability_percentage=round(profitability_percentage * 100, 2),  # Conversão para % apenas aqui
-            markup_percentage=round(markup_percentage * 100, 2),  # Conversão para % apenas aqui
+            total_purchase_value=round_currency(total_purchase_value),
+            total_sale_value=round_currency(total_sale_value),
+            total_net_revenue=round_currency(total_net_revenue),
+            total_taxes=round_currency(total_taxes),
+            total_commission=round_currency(total_commission),
+            profitability_percentage=round_percent_display(profitability_percentage, 2),  # SEM ICMS
+            rentabilidade_comissao_total=round_percent_display(budget_result['totals']['markup_pedido_sem_impostos'], 2),
+            markup_percentage=round_percent_display(markup_percentage, 2),  # COM ICMS
             items_calculations=items_calculations,
-            total_ipi_value=round(total_ipi_value, 2),
-            total_final_value=round(total_final_value, 2)
+            total_ipi_value=round_currency(total_ipi_value),
+            total_final_value=round_currency(total_final_value)
         )
 
     except ValueError as e:
@@ -526,9 +529,9 @@ async def calculate_simplified_budget(
         total_net_revenue = total_sale_value  # SEM impostos
         total_taxes = total_sale_with_icms - total_net_revenue
         
-        # Calcular markup - converter de decimal para percentual
-        markup_percentage = budget_result['totals']['markup_pedido'] * 100  # Converter para percentual
-        profitability_percentage = markup_percentage
+        # Calcular markup (COM ICMS) e rentabilidade para comissão (SEM ICMS) em percentual
+        markup_percentage = budget_result['totals']['markup_pedido'] * 100  # COM ICMS
+        profitability_percentage = budget_result['totals']['markup_pedido_sem_impostos'] * 100  # SEM ICMS
         
         # Calcular percentual de comissão real baseado no total de comissão e valor de venda
         commission_percentage_actual = 0.0
@@ -544,7 +547,8 @@ async def calculate_simplified_budget(
                 'peso_venda': item['peso_venda'],
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
-                'profitability': (item['rentabilidade_item'] or 0) * 100,  # Converter para percentual
+                'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Converter para percentual com HALF_UP
+                'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'commission_percentage_actual': item.get('commission_percentage_actual', 0.0),  # Actual percentage used
                 # IPI fields
@@ -556,20 +560,21 @@ async def calculate_simplified_budget(
             })
         
         return BudgetCalculation(
-            total_purchase_value=round(total_purchase_value, 2),
-            total_sale_value=round(total_sale_value, 2),  # SEM impostos - muda quando ICMS muda
-            total_net_revenue=round(total_net_revenue, 2),  # SEM impostos (mesmo que total_sale_value)
-            total_taxes=round(total_taxes, 2),  # Impostos totais
-            total_commission=round(total_commission, 2),
-            commission_percentage_actual=round(commission_percentage_actual, 2),  # CORREÇÃO: Campo obrigatório adicionado
-            profitability_percentage=round(profitability_percentage, 2),
-            markup_percentage=round(markup_percentage, 2),
+            total_purchase_value=round_currency(total_purchase_value),
+            total_sale_value=round_currency(total_sale_value),  # SEM impostos - muda quando ICMS muda
+            total_net_revenue=round_currency(total_net_revenue),  # SEM impostos (mesmo que total_sale_value)
+            total_taxes=round_currency(total_taxes),  # Impostos totais
+            total_commission=round_currency(total_commission),
+            commission_percentage_actual=round_percent(commission_percentage_actual, 2),  # Campo obrigatório
+            profitability_percentage=round_percent(profitability_percentage, 2),  # SEM ICMS
+            rentabilidade_comissao_total=round_percent(profitability_percentage, 2),
+            markup_percentage=round_percent(markup_percentage, 2),  # COM ICMS
             items_calculations=items_calculations,
             # IPI calculations
-            total_ipi_value=round(total_ipi_value, 2),
-            total_final_value=round(total_final_value, 2),
+            total_ipi_value=round_currency(total_ipi_value),
+            total_final_value=round_currency(total_final_value),
             # Weight difference
-            total_weight_difference_percentage=round(budget_result['totals']['total_weight_difference_percentage'], 2)
+            total_weight_difference_percentage=round_percent(budget_result['totals']['total_weight_difference_percentage'], 2)
         )
         
     except ValueError as e:

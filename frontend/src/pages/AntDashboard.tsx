@@ -47,6 +47,7 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useState } from 'react';
 import dayjs from 'dayjs';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -119,13 +120,7 @@ const AntDashboard: React.FC = () => {
     return `Últimos ${filterDays} dias`;
   };
 
-  // Formatar valores monetários
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Formatação centralizada via utilitário
 
   // Cards de estatísticas removidos conforme solicitado
 
@@ -305,8 +300,9 @@ const AntDashboard: React.FC = () => {
         callbacks: {
           label: function(context: { dataset: { data: number[] }, parsed: number, label: string }) {
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = total > 0 ? ((context.parsed * 100) / total).toFixed(1) : '0.0';
-            return `${context.label}: ${context.parsed} (${percentage}%)`;
+            const percentageNumber = total > 0 ? ((context.parsed * 100) / total) : 0;
+            const percentage = formatPercentageValue(percentageNumber);
+            return `${context.label}: ${context.parsed} (${percentage})`;
           }
         }
       }
@@ -607,7 +603,7 @@ const AntDashboard: React.FC = () => {
                 </Title>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ea580c' }}>
-                    {dashboardStats.conversion_rate.toFixed(1)}%
+                    {formatPercentageValue(dashboardStats.conversion_rate)}
                   </div>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
                     {dashboardStats.approved_budgets} de {dashboardStats.total_budgets} orçamentos aprovados

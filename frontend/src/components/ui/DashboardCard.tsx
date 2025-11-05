@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from 'antd';
+import { formatPercentageValue } from '../../lib/utils';
 import { clsx } from 'clsx';
 
 interface BaseDashboardCardProps {
@@ -272,7 +273,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             lineHeight: 1.4,
             paddingBottom: '2px'
           }}>
-            {progress.toFixed(1)}%
+            {formatPercentageValue(progress)}
           </div>
         </div>
         

@@ -29,6 +29,7 @@ import { StatsCard, StatusCard, ProgressCard, InfoCard } from '../components/ui/
 import '../styles/DashboardCard.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 dayjs.locale('pt-br');
 
@@ -81,12 +82,7 @@ const AdminDashboardRefactored: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Usa utilitário central de moeda (ROUND_HALF_UP)
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -135,8 +131,19 @@ const AdminDashboardRefactored: React.FC = () => {
     );
   }
 
+  // Tipo para os cards principais (compatível com StatsCard)
+  type MainStat = {
+    title: string;
+    value: string | number;
+    prefix?: React.ReactNode;
+    color?: string;
+    trend?: { value: number; isPositive: boolean };
+    description?: string;
+    suffix?: string;
+  };
+
   // Dados para os cards principais usando os novos componentes
-  const mainStatsData = [
+  const mainStatsData: MainStat[] = [
     {
       title: 'Total de Orçamentos',
       value: dashboardStats?.total_budgets || 0,
@@ -163,8 +170,7 @@ const AdminDashboardRefactored: React.FC = () => {
     },
     {
       title: 'Taxa de Conversão',
-      value: (dashboardStats?.conversion_rate || 0).toFixed(2),
-      suffix: '%',
+      value: formatPercentageValue(dashboardStats?.conversion_rate || 0),
       prefix: <UserOutlined />,
       color: '#fa8c16',
       trend: { value: 3, isPositive: false },

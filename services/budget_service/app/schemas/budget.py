@@ -170,6 +170,7 @@ class BudgetItemResponse(BudgetItemBase):
     total_value: float
     commission_value: float
     commission_percentage_actual: float  # Actual commission percentage used (for display)
+    rentabilidade_comissao: Optional[float] = None  # Rentabilidade usada para comissão (SEM ICMS)
     
     # IPI calculated values
     ipi_value: Optional[float] = None  # Valor do IPI calculado
@@ -294,6 +295,7 @@ class BudgetCalculation(BaseModel):
     total_commission: float
     commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
+    rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
     markup_percentage: float
     items_calculations: List[dict]
     
@@ -313,6 +315,7 @@ class BudgetPreviewCalculation(BaseModel):
     total_commission: float
     commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
+    rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
     markup_percentage: float  # CALCULADO AUTOMATICAMENTE
     items_preview: List[dict]
     

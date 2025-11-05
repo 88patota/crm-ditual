@@ -3,6 +3,7 @@ Sistema de Comissões por Faixas de Rentabilidade
 Baseado no documento REGRAS_NEGOCIO_ORCAMENTOS_SISTEMA.md
 """
 from typing import Dict, List
+from app.utils.rounding import round_currency
 
 
 class CommissionService:
@@ -81,15 +82,15 @@ class CommissionService:
             rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
             return CommissionService.calculate_commission_value(total_venda_item_com_icms, rentabilidade_unitaria)
         
-        # Para casos com diferença de peso, calcular rentabilidade baseada nos valores unitários COM ICMS
-        # Isso garante que a rentabilidade seja calculada corretamente independente da quantidade
-        rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
-        
-        # Aplicar comissão sobre o valor total de venda COM ICMS usando a rentabilidade unitária
-        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_unitaria)
+        # Para casos com diferença de peso, usar rentabilidade TOTAL da operação
+        # Conforme especificação e testes: (total_venda / total_compra - 1)
+        rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item_com_icms, total_compra_item_com_icms)
+
+        # Aplicar comissão sobre o valor total de venda COM ICMS usando a rentabilidade total
+        percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
         valor_comissao = total_venda_item_com_icms * percentual_comissao
         
-        return round(valor_comissao, 2)
+        return round_currency(valor_comissao)
     
     @staticmethod
     def _calculate_unit_profitability_with_icms(valor_com_icms_venda: float, valor_com_icms_compra: float) -> float:
@@ -162,7 +163,7 @@ class CommissionService:
         """
         percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade)
         valor_comissao = total_venda_item * percentual_comissao
-        return round(valor_comissao, 2)
+        return round_currency(valor_comissao)
     
     @staticmethod
     def calculate_budget_total_commission(items_data: List[Dict]) -> Dict:
@@ -210,7 +211,7 @@ class CommissionService:
             })
         
         return {
-            'total_commission': round(total_commission, 2),
+            'total_commission': round_currency(total_commission),
             'commission_by_bracket': commission_by_bracket,
             'items_summary': items_summary,
             'items_count': len(items_data)
