@@ -17,7 +17,6 @@ import SimplifiedBudgetCreate from './pages/SimplifiedBudgetCreate';
 import BudgetEdit from './pages/BudgetEdit';
 import BudgetView from './pages/BudgetView';
 import Profile from './pages/Profile';
-import MarkupSettings from './components/settings/MarkupSettings';
 
 // Estilos
 import './index.css';
@@ -278,16 +277,6 @@ function App() {
                     <ProtectedRoute>
                       <AntLayout>
                         <Profile />
-                      </AntLayout>
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/markup-settings"
-                  element={
-                    <ProtectedRoute>
-                      <AntLayout>
-                        <MarkupSettings />
                       </AntLayout>
                     </ProtectedRoute>
                   }

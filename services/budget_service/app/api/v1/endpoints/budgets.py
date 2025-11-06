@@ -10,7 +10,7 @@ from app.core.security import get_current_active_user, get_user_filter, require_
 from app.models.budget import BudgetStatus
 from app.schemas.budget import (
     BudgetCreate, BudgetUpdate, BudgetResponse, BudgetSummary, BudgetCalculation,
-    BudgetSimplifiedCreate, MarkupConfiguration, BudgetItemCreate
+    BudgetSimplifiedCreate, BudgetItemCreate
 )
 from app.services.budget_service import BudgetService
 from app.services.budget_calculator import BudgetCalculatorService
@@ -122,17 +122,7 @@ async def get_budgets(
     return summaries
 
 
-@router.get("/markup-settings", response_model=MarkupConfiguration)
-async def get_markup_settings():
-    """Obter configurações de markup do sistema"""
-    return MarkupConfiguration(
-        minimum_markup_percentage=20.0,
-        maximum_markup_percentage=200.0,
-        default_market_position="competitive",
-        icms_sale_default=17.0,
-        commission_default=1.5,
-        other_expenses_default=0.0
-    )
+# Removido: endpoint de configurações de markup
 
 
 @router.get("/next-order-number")
@@ -290,26 +280,7 @@ async def recalculate_budget(
     return budget
 
 
-@router.post("/{budget_id}/apply-markup", response_model=BudgetResponse)
-async def apply_markup(
-    budget_id: int,
-    markup_percentage: float = Query(..., description="Markup percentage to apply"),
-    db: AsyncSession = Depends(get_db)
-):
-    """Aplicar markup ao orçamento"""
-    if markup_percentage < 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Markup deve ser positivo"
-        )
-    
-    budget = await BudgetService.apply_markup_to_budget(db, budget_id, markup_percentage)
-    if not budget:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Orçamento não encontrado"
-        )
-    return budget
+# Removido: endpoint de aplicação de markup ao orçamento
 
 
 @router.post("/calculate", response_model=BudgetCalculation)
@@ -379,8 +350,7 @@ async def calculate_budget(
         total_net_revenue = total_sale_value
         total_taxes = total_sale_with_icms - total_net_revenue
 
-        # Calculate markup (COM ICMS) e rentabilidade para comissão (SEM ICMS)
-        markup_percentage = budget_result['totals']['markup_pedido']
+        # Calcular rentabilidade para comissão (SEM ICMS)
         profitability_percentage = budget_result['totals']['markup_pedido_sem_impostos']
 
         # Prepare response
@@ -407,7 +377,6 @@ async def calculate_budget(
             total_commission=round_currency(total_commission),
             profitability_percentage=round_percent_display(profitability_percentage, 2),  # SEM ICMS
             rentabilidade_comissao_total=round_percent_display(budget_result['totals']['markup_pedido_sem_impostos'], 2),
-            markup_percentage=round_percent_display(markup_percentage, 2),  # COM ICMS
             items_calculations=items_calculations,
             total_ipi_value=round_currency(total_ipi_value),
             total_final_value=round_currency(total_final_value)
@@ -425,59 +394,7 @@ async def calculate_budget(
         )
 
 
-@router.post("/calculate-with-markup", response_model=BudgetCalculation)
-async def calculate_with_markup(
-    budget_data: BudgetCreate,
-    markup_percentage: float = Query(..., description="Desired markup percentage")
-):
-    """Calcular orçamento com markup específico (preview)"""
-    try:
-        if markup_percentage < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Markup deve ser positivo"
-            )
-        
-        # Validate data
-        budget_dict = budget_data.dict()
-        errors = BudgetCalculatorService.validate_budget_data(budget_dict)
-        if errors:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Dados inválidos: {'; '.join(errors)}"
-            )
-        
-        # Calculate with markup
-        items_data = [item.dict() for item in budget_data.items]
-        result = BudgetCalculatorService.calculate_with_markup(items_data, markup_percentage)
-        
-        # Format items calculations
-        items_calculations = []
-        for item in result['adjusted_items']:
-            items_calculations.append({
-                'description': item['description'],
-                'weight': item.get('weight', 1.0),
-                'adjusted_sale_price': item['sale_value_with_icms'],
-                'total_purchase': item['total_purchase'],
-                'total_sale': item['total_sale'],
-                'profitability': item['profitability'],
-                'commission_value': item['commission_value']
-            })
-        
-        return BudgetCalculation(
-            total_purchase_value=result['totals']['total_purchase_value'],
-            total_sale_value=result['totals']['total_sale_value'],
-            total_commission=result['totals']['total_commission'],
-            profitability_percentage=result['totals']['profitability_percentage'],
-            markup_percentage=result['totals']['markup_percentage'],
-            items_calculations=items_calculations
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+# Removido: endpoint de cálculo com markup específico (preview)
 
 
 @router.post("/calculate-simplified", response_model=BudgetCalculation)
@@ -529,8 +446,7 @@ async def calculate_simplified_budget(
         total_net_revenue = total_sale_value  # SEM impostos
         total_taxes = total_sale_with_icms - total_net_revenue
         
-        # Calcular markup (COM ICMS) e rentabilidade para comissão (SEM ICMS) em percentual
-        markup_percentage = budget_result['totals']['markup_pedido'] * 100  # COM ICMS
+        # Calcular rentabilidade para comissão (SEM ICMS) em percentual
         profitability_percentage = budget_result['totals']['markup_pedido_sem_impostos'] * 100  # SEM ICMS
         
         # Calcular percentual de comissão real baseado no total de comissão e valor de venda
@@ -568,7 +484,6 @@ async def calculate_simplified_budget(
             commission_percentage_actual=round_percent(commission_percentage_actual, 2),  # Campo obrigatório
             profitability_percentage=round_percent(profitability_percentage, 2),  # SEM ICMS
             rentabilidade_comissao_total=round_percent(profitability_percentage, 2),
-            markup_percentage=round_percent(markup_percentage, 2),  # COM ICMS
             items_calculations=items_calculations,
             # IPI calculations
             total_ipi_value=round_currency(total_ipi_value),
@@ -784,7 +699,6 @@ async def create_simplified_budget(
         complete_budget_data = BudgetCreate(
             order_number=order_number,
             client_name=budget_data.client_name,
-            markup_percentage=budget_result['totals']['markup_pedido'],
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             # CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
@@ -809,133 +723,10 @@ async def create_simplified_budget(
         )
 
 
-@router.post("/calculate-markup", response_model=dict)
-async def calculate_item_markup(
-    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
-    purchase_icms_percentage: float = Query(..., description="Percentual de ICMS na compra"),
-    sale_value_with_icms: float = Query(..., description="Valor de venda com ICMS"),
-    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
-    other_expenses: float = Query(0.0, description="Outras despesas")
-):
-    """
-    Calcular markup automaticamente baseado nos valores de compra e venda
-    Segue exatamente as regras de negócio definidas (incluindo PIS/COFINS)
-    """
-    try:
-        markup_percentage = BudgetCalculatorService.calculate_automatic_markup_from_planilha(
-            purchase_value_with_icms=purchase_value_with_icms,
-            purchase_icms_percentage=purchase_icms_percentage,
-            sale_value_with_icms=sale_value_with_icms,
-            sale_icms_percentage=sale_icms_percentage,
-            other_expenses=other_expenses
-        )
-        
-        # Calcular valores conforme regras 1 e 3 (incluindo PIS/COFINS)
-        purchase_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        sale_without_taxes = (sale_value_with_icms * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        total_cost = purchase_without_taxes + other_expenses
-        profit = sale_without_taxes - total_cost
-        
-        # Calcular custo Dunamis conforme regra 10
-        dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
-            purchase_value_with_icms=purchase_value_with_icms,
-            sale_icms_percentage=sale_icms_percentage
-        )
-        
-        return {
-            "success": True,
-            "data": {
-                "markup_percentage": markup_percentage,
-                "breakdown": {
-                    "valor_com_icms_compra": purchase_value_with_icms,
-                    "purchase_value_without_taxes": round(purchase_without_taxes, 6),
-                    "other_expenses": other_expenses,
-                    "total_cost": round(total_cost, 6),
-                    "valor_com_icms_venda": sale_value_with_icms,
-                    "sale_value_without_taxes": round(sale_without_taxes, 6),
-                    "profit": round(profit, 6),
-                    "markup_percentage": markup_percentage,
-                    "dunamis_cost": round(dunamis_cost, 6),
-                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE
-                }
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro no cálculo do markup: {str(e)}"
-        )
+# Removido: endpoint de cálculo automático de markup
 
 
-@router.post("/suggest-sale-price", response_model=dict)
-async def suggest_sale_price_from_markup(
-    purchase_value_with_icms: float = Query(..., description="Valor de compra com ICMS"),
-    purchase_icms_percentage: float = Query(..., description="Percentual de ICMS na compra"),
-    desired_markup_percentage: float = Query(..., description="Markup desejado em percentual"),
-    sale_icms_percentage: float = Query(17.0, description="Percentual de ICMS na venda"),
-    other_expenses: float = Query(0.0, description="Outras despesas")
-):
-    """
-    Sugerir preço de venda necessário para atingir um markup desejado
-    Baseado nas regras de negócio atualizadas (incluindo PIS/COFINS)
-    """
-    try:
-        suggested_sale_price = BudgetCalculatorService.calculate_sale_price_from_markup(
-            purchase_value_with_icms=purchase_value_with_icms,
-            purchase_icms_percentage=purchase_icms_percentage,
-            sale_icms_percentage=sale_icms_percentage,
-            desired_markup_percentage=desired_markup_percentage,
-            other_expenses=other_expenses
-        )
-        
-        # Verificar se o markup calculado realmente bate
-        actual_markup = BudgetCalculatorService.calculate_automatic_markup_from_planilha(
-            purchase_value_with_icms=purchase_value_with_icms,
-            purchase_icms_percentage=purchase_icms_percentage,
-            sale_value_with_icms=suggested_sale_price,
-            sale_icms_percentage=sale_icms_percentage,
-            other_expenses=other_expenses
-        )
-        
-        # Calcular valores conforme regras 1 e 3 (incluindo PIS/COFINS)
-        purchase_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        sale_without_taxes = (suggested_sale_price * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        total_cost = purchase_without_taxes + other_expenses
-        profit = sale_without_taxes - total_cost
-        
-        # Calcular custo Dunamis também para referência
-        dunamis_cost = BudgetCalculatorService.calculate_dunamis_cost(
-            purchase_value_with_icms=purchase_value_with_icms,
-            sale_icms_percentage=sale_icms_percentage
-        )
-        
-        return {
-            "success": True,
-            "data": {
-                "suggested_sale_price": round(suggested_sale_price, 2),
-                "actual_markup_achieved": round(actual_markup, 2),
-                "breakdown": {
-                    "purchase_value_with_icms": purchase_value_with_icms,
-                    "purchase_value_without_taxes": round(purchase_without_taxes, 6),
-                    "other_expenses": other_expenses,
-                    "total_cost": round(total_cost, 6),
-                    "suggested_sale_price": round(suggested_sale_price, 2),
-                    "sale_value_without_taxes": round(sale_without_taxes, 6),
-                    "profit": round(profit, 6),
-                    "desired_markup": desired_markup_percentage,
-                    "actual_markup": round(actual_markup, 2),
-                    "dunamis_cost": round(dunamis_cost, 6),
-                    "pis_cofins_percentage": BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE
-                }
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro no cálculo do preço de venda: {str(e)}"
-        )
+# Removido: endpoint de sugestão de preço via markup
 
 
 

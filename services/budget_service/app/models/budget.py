@@ -27,7 +27,6 @@ class Budget(Base):
     total_sale_with_icms = Column(Float, default=0.0)  # COM ICMS - valor real sem IPI
     total_commission = Column(Float, default=0.0)
     commission_percentage_actual = Column(Float, default=0.0)  # Percentual de comissão real calculado
-    markup_percentage = Column(Float, default=0.0)
     profitability_percentage = Column(Float, default=0.0)
     
     # IPI totals

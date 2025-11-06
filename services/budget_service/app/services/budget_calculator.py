@@ -14,83 +14,12 @@ class BudgetCalculatorService:
     DEFAULT_SALE_ICMS_PERCENTAGE = 17.0  # ICMS padrão para vendas
     DEFAULT_PIS_COFINS_PERCENTAGE = 9.25  # PIS/COFINS fixo conforme regras (9,25%)
     DEFAULT_OTHER_EXPENSES = 0.0  # Outras despesas padrão
-    DEFAULT_MINIMUM_MARKUP = 20.0  # 20% mínimo
-    DEFAULT_MAXIMUM_MARKUP = 200.0  # 200% máximo
     DEFAULT_TARGET_MARGIN = 30.0   # 30% margem alvo
     
     # NOTA: Funções de markup automático temporariamente desabilitadas
     # Elas serão reativadas quando BudgetItemInput for implementado
     
-    @staticmethod
-    def calculate_automatic_markup_from_planilha(purchase_value_with_icms: float, purchase_icms_percentage: float, 
-                                                sale_value_with_icms: float, sale_icms_percentage: float,
-                                                other_expenses: float = 0.0) -> float:
-        """
-        Calcula markup automaticamente seguindo exatamente a fórmula da planilha
-        
-        Fórmula: ((Valor Venda s/Impostos - Valor Compra s/Impostos) / Valor Compra s/Impostos) * 100
-        Considera ICMS e PIS/COFINS conforme regra 1 e 3
-        
-        Args:
-            purchase_value_with_icms: Valor de compra com ICMS
-            purchase_icms_percentage: Percentual de ICMS na compra
-            sale_value_with_icms: Valor de venda com ICMS  
-            sale_icms_percentage: Percentual de ICMS na venda
-            other_expenses: Outras despesas adicionais
-            
-        Returns:
-            float: Markup percentual calculado
-        """
-        # Cálculo dos valores sem impostos conforme planilha (regras 1 e 3)
-        # Regra 1: [Valor c/ICMS (Compra) * (1 - % ICMS (Compra))] * (1 - Taxa PIS/COFINS)
-        purchase_value_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        
-        # Regra 3: [Valor c/ICMS (Venda) * (1 - % ICMS (Venda))] * (1 - Taxa PIS/COFINS)
-        sale_value_without_taxes = (sale_value_with_icms * (1 - sale_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        
-        # Incluir outras despesas no custo base
-        total_purchase_cost = purchase_value_without_taxes + other_expenses
-        
-        # Fórmula do markup da planilha (regra 5)
-        if total_purchase_cost > 0:
-            markup_percentage = ((sale_value_without_taxes - total_purchase_cost) / total_purchase_cost) * 100
-        else:
-            markup_percentage = 0.0
-            
-        return round(markup_percentage, 2)
-
-    @staticmethod
-    def calculate_sale_price_from_markup(purchase_value_with_icms: float, purchase_icms_percentage: float,
-                                       sale_icms_percentage: float, desired_markup_percentage: float,
-                                       other_expenses: float = 0.0) -> float:
-        """
-        Calcula o preço de venda necessário para atingir um markup desejado
-        
-        Args:
-            purchase_value_with_icms: Valor de compra com ICMS
-            purchase_icms_percentage: Percentual de ICMS na compra
-            sale_icms_percentage: Percentual de ICMS na venda
-            desired_markup_percentage: Markup desejado em percentual
-            other_expenses: Outras despesas adicionais
-            
-        Returns:
-            float: Preço de venda com ICMS necessário
-        """
-        # Calcular valor de compra sem impostos (regra 1)
-        purchase_value_without_taxes = (purchase_value_with_icms * (1 - purchase_icms_percentage / 100)) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100)
-        total_purchase_cost = purchase_value_without_taxes + other_expenses
-        
-        # Calcular valor de venda sem impostos necessário
-        sale_value_without_taxes = total_purchase_cost * (1 + desired_markup_percentage / 100)
-        
-        # Converter para valor com ICMS (processo inverso da regra 3)
-        # sale_value_without_taxes = sale_value_with_icms * (1 - sale_icms_percentage / 100) * (1 - PIS_COFINS / 100)
-        # Então: sale_value_with_icms = sale_value_without_taxes / [(1 - sale_icms_percentage / 100) * (1 - PIS_COFINS / 100)]
-        sale_value_with_icms = sale_value_without_taxes / ((1 - sale_icms_percentage / 100) * (1 - BudgetCalculatorService.DEFAULT_PIS_COFINS_PERCENTAGE / 100))
-        
-        return round(sale_value_with_icms, 2)
-        
-        return round(sale_value_with_icms, 2)
+    
 
     @staticmethod
     def calculate_simplified_item(item_input: BudgetItemSimplified) -> dict:
@@ -216,12 +145,10 @@ class BudgetCalculatorService:
             total_ipi_value += calculated_item.get('total_ipi_value', 0.0)
             total_final_value += calculated_item.get('total_final_with_ipi', calculated_item['total_value'])
         
-        # Calcular markup/rentabilidade resultante
+        # Calcular rentabilidade resultante (decimal)
         if total_purchase_value > 0:
-            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value)
-            profitability_percentage = markup_percentage  # Mesmo valor conforme regras - manter em decimal
+            profitability_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value)
         else:
-            markup_percentage = 0.0
             profitability_percentage = 0.0
         
         return {
@@ -231,7 +158,6 @@ class BudgetCalculatorService:
                 'total_sale_value': round(total_sale_value, 2),
                 'total_commission': round(total_commission, 2),
                 'profitability_percentage': profitability_percentage,  # Manter em decimal
-                'markup_percentage': markup_percentage,  # Manter em decimal
                 # Totais de IPI
                 'total_ipi_value': round(total_ipi_value, 2),
                 'total_final_value': round(total_final_value, 2),  # Valor final que o cliente pagará
@@ -348,67 +274,17 @@ class BudgetCalculatorService:
             total_sale_value += calculations['total_sale']
             total_commission += calculations['commission_value']
         
-        # Overall profitability
+        # Overall profitability (decimal)
         if total_purchase_value > 0:
-            profitability_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value) * 100
+            profitability_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value)
         else:
             profitability_percentage = 0.0
-        
-        # Markup calculation
-        if total_purchase_value > 0:
-            markup_percentage = ((total_sale_value - total_purchase_value) / total_purchase_value) * 100
-        else:
-            markup_percentage = 0.0
         
         return {
             'total_purchase_value': total_purchase_value,
             'total_sale_value': total_sale_value,
             'total_commission': total_commission,
-            'profitability_percentage': profitability_percentage,
-            'markup_percentage': markup_percentage
-        }
-    
-    @staticmethod
-    def calculate_with_markup(items: List[dict], desired_markup_percentage: float) -> Dict[str, Any]:
-        """
-        Calculate budget values with a desired markup percentage
-        Adjusts sale prices to achieve the target markup
-        """
-        adjusted_items = []
-        total_purchase_value = 0.0
-        
-        # First pass: calculate total purchase value
-        for item in items:
-            calculations = BudgetCalculatorService.calculate_item_totals(item)
-            total_purchase_value += calculations['total_purchase']
-        
-        # Calculate required total sale value for desired markup
-        required_total_sale_value = total_purchase_value * (1 + desired_markup_percentage / 100)
-        
-        # Adjust item prices proportionally
-        current_total_sale = sum(
-            BudgetCalculatorService.calculate_item_totals(item)['total_sale'] 
-            for item in items
-        )
-        
-        if current_total_sale > 0:
-            adjustment_factor = required_total_sale_value / current_total_sale
-            
-            for item in items:
-                adjusted_item = item.copy()
-                adjusted_item['sale_value_with_icms'] *= adjustment_factor
-                
-                # Recalculate with adjusted prices
-                calculations = BudgetCalculatorService.calculate_item_totals(adjusted_item)
-                adjusted_item.update(calculations)
-                adjusted_items.append(adjusted_item)
-        
-        # Calculate final totals
-        final_totals = BudgetCalculatorService.calculate_budget_totals(adjusted_items)
-        
-        return {
-            'adjusted_items': adjusted_items,
-            'totals': final_totals
+            'profitability_percentage': profitability_percentage
         }
     
     @staticmethod

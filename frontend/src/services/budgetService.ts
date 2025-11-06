@@ -60,12 +60,10 @@ export interface BudgetPreviewCalculation {
   total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission: number;
   profitability_percentage: number;
-  markup_percentage: number; // CALCULADO AUTOMATICAMENTE
   items_preview: Array<{
     description: string;
     quantity: number;
     purchase_value_with_icms: number;
-    calculated_markup: number; // NOVO: markup individual calculado
     sale_value_with_icms: number;
     total_purchase: number;
     total_sale: number;
@@ -75,22 +73,10 @@ export interface BudgetPreviewCalculation {
   commission_percentage_default: number;
   sale_icms_percentage_default: number;
   other_expenses_default: number;
-  // NOVOS CAMPOS
-  minimum_markup_applied: number;
-  maximum_markup_applied: number;
   
   // IPI preview calculations
   total_ipi_value?: number; // Total do IPI de todos os itens
   total_final_value?: number; // Valor final incluindo IPI
-}
-
-export interface MarkupConfiguration {
-  minimum_markup_percentage: number;
-  maximum_markup_percentage: number;
-  default_market_position: string;
-  icms_sale_default: number;
-  commission_default: number;
-  other_expenses_default: number;
 }
 
 // Interface para estatísticas do dashboard
@@ -163,7 +149,6 @@ export interface Budget {
   order_number: string;
   client_name: string;
   client_id?: number;
-  markup_percentage: number;
   notes?: string;
   expires_at?: string;
   freight_type?: string;
@@ -217,7 +202,6 @@ export interface BudgetCalculation {
   total_taxes: number;  // Impostos totais
   total_commission: number;
   profitability_percentage: number;
-  markup_percentage: number;
   total_weight_difference_percentage?: number; // Diferença total de peso em porcentagem
   items_calculations: Array<{
     description: string;
@@ -300,12 +284,7 @@ export const budgetService = {
   },
 
   // Apply markup
-  async applyMarkup(id: number, markupPercentage: number): Promise<Budget> {
-    const response = await api.post<Budget>(
-      `/budgets/${id}/apply-markup?markup_percentage=${markupPercentage}`
-    );
-    return response.data;
-  },
+  // [REMOVIDO] applyMarkup - funcionalidade de markup descontinuada
 
   // Calculate budget (preview)
   async calculateBudget(budget: Budget): Promise<BudgetCalculation> {
@@ -314,13 +293,7 @@ export const budgetService = {
   },
 
   // Calculate with markup (preview)
-  async calculateWithMarkup(budget: Budget, markupPercentage: number): Promise<BudgetCalculation> {
-    const response = await api.post<BudgetCalculation>(
-      `/budgets/calculate-with-markup?markup_percentage=${markupPercentage}`,
-      budget
-    );
-    return response.data;
-  },
+  // [REMOVIDO] calculateWithMarkup - funcionalidade de markup descontinuada
 
   // MÉTODOS SIMPLIFICADOS
 
@@ -331,10 +304,7 @@ export const budgetService = {
   },
 
   // Método para obter configurações de markup
-  async getMarkupSettings(): Promise<MarkupConfiguration> {
-    const response = await api.get<MarkupConfiguration>('/budgets/markup-settings');
-    return response.data;
-  },
+  // [REMOVIDO] getMarkupSettings - funcionalidade de markup descontinuada
 
   // Método para obter próximo número de pedido
   async getNextOrderNumber(): Promise<string> {

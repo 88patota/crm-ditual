@@ -341,7 +341,7 @@ export default function Budgets() {
       ),
     },
     {
-      title: 'Markup',
+      title: 'Rentabilidade',
       dataIndex: 'profitability_percentage',
       key: 'profitability_percentage',
       width: 120,

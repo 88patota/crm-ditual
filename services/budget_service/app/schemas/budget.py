@@ -86,14 +86,7 @@ class BudgetSimplifiedCreate(BaseModel):
         return v
 
 
-class MarkupConfiguration(BaseModel):
-    """Configurações do sistema para cálculo de markup"""
-    minimum_markup_percentage: float = 20.0
-    maximum_markup_percentage: float = 200.0
-    default_market_position: str = "competitive"
-    icms_sale_default: float = 17.0
-    commission_default: float = 1.5
-    other_expenses_default: float = 0.0
+# Removido: Configurações de markup não são mais usadas
 
 
 class BudgetItemBase(BaseModel):
@@ -197,7 +190,6 @@ class BudgetBase(BaseModel):
     order_number: str
     client_name: str
     client_id: Optional[int] = None
-    markup_percentage: float = 0.0
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
     
@@ -229,7 +221,6 @@ class BudgetCreate(BudgetBase):
 class BudgetUpdate(BaseModel):
     client_name: Optional[str] = None
     client_id: Optional[int] = None
-    markup_percentage: Optional[float] = None
     status: Optional[BudgetStatus] = None
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
@@ -296,7 +287,6 @@ class BudgetCalculation(BaseModel):
     commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
-    markup_percentage: float
     items_calculations: List[dict]
     
     # IPI calculations
@@ -316,7 +306,6 @@ class BudgetPreviewCalculation(BaseModel):
     commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
-    markup_percentage: float  # CALCULADO AUTOMATICAMENTE
     items_preview: List[dict]
     
     # Configurações utilizadas no cálculo
@@ -324,8 +313,6 @@ class BudgetPreviewCalculation(BaseModel):
     sale_icms_percentage_default: float = 17.0  # Padrão ICMS venda
     other_expenses_default: float = 0.0  # Outras despesas padrão
     # NOVOS CAMPOS
-    minimum_markup_applied: float = 20.0
-    maximum_markup_applied: float = 200.0
     
     # IPI preview calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens

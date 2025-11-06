@@ -73,7 +73,6 @@ class BudgetService:
             order_number=budget_data.order_number,
             client_name=budget_data.client_name,
             client_id=budget_data.client_id,
-            markup_percentage=budget_result['totals']['markup_pedido'],  # Use calculated markup
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             created_by=created_by,
@@ -399,9 +398,7 @@ class BudgetService:
                 setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
                 setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
                 setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
-                setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
-                # Always set markup_percentage to the calculated value from business rules
-                setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+                setattr(budget, 'profitability_percentage', budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido']))
                 # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
                 setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
                 setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
@@ -481,7 +478,6 @@ class BudgetService:
         setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
         setattr(budget, 'profitability_percentage', budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido']))
-        setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
         # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
         setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
         setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
@@ -660,8 +656,7 @@ class BudgetService:
                 # Calcular commission_percentage_actual médio ponderado
                 budget.commission_percentage_actual = BudgetService._calculate_weighted_commission_percentage(budget_result['items'])
                 
-                budget.profitability_percentage = budget_result['totals']['markup_pedido']
-                budget.markup_percentage = budget_result['totals']['markup_pedido']
+                budget.profitability_percentage = budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido'])
                 budget.total_ipi_value = budget_result['totals'].get('total_ipi_orcamento', 0.0)
                 budget.total_final_value = budget_result['totals'].get('total_final_com_ipi', 0.0)
                 budget.valor_frete_compra = budget_result['totals'].get('valor_frete_compra', 0.0)
@@ -743,57 +738,7 @@ class BudgetService:
             logger.error(f"🔧 [SERVICE DEBUG] Error updating simplified budget {budget_id}: {str(e)}", exc_info=True)
             raise
     
-    @staticmethod
-    async def apply_markup_to_budget(db: AsyncSession, budget_id: int, markup_percentage: float) -> Optional[Budget]:
-        """Apply markup percentage to budget and adjust prices"""
-        budget = await BudgetService.get_budget_by_id(db, budget_id)
-        if not budget:
-            return None
-        
-        # Get items data in BusinessRulesCalculator format
-        items_data = []
-        for item in budget.items:
-            items_data.append({
-                'description': item.description,
-                'peso_compra': item.weight,
-                'valor_com_icms_compra': item.purchase_value_with_icms,
-                'percentual_icms_compra': item.purchase_icms_percentage,
-                'outras_despesas_item': item.purchase_other_expenses,
-                'peso_venda': item.sale_weight or item.weight,
-                'valor_com_icms_venda': item.sale_value_with_icms,
-                'percentual_icms_venda': item.sale_icms_percentage,
-                'percentual_ipi': item.ipi_percentage or 0.0  # IPI percentage
-            })
-        
-        # Recalculate with existing values first
-        soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
-        
-        result = BusinessRulesCalculator.calculate_complete_budget(
-            items_data, outras_despesas_totais, soma_pesos_pedido
-        )
-        
-        # Update budget with new markup
-        setattr(budget, 'markup_percentage', cast(float, markup_percentage))
-        setattr(budget, 'total_purchase_value', result['totals']['soma_total_compra'])
-        setattr(budget, 'total_sale_value', result['totals']['soma_total_venda'])
-        setattr(budget, 'total_sale_with_icms', result['totals']['soma_total_venda_com_icms'])
-        setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in result['items'])))
-        # Ajustar rentabilidade do orçamento para SEM ICMS baseada nos totais calculados
-        setattr(budget, 'profitability_percentage', result['totals'].get('markup_pedido_sem_impostos', cast(float, markup_percentage)))
-        # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
-        setattr(budget, 'total_ipi_value', result['totals'].get('total_ipi_orcamento', 0.0))
-        setattr(budget, 'total_final_value', result['totals'].get('total_final_com_ipi', 0.0))
-        
-        # Update items with calculated values
-        for i, item in enumerate(budget.items):
-            calculated_item = result['items'][i]
-            
-            item.sale_value_with_icms = calculated_item['valor_com_icms_venda']
-            item.sale_value_without_taxes = calculated_item['valor_sem_impostos_venda']
-            item.total_sale = calculated_item['total_venda_item']
-            item.unit_value = calculated_item['valor_unitario_venda']
-            item.total_value = calculated_item['total_venda_item']
+    # Removida função de aplicação de markup; o sistema não utiliza mais ajuste por markup
             item.profitability = (calculated_item['rentabilidade_item'] or 0) * 100  # Convert to percentage
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)

@@ -28,7 +28,7 @@ import {
 } from '@ant-design/icons';
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { formatCurrency, convertNumericToBrazilian, formatPercentageValue, formatPercentageValueNoRound, parsePercentageValue, formatPercentFromFraction } from '../../lib/utils';
+import { formatCurrency, convertNumericToBrazilian, formatPercentageValue, formatPercentageValueNoRound, parsePercentageValue } from '../../lib/utils';
 import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
@@ -433,7 +433,6 @@ export default function SimplifiedBudgetForm({
         total_purchase_value: calculation.total_purchase_value,
         total_sale_value: calculation.total_sale_value,
         profitability_percentage: calculation.profitability_percentage,
-        markup_percentage: calculation.markup_percentage,
         // Atualizar valores de IPI e finais se disponíveis
         total_ipi_value: calculation.total_ipi_value,
         total_final_value: calculation.total_final_value,
@@ -445,7 +444,7 @@ export default function SimplifiedBudgetForm({
         total_weight_difference_percentage: calculation.total_weight_difference_percentage,
       });
       
-      message.success(`Cálculos realizados! Markup calculado pelo backend: ${formatPercentFromFraction(calculation.markup_percentage, 1)}`);
+      message.success(`Cálculos realizados! Rentabilidade calculada pelo backend: ${formatPercentageValueNoRound(calculation.profitability_percentage)}`);
     } catch (error) {
       console.error('Erro ao calcular orçamento:', error);
       const backendDetail =
@@ -1092,17 +1091,6 @@ export default function SimplifiedBudgetForm({
             </Col>
             <Col xs={24} md={8}>
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  formatter={(value) => `${value}%`}
-                  parser={(value) => value!.replace('%', '')}
-                  readOnly
-                  precision={2}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="% Markup" name="markup_percentage">
                 <InputNumber
                   style={{ width: '100%' }}
                   formatter={(value) => `${value}%`}

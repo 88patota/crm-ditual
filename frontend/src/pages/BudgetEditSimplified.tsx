@@ -36,7 +36,6 @@ export default function BudgetEditSimplified() {
         freight_value_total: budgetData.freight_value_total, // CORREÇÃO: Incluir freight_value_total
         prazo_medio: budgetData.prazo_medio, // CORREÇÃO: Incluir prazo_medio
         outras_despesas_totais: budgetData.outras_despesas_totais, // CORREÇÃO: Incluir outras_despesas_totais
-        markup_percentage: 0, // Será calculado automaticamente
         items: budgetData.items.map(item => ({
           description: item.description,
           delivery_time: item.delivery_time || '0', // CORREÇÃO: Incluir prazo de entrega

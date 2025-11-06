@@ -542,7 +542,7 @@ const AntDashboard: React.FC = () => {
               <Col xs={24} lg={12}>
                 <Alert
                   message="💡 Dica Rápida"
-                  description="Use o formulário simplificado para criar orçamentos mais rapidamente com markup automático."
+                  description="Use o formulário simplificado para criar orçamentos com rentabilidade calculada automaticamente."
                   type="info"
                   showIcon
                   style={{ fontSize: '12px', margin: 0 }}

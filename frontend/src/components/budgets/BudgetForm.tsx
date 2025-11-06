@@ -405,21 +405,6 @@ export default function BudgetForm({
           <Row gutter={[16, 16]}>
             <Col xs={24} md={6}>
               <Form.Item
-                label="% Markup"
-                name="markup_percentage"
-              >
-                <InputNumber
-                  min={0}
-                  max={1000}
-                  step={0.1}
-                  precision={1}
-                  addonAfter="%"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item
                 label="Data de Expiração"
                 name="expires_at"
               >

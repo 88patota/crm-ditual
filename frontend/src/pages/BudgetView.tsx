@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDeliveryTime } from '../lib/formatters';
-import { formatCurrency, formatPercentageValue, formatPercentageValueNoRound, formatPercentFromFraction, roundHalfUp } from '../lib/utils';
+import { formatCurrency, formatPercentageValue, formatPercentFromFraction, roundHalfUp } from '../lib/utils';
 import {
   Card,
   Row,
@@ -690,7 +690,7 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                      {formatPercentageValueNoRound(budget.profitability_percentage || 0, 2)}
+                      {formatPercentageValue(budget.profitability_percentage || 0)}
                     </div>
                   </div>
                 </Col>
@@ -705,7 +705,7 @@ export default function BudgetView() {
               </Row>
               
               {/* Nota informativa quando há IPI */}
-              {budget.total_ipi_value && budget.total_ipi_value > 0 && (
+              {(budget.total_ipi_value || 0) > 0 && (
                 <Alert 
                   message="IPI Aplicado" 
                   description={`Inclui ${formatCurrency(budget.total_ipi_value || 0)} de IPI`}
