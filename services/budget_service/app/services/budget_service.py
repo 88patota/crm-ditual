@@ -54,7 +54,11 @@ class BudgetService:
         # Calculate totals using business rules calculator
         # CORREÇÃO: Usar peso_compra para distribuir frete (não peso_venda)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
+        # Correção: outras_despesas_item é R$/kg; somatório deve ser R$/kg * peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in transformed_items
+        )
         
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
             transformed_items, outras_despesas_totais, soma_pesos_pedido, 
@@ -87,9 +91,9 @@ class BudgetService:
             freight_type=budget_data.freight_type,
             # Add payment_condition field - FIX: Campo estava faltando no mapeamento
             payment_condition=budget_data.payment_condition,
-            # Add prazo_medio and outras_despesas_totais fields - FIX: Campos estavam faltando no mapeamento
+            # Add prazo_medio and outras_despesas_totais fields
             prazo_medio=budget_data.prazo_medio,
-            outras_despesas_totais=budget_data.outras_despesas_totais,
+            outras_despesas_totais=outras_despesas_totais,
             # Add freight fields
             freight_value_total=budget_data.freight_value_total,
             valor_frete_compra=budget_result['totals'].get('valor_frete_compra', 0.0),
@@ -329,7 +333,11 @@ class BudgetService:
                 
                 # Calculate totals using business rules calculator
                 soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
-                outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
+                # Correção: somar outras despesas como R$/kg * peso_compra
+                outras_despesas_totais = sum(
+                    (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+                    for item in transformed_items
+                )
                 
                 budget_result = BusinessRulesCalculator.calculate_complete_budget(
                     transformed_items, outras_despesas_totais, soma_pesos_pedido,
@@ -465,7 +473,11 @@ class BudgetService:
         
         # Recalculate using business rules
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+        # Correção: somar outras despesas do pedido como R$/kg * peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in items_data
+        )
         
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
             items_data, outras_despesas_totais, soma_pesos_pedido,
@@ -604,7 +616,11 @@ class BudgetService:
             if items_data:
                 logger.info(f"🔧 [SERVICE DEBUG] Calculating budget with {len(items_data)} items...")
                 soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-                outras_despesas_totais = budget_data.get('outras_despesas_totais', 0.0)
+                # Correção: calcular outras despesas totais como R$/kg * peso_compra
+                outras_despesas_totais = sum(
+                    (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+                    for item in items_data
+                )
                 freight_value_total = budget_data.get('freight_value_total') or 0.0
                 
                 logger.debug(f"🔧 [SERVICE DEBUG] Calculation parameters: soma_pesos_pedido={soma_pesos_pedido}, "
@@ -633,7 +649,7 @@ class BudgetService:
                 budget.expires_at = budget_data.get('expires_at', budget.expires_at)
                 budget.notes = budget_data.get('notes', budget.notes)
                 budget.prazo_medio = budget_data.get('prazo_medio', budget.prazo_medio)
-                budget.outras_despesas_totais = budget_data.get('outras_despesas_totais', budget.outras_despesas_totais)
+                budget.outras_despesas_totais = outras_despesas_totais
                 budget.freight_type = budget_data.get('freight_type', budget.freight_type)
                 budget.freight_value_total = budget_data.get('freight_value_total', budget.freight_value_total)
                 budget.payment_condition = budget_data.get('payment_condition', budget.payment_condition)

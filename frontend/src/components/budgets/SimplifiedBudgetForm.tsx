@@ -11,6 +11,7 @@ import {
   Typography,
   Divider,
   Table,
+  Tooltip,
   message,
   Popconfirm,
   Select,
@@ -598,7 +599,7 @@ export default function SimplifiedBudgetForm({
       ),
     },
     {
-      title: 'Peso Compra (kg) *',
+      title: 'Quantidade Compra *',
       dataIndex: 'peso_compra',
       key: 'peso_compra',
       width: 140,
@@ -618,7 +619,7 @@ export default function SimplifiedBudgetForm({
       ),
     },
     {
-      title: 'Peso Venda (kg) *',
+      title: 'Quantidade Venda *',
       dataIndex: 'peso_venda',
       key: 'peso_venda',
       width: 140,
@@ -1034,7 +1035,7 @@ export default function SimplifiedBudgetForm({
           {/* Alerta explicativo */}
           <Alert
             message="Campos Obrigatórios"
-            description="Preencha: Cliente, Descrição, Peso Compra (kg), Peso Venda (kg), Valor c/ICMS (Compra), % ICMS (Compra), Valor c/ICMS (Venda) e % ICMS (Venda). O cálculo é baseado no peso dos produtos conforme a planilha de negócio."
+            description="Preencha: Cliente, Descrição, Quantidade Compra, Quantidade Venda, Valor c/ICMS (Compra), % ICMS (Compra), Valor c/ICMS (Venda) e % ICMS (Venda). O cálculo é baseado no peso dos produtos conforme a planilha de negócio."
             type="info"
             icon={<InfoCircleOutlined />}
             style={{ marginBottom: '24px' }}
@@ -1120,16 +1121,6 @@ export default function SimplifiedBudgetForm({
                   formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   readOnly
                   precision={2}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="Valor Frete Compra (R$/kg)" name="valor_frete_compra">
-                <InputNumber
-                  style={{ width: '100%' }}
-                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
-                  readOnly
-                  precision={4}
                 />
               </Form.Item>
             </Col>

@@ -412,10 +412,8 @@ class BusinessRulesCalculator:
         outras_despesas_item = item_data.get('outras_despesas_item', 0.0)
         
         # Calcular outras despesas por kg para incluir no valor sem impostos
-        if peso_compra > 0:
-            outras_despesas_por_kg = outras_despesas_item / peso_compra
-        else:
-            outras_despesas_por_kg = 0.0
+        # AJUSTE: outras_despesas_item já está em R$/kg, não dividir pelo peso
+        outras_despesas_por_kg = outras_despesas_item or 0.0
 
         # REGRA 3.1.1: Frete por KG (distribuído)
         # O frete é sempre distribuído, independentemente do tipo (CIF/FOB)
@@ -460,8 +458,9 @@ class BusinessRulesCalculator:
         
         # Comissão: percentual baseado em rentabilidade SEM ICMS; valor aplicado sobre TOTAL COM ICMS
         if peso_venda == peso_compra:
+            # Usar valores SEM impostos (já inclui frete e outras despesas na base de compra)
             rentabilidade_comissao = CommissionService._calculate_unit_profitability(
-                valor_sem_impostos_venda, valor_sem_impostos_compra_unitario_com_frete
+                valor_sem_impostos_venda, valor_sem_impostos_compra
             )
         else:
             rentabilidade_comissao = CommissionService._calculate_total_profitability(

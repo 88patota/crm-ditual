@@ -40,7 +40,11 @@ payload = {
 # Calcular usando peso de venda (CORRETO)
 items_data = payload["items"]
 soma_pesos_pedido_venda = sum(item.get('peso_venda', 0) for item in items_data)
-outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+# outras_despesas_item é R$/kg; somar multiplicando pelo peso_compra
+outras_despesas_totais = sum(
+    (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+    for item in items_data
+)
 
 print("=== TESTE FINAL - CORREÇÃO DO PESO DE VENDA ===")
 print(f"Soma pesos pedido (usando peso_venda): {soma_pesos_pedido_venda} kg")

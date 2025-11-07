@@ -2,7 +2,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDeliveryTime } from '../lib/formatters';
-import { formatCurrency, formatPercentageValue, formatPercentFromFraction, roundHalfUp } from '../lib/utils';
+import { formatCurrency, formatPercentageValue, formatPercentageValueNoRound, formatPercentFromFraction, roundHalfUp } from '../lib/utils';
 import {
   Card,
   Row,
@@ -690,7 +690,14 @@ export default function BudgetView() {
                   <div style={{ textAlign: 'center' }}>
                     <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                      {formatPercentageValue(budget.profitability_percentage || 0)}
+                      {(() => {
+                        const raw = budget.profitability_percentage ?? 0;
+                        if (raw <= 1) {
+                          return formatPercentFromFraction(raw, 2);
+                        }
+                        const rounded = roundHalfUp(raw, 2);
+                        return formatPercentageValueNoRound(rounded, 2);
+                      })()}
                     </div>
                   </div>
                 </Col>

@@ -11,6 +11,7 @@ import {
   Typography,
   Divider,
   Table,
+  Tooltip,
   message,
   Popconfirm,
   DatePicker,
@@ -140,7 +141,7 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
-      title: 'Peso Compra (kg) *',
+      title: 'Quantidade Compra *',
       dataIndex: 'peso_compra',
       key: 'peso_compra',
       width: 120,
@@ -161,7 +162,7 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
-      title: 'Peso Venda (kg) *',
+      title: 'Quantidade Venda *',
       dataIndex: 'peso_venda',
       key: 'peso_venda',
       width: 120,

@@ -110,8 +110,12 @@ def debug_frontend_backend():
     print("\n=== TESTE COM BUSINESSRULESCALCULATOR ===")
     
     items_data = budget_data['items']
-    soma_pesos_pedido = sum(item.get('peso_venda', 0) for item in items_data)
-    outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+    # Usar peso_compra para distribuição e somar outras despesas como R$/kg * peso_compra
+    soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
+    outras_despesas_totais = sum(
+        (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+        for item in items_data
+    )
     
     print(f"Soma pesos pedido (peso_venda): {soma_pesos_pedido} kg")
     print(f"Frete por kg: R$ {budget_data['freight_value_total'] / soma_pesos_pedido:.6f}")

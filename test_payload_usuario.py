@@ -90,7 +90,11 @@ def test_payload_usuario():
     
     # Calcular soma dos pesos e outras despesas
     soma_pesos_pedido = sum(item['peso_compra'] for item in payload['items'])
-    outras_despesas_totais = sum(item['outras_despesas_item'] for item in payload['items'])
+    # outras_despesas_item é R$/kg; somar multiplicando pelo peso_compra
+    outras_despesas_totais = sum(
+        (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+        for item in payload['items']
+    )
     
     print(f"Soma pesos pedido: {soma_pesos_pedido}")
     print(f"Outras despesas totais: {outras_despesas_totais}")

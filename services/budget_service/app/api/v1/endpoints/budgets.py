@@ -651,7 +651,11 @@ async def create_simplified_budget(
         
         # CORREÇÃO: Usar peso_compra para distribuir frete (não peso_venda)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+        # CORREÇÃO: outras_despesas_item é R$/kg; somatório deve ser R$/kg * peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in items_data
+        )
         
         # Calcular usando BusinessRulesCalculator
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
