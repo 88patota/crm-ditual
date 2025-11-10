@@ -431,6 +431,57 @@ export default function BudgetView() {
           fontWeight: 700,
           fontSize: '14px'
         }}>
+          Indicadores
+        </span>
+      ),
+      children: [
+        {
+          title: (
+            <Tooltip title="Rentabilidade do item (Venda / Compra - 1)">
+              <span style={{ color: '#13c2c2', fontWeight: 600 }}>Rentabilidade %</span>
+            </Tooltip>
+          ),
+          dataIndex: 'profitability',
+          key: 'profitability',
+          width: 100,
+          align: 'center' as const,
+          render: (value: number) => {
+            let display = '0%';
+            if (typeof value === 'number') {
+              if (value <= 1) {
+                display = formatPercentFromFraction(value, 2);
+              } else {
+                const rounded = roundHalfUp(value, 2);
+                display = formatPercentageValueNoRound(rounded, 2);
+              }
+            }
+            return (
+              <span style={{ 
+                color: '#13c2c2',
+                fontSize: '12px',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                backgroundColor: '#e6fffb',
+                border: '1px solid #b5f5ec',
+                display: 'inline-block',
+                minWidth: '70px',
+                textAlign: 'center'
+              }}>
+                {display}
+              </span>
+            );
+          },
+        },
+      ],
+    },
+    {
+      title: (
+        <span style={{ 
+          color: '#2C3E50', 
+          fontWeight: 700,
+          fontSize: '14px'
+        }}>
           Comissão
         </span>
       ),
@@ -691,12 +742,13 @@ export default function BudgetView() {
                     <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                     <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
                       {(() => {
-                        const raw = budget.profitability_percentage ?? 0;
-                        if (raw <= 1) {
-                          return formatPercentFromFraction(raw, 2);
+                        const totalPurchase = budget.total_purchase_value ?? 0;
+                        const totalSale = budget.total_sale_value ?? 0; // SEM impostos
+                        if (!totalPurchase || totalPurchase <= 0) {
+                          return '0%';
                         }
-                        const rounded = roundHalfUp(raw, 2);
-                        return formatPercentageValueNoRound(rounded, 2);
+                        const fraction = (totalSale / totalPurchase) - 1;
+                        return formatPercentFromFraction(fraction, 2);
                       })()}
                     </div>
                   </div>
