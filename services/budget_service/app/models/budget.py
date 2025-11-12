@@ -85,6 +85,7 @@ class BudgetItem(Base):
     
     # Calculated fields
     profitability = Column(Float, default=0.0)
+    total_profitability = Column(Float, default=0.0)  # Rentabilidade total por item (percentual)
     total_purchase = Column(Float, nullable=False)
     total_sale = Column(Float, nullable=False)
     unit_value = Column(Float, nullable=False)

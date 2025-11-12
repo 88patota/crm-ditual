@@ -362,6 +362,7 @@ async def calculate_budget(
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
                 'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Conversão para % com HALF_UP
+                'rentabilidade_item_total': round_percent_display((item.get('rentabilidade_item_total', 0.0) or 0), 2),
                 'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'ipi_percentage': item['percentual_ipi'],
@@ -464,6 +465,7 @@ async def calculate_simplified_budget(
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
                 'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Converter para percentual com HALF_UP
+                'rentabilidade_item_total': round_percent_display((item.get('rentabilidade_item_total', 0.0) or 0), 2),
                 'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'commission_percentage_actual': item.get('commission_percentage_actual', 0.0),  # Actual percentage used

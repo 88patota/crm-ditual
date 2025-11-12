@@ -5,6 +5,7 @@ from alembic import context
 from app.core.database import Base
 from app.models.user import User  # Import all models here
 import os
+import re
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -23,9 +24,25 @@ target_metadata = Base.metadata
 section = config.config_ini_section
 config.set_section_option(section, "POSTGRES_USER", os.getenv("POSTGRES_USER", "crm_user"))
 config.set_section_option(section, "POSTGRES_PASSWORD", os.getenv("POSTGRES_PASSWORD", "crm_strong_password_2024"))
-config.set_section_option(section, "POSTGRES_HOST", os.getenv("POSTGRES_HOST", "postgres"))
+config.set_section_option(section, "POSTGRES_HOST", os.getenv("POSTGRES_HOST", "localhost"))
 config.set_section_option(section, "POSTGRES_PORT", os.getenv("POSTGRES_PORT", "5432"))
 config.set_section_option(section, "POSTGRES_DB", os.getenv("POSTGRES_DB", "crm_ditual"))
+
+# Priorizar ALEMBIC_DATABASE_URL (driver síncrono) ou converter URL assíncrona
+alembic_url = os.getenv("ALEMBIC_DATABASE_URL")
+runtime_url = os.getenv("USER_SERVICE_DATABASE_URL") or os.getenv("DATABASE_URL")
+
+def to_sync_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    return re.sub(r"^postgresql\+asyncpg", "postgresql", url)
+
+sync_url = alembic_url or to_sync_url(runtime_url)
+if sync_url:
+    config.set_main_option("sqlalchemy.url", sync_url)
+
+# Garantir tabela de versão dedicada para este serviço
+version_table = config.get_main_option("version_table", "alembic_version_user")
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -51,6 +68,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table=version_table,
     )
 
     with context.begin_transaction():
@@ -72,7 +90,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            version_table=version_table,
         )
 
         with context.begin_transaction():

@@ -157,6 +157,7 @@ class BudgetItemResponse(BudgetItemBase):
     
     # Calculated fields
     profitability: float
+    total_profitability: float
     total_purchase: float
     total_sale: float
     unit_value: float

@@ -144,6 +144,7 @@ class BudgetService:
                 sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                 weight_difference=calculated_item['diferenca_peso'],
                 profitability=(calculated_item['rentabilidade_item'] or 0) * 100,  # Convert to percentage
+                total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
                 total_purchase=calculated_item['total_compra_item'],
                 total_sale=calculated_item['total_venda_item'],
                 unit_value=calculated_item['valor_unitario_venda'],
@@ -385,6 +386,7 @@ class BudgetService:
                         sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                         weight_difference=calculated_item['diferenca_peso'],
                         profitability=(calculated_item['rentabilidade_item'] or 0) * 100,  # Convert to percentage
+                        total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
                         total_purchase=calculated_item['total_compra_item'],
                         total_sale=calculated_item['total_venda_item'],
                         unit_value=calculated_item['valor_unitario_venda'],
@@ -505,6 +507,7 @@ class BudgetService:
             item.sale_value_without_taxes = calculated_item['valor_sem_impostos_venda']
             item.weight_difference = calculated_item['diferenca_peso']
             item.profitability = (calculated_item['rentabilidade_item'] or 0) * 100  # Convert to percentage
+            item.total_profitability = (calculated_item.get('rentabilidade_item_total') or 0) * 100
             item.total_purchase = calculated_item['total_compra_item']
             item.total_sale = calculated_item['total_venda_item']
             item.unit_value = calculated_item['valor_unitario_venda']
@@ -724,6 +727,7 @@ class BudgetService:
                         sale_value_without_taxes=calculated_item.get('valor_sem_impostos_venda', 0),
                         weight_difference=calculated_item.get('diferenca_peso', 0),
                         profitability=(calculated_item.get('rentabilidade_item') or 0) * 100,
+                        total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
                         total_purchase=calculated_item.get('total_compra_item', 0),
                         total_sale=calculated_item.get('total_venda_item', 0),
                         unit_value=calculated_item.get('valor_unitario_venda', 0),
