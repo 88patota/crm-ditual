@@ -49,6 +49,13 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       sourcemap: false,
       rollupOptions: {
+        onwarn(warning, warn) {
+          // Suprimir warnings de referência circular que são falsos positivos
+          if (warning.code === 'CIRCULAR_DEPENDENCY') {
+            return;
+          }
+          warn(warning);
+        },
         output: {
           entryFileNames: `assets/[name]-[hash].js`,
           chunkFileNames: `assets/[name]-[hash].js`,

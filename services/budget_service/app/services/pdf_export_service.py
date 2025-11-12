@@ -5,16 +5,19 @@ Template baseado na proposta oficial da Ditual São Paulo Tubos e Aços
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, A4
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, KeepTogether
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT, TA_JUSTIFY
 import io
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from datetime import datetime
-from app.models.budget import Budget, BudgetItem
+# Evitar import de modelos em tempo de execução para permitir uso do serviço
+# em scripts independentes. Mantemos apenas para type checking.
+if TYPE_CHECKING:  # pragma: no cover
+    from app.models.budget import Budget, BudgetItem
 from app.services.user_client import user_client, UserInfo
 import logging
 
@@ -159,7 +162,7 @@ class DitualPDFTemplate:
             leading=14
         ))
 
-    async def generate_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
+    async def generate_proposal_pdf(self, budget: Any, auth_token: Optional[str] = None) -> bytes:
         """Gera PDF da proposta com template oficial da Ditual"""
         
         # Obter informações completas do usuário
@@ -216,7 +219,7 @@ class DitualPDFTemplate:
         buffer.seek(0)
         return buffer.getvalue()
     
-    def _add_ditual_header(self, story: List, budget: Budget):
+    def _add_ditual_header(self, story: List, budget: Any):
         """Adiciona cabeçalho moderno e elegante da Ditual"""
         
         # Dados da empresa atualizados
@@ -238,7 +241,8 @@ class DitualPDFTemplate:
             ]
         ]
         
-        header_table = Table(company_data, colWidths=[70*mm, 90*mm, 50*mm])
+        # Larguras somando exatamente à largura útil (≈ 180 mm)
+        header_table = Table(company_data, colWidths=[55*mm, 85*mm, 40*mm])
         header_table.setStyle(TableStyle([
             # Fundo branco moderno
             ('BACKGROUND', (0, 0), (-1, 0), self.HEADER_BG),
@@ -250,7 +254,7 @@ class DitualPDFTemplate:
             # Borda sutil na parte inferior
             ('LINEBELOW', (0, 0), (-1, 0), 2, self.BORDER_COLOR),
         ]))
-        
+
         story.append(header_table)
         story.append(Spacer(1, 25))
     
@@ -304,7 +308,7 @@ class DitualPDFTemplate:
         icms_value = total_item_value * icms_percentage
         return icms_value
     
-    def _add_client_info(self, story: List, budget: Budget, user_info: Optional[UserInfo] = None):
+    def _add_client_info(self, story: List, budget: Any, user_info: Optional[UserInfo] = None):
         """Adiciona informações do cliente e proposta"""
         
         # Formatar data
@@ -348,13 +352,14 @@ class DitualPDFTemplate:
             ]
         ]
         
-        client_table = Table(client_data, colWidths=[20*mm, 50*mm, 10*mm, 25*mm, 85*mm])
+        # Ajuste para 180 mm no total
+        client_table = Table(client_data, colWidths=[24*mm, 66*mm, 8*mm, 26*mm, 56*mm])
         client_table.setStyle(TableStyle([
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 3),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             # Linha inferior
             ('LINEBELOW', (0, -1), (-1, -1), 1, colors.black),
         ]))
@@ -371,7 +376,7 @@ class DitualPDFTemplate:
         story.append(intro_text)
         story.append(Spacer(1, 3))
     
-    def _add_items_table(self, story: List, budget: Budget):
+    def _add_items_table(self, story: List, budget: Any):
         """Adiciona tabela principal de itens (exatamente como na proposta)"""
         
         # Cabeçalho da tabela com títulos sem quebras de linha
@@ -398,10 +403,10 @@ class DitualPDFTemplate:
             # Formatação dos valores
             weight_str = f"{item.weight:,.0f}".replace(',', '.')
             unit_price_str = self._format_currency(unit_price)
-            # ICMS: Formato idêntico ao frontend - (value * 100).toFixed(1)%
-            icms_str = f"{icms_percentage * 100:.1f}%"
-            # IPI: Formato idêntico ao frontend - (value * 100).toFixed(2)%
-            ipi_str = f"{item.ipi_percentage * 100:.2f}%" if item.ipi_percentage else "0,00%"
+            # Percentuais com vírgula (pt-BR)
+            icms_str = (f"{icms_percentage * 100:.1f}".replace('.', ',') + '%')
+            ipi_percent = (item.ipi_percentage or 0) * 100
+            ipi_str = (f"{ipi_percent:.2f}".replace('.', ',') + '%')
             
             row_data = [
                 str(i),
@@ -419,9 +424,9 @@ class DitualPDFTemplate:
         # Combinar cabeçalho e dados
         all_data = header_data + table_data
         
-        # Larguras das colunas otimizadas (sem a coluna TOTAL)
-        col_widths = [10*mm, 50*mm, 8*mm, 15*mm, 20*mm, 15*mm, 15*mm, 20*mm]
-        
+        # Larguras das colunas somando 180 mm
+        col_widths = [14*mm, 62*mm, 12*mm, 18*mm, 28*mm, 14*mm, 14*mm, 18*mm]
+
         items_table = Table(all_data, colWidths=col_widths, repeatRows=1)
         items_table.setStyle(TableStyle([
             # Cabeçalho moderno e elegante
@@ -447,8 +452,8 @@ class DitualPDFTemplate:
             ('BOX', (0, 0), (-1, -1), 1, self.BORDER_COLOR),  # Borda externa suave
             
             # Padding generoso para melhor legibilidade
-            ('LEFTPADDING', (0, 0), (-1, -1), 4),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
             
@@ -456,10 +461,10 @@ class DitualPDFTemplate:
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.DITUAL_LIGHT_GRAY]),
         ]))
         
-        story.append(items_table)
+        story.append(KeepTogether(items_table))
         story.append(Spacer(1, 5))
     
-    def _add_totals_and_conditions(self, story: List, budget: Budget):
+    def _add_totals_and_conditions(self, story: List, budget: Any):
         """Adiciona totais e peso (como na proposta)"""
         
         # Calcular totais
@@ -480,28 +485,26 @@ class DitualPDFTemplate:
         # Tabela de totais moderna e elegante - Separando os valores IPI em linhas diferentes
         totals_data = [
             [
-                f"Peso Total: {total_weight:,.0f} kg".replace(',', '.'),
+                Paragraph(f"Peso Total: {total_weight:,.0f} kg".replace(',', '.'), self.styles['ClientValue']),
                 "",
-                f"Valor total S/IPI: {self._format_currency(total_without_ipi)}",
-                ""
+                Paragraph(f"Valor total S/IPI: {self._format_currency(total_without_ipi)}", self.styles['ClientValue'])
             ],
             [
                 "",
                 "",
-                f"Valor total C/IPI: {self._format_currency(total_with_ipi)}",
-                ""
+                Paragraph(f"Valor total C/IPI: {self._format_currency(total_with_ipi)}", self.styles['ClientValue'])
             ]
         ]
-        
-        totals_table = Table(totals_data, colWidths=[50*mm, 50*mm, 45*mm, 45*mm])
+
+        totals_table = Table(totals_data, colWidths=[90*mm, 10*mm, 80*mm])
         totals_table.setStyle(TableStyle([
             # Estilo moderno para totais
             ('BACKGROUND', (0, 0), (-1, -1), self.DITUAL_LIGHT_GRAY),
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, -1), 10),
             ('TEXTCOLOR', (0, 0), (-1, -1), self.DITUAL_DARK_GRAY),
-            ('ALIGN', (0, 0), (1, -1), 'LEFT'),
-            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             
             # Bordas elegantes
@@ -515,7 +518,7 @@ class DitualPDFTemplate:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ]))
         
-        story.append(totals_table)
+        story.append(KeepTogether(totals_table))
         story.append(Spacer(1, 8))
     
     def _add_observations(self, story: List, notes: str):
@@ -539,10 +542,10 @@ class DitualPDFTemplate:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ]))
         
-        story.append(obs_table)
+        story.append(KeepTogether(obs_table))
         story.append(Spacer(1, 12))
     
-    def _add_commercial_conditions(self, story: List, budget: Budget):
+    def _add_commercial_conditions(self, story: List, budget: Any):
         """Adiciona condições comerciais com frete e pagamento destacados"""
         
         # Seção de Frete com design moderno
@@ -565,11 +568,11 @@ class DitualPDFTemplate:
             ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_RED),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
             ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ]))
         
-        story.append(freight_table)
+        story.append(KeepTogether(freight_table))
         story.append(Spacer(1, 12))
         
         # Seção de Condições de Pagamento elegante
@@ -591,11 +594,11 @@ class DitualPDFTemplate:
             ('LINEABOVE', (0, 0), (-1, 0), 2, self.DITUAL_RED),
             ('LEFTPADDING', (0, 0), (-1, -1), 12),
             ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ]))
         
-        story.append(payment_table)
+        story.append(KeepTogether(payment_table))
         story.append(Spacer(1, 15))
     
     def _add_legal_footer(self, story: List):
@@ -626,7 +629,7 @@ class DitualPDFTemplate:
             ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
         ]))
         
-        story.append(legal_table)
+        story.append(KeepTogether(legal_table))
 
 
 class PDFExportService:
@@ -635,11 +638,11 @@ class PDFExportService:
     def __init__(self):
         self.template = DitualPDFTemplate()
     
-    async def generate_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
+    async def generate_proposal_pdf(self, budget: Any, auth_token: Optional[str] = None) -> bytes:
         """Gera PDF da proposta usando template oficial da Ditual"""
         return await self.template.generate_proposal_pdf(budget, auth_token)
     
-    async def generate_simplified_proposal_pdf(self, budget: Budget, auth_token: Optional[str] = None) -> bytes:
+    async def generate_simplified_proposal_pdf(self, budget: Any, auth_token: Optional[str] = None) -> bytes:
         """
         Mantido por compatibilidade, mas agora usa o mesmo template oficial
         """

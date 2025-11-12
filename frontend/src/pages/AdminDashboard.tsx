@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 import { 
   Card, 
   Row, 
@@ -138,12 +139,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Formatação centralizada via utilitário
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -330,7 +326,7 @@ const AdminDashboard: React.FC = () => {
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '6px', lineHeight: '1.2' }}>Taxa Conversão</div>
                     <div style={{ color: '#fa8c16', fontSize: '22px', fontWeight: 'bold', lineHeight: '1.4', paddingBottom: '2px' }}>
-                      {(dashboardStats?.conversion_rate || 0).toFixed(2)}%
+                      {formatPercentageValue(dashboardStats?.conversion_rate || 0)}
                     </div>
                   </div>
                   <div style={{ marginTop: '4px' }}>

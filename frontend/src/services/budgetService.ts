@@ -5,19 +5,33 @@ export interface BudgetItemSimplified {
   description: string;
   delivery_time?: string; // Prazo de entrega por item (ex: "5 dias", "Imediato", "15 dias úteis")
   
-  // Bloco Compras - Purchase data
-  peso_compra: number;
-  valor_com_icms_compra: number;
-  percentual_icms_compra: number;
-  outras_despesas_item?: number;
+  // Bloco Compras - Purchase data (campos obrigatórios)
+  peso_compra: number; // Peso de compra em kg
+  valor_com_icms_compra: number; // Valor de compra com ICMS incluído
+  percentual_icms_compra: number; // Percentual ICMS compra (0-1, ex: 0.17 = 17%)
+  outras_despesas_item?: number; // Outras despesas do item (opcional)
   
-  // Bloco Vendas - Sale data  
-  peso_venda: number;
-  valor_com_icms_venda: number;
-  percentual_icms_venda: number;
+  // Bloco Vendas - Sale data (campos obrigatórios)
+  peso_venda: number; // Peso de venda em kg
+  valor_com_icms_venda: number; // Valor de venda com ICMS incluído
+  percentual_icms_venda: number; // Percentual ICMS venda (0-1, ex: 0.17 = 17%)
   
-  // IPI (Imposto sobre Produtos Industrializados)
+  // IPI (Imposto sobre Produtos Industrializados) - opcional
   percentual_ipi?: number; // 0%, 3.25% ou 5% (formato decimal: 0.0, 0.0325, 0.05)
+  
+  // Campos calculados (preenchidos pelo backend)
+  valor_sem_icms_compra?: number; // Calculado automaticamente
+  valor_sem_icms_venda?: number; // Calculado automaticamente
+  valor_ipi?: number; // Valor do IPI calculado
+  valor_total_com_ipi?: number; // Valor total incluindo IPI
+  rentabilidade?: number; // Rentabilidade calculada
+  comissao?: number; // Comissão calculada
+  weight_difference_display?: {
+    has_difference: boolean;
+    absolute_difference: number;
+    percentage_difference: number;
+    formatted_display: string;
+  }; // Diferença de peso calculada e formatada
 }
 
 export interface BudgetSimplified {
@@ -33,6 +47,10 @@ export interface BudgetSimplified {
   outras_despesas_totais?: number; // Outras despesas do pedido
   payment_condition?: string;
   
+  // Campos de frete
+  freight_value_total?: number; // Valor total do frete
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
+  
   items: BudgetItemSimplified[];
 }
 
@@ -42,12 +60,10 @@ export interface BudgetPreviewCalculation {
   total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission: number;
   profitability_percentage: number;
-  markup_percentage: number; // CALCULADO AUTOMATICAMENTE
   items_preview: Array<{
     description: string;
     quantity: number;
     purchase_value_with_icms: number;
-    calculated_markup: number; // NOVO: markup individual calculado
     sale_value_with_icms: number;
     total_purchase: number;
     total_sale: number;
@@ -57,22 +73,10 @@ export interface BudgetPreviewCalculation {
   commission_percentage_default: number;
   sale_icms_percentage_default: number;
   other_expenses_default: number;
-  // NOVOS CAMPOS
-  minimum_markup_applied: number;
-  maximum_markup_applied: number;
   
   // IPI preview calculations
   total_ipi_value?: number; // Total do IPI de todos os itens
   total_final_value?: number; // Valor final incluindo IPI
-}
-
-export interface MarkupConfiguration {
-  minimum_markup_percentage: number;
-  maximum_markup_percentage: number;
-  default_market_position: string;
-  icms_sale_default: number;
-  commission_default: number;
-  other_expenses_default: number;
 }
 
 // Interface para estatísticas do dashboard
@@ -115,7 +119,12 @@ export interface BudgetItem {
   sale_value_with_icms: number;
   sale_icms_percentage: number;
   sale_value_without_taxes: number;
-  weight_difference?: number;
+  weight_difference_display?: {
+    has_difference: boolean;
+    absolute_difference: number;
+    percentage_difference: number;
+    formatted_display: string;
+  };
   
   // Calculated fields
   profitability?: number;
@@ -128,7 +137,6 @@ export interface BudgetItem {
   commission_percentage?: number;  // Now calculated dynamically based on profitability
   commission_percentage_actual?: number;  // Actual percentage used by backend
   commission_value?: number;
-  dunamis_cost?: number;
   
   // IPI (Imposto sobre Produtos Industrializados)
   ipi_percentage?: number; // Percentual de IPI (formato decimal: 0.0, 0.0325, 0.05)
@@ -141,7 +149,6 @@ export interface Budget {
   order_number: string;
   client_name: string;
   client_id?: number;
-  markup_percentage: number;
   notes?: string;
   expires_at?: string;
   freight_type?: string;
@@ -151,12 +158,17 @@ export interface Budget {
   prazo_medio?: number; // Prazo médio em dias
   outras_despesas_totais?: number; // Outras despesas do pedido
   
+  // Campos de frete
+  freight_value_total?: number; // Valor total do frete
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
+  
   // Financial totals
   total_purchase_value?: number;
   total_sale_value?: number;  // SEM impostos - valor que muda quando ICMS muda
   total_sale_with_icms?: number;  // COM ICMS - valor real sem IPI
   total_commission?: number;
   profitability_percentage?: number;
+  total_weight_difference_percentage?: number; // Diferença total de peso em porcentagem
   
   // IPI totals
   total_ipi_value?: number; // Total do IPI de todos os itens
@@ -190,7 +202,7 @@ export interface BudgetCalculation {
   total_taxes: number;  // Impostos totais
   total_commission: number;
   profitability_percentage: number;
-  markup_percentage: number;
+  total_weight_difference_percentage?: number; // Diferença total de peso em porcentagem
   items_calculations: Array<{
     description: string;
     quantity: number;
@@ -198,11 +210,20 @@ export interface BudgetCalculation {
     total_sale: number;
     profitability: number;
     commission_value: number;
+    weight_difference_display?: {
+      has_difference: boolean;
+      absolute_difference: number;
+      percentage_difference: number;
+      formatted_display: string;
+    };
   }>;
   
   // IPI calculations
   total_ipi_value?: number; // Total do IPI de todos os itens
   total_final_value?: number; // Valor final incluindo IPI
+  
+  // Freight calculations
+  valor_frete_compra?: number; // Valor do frete por kg (calculado)
 }
 
 export const budgetService = {
@@ -263,12 +284,7 @@ export const budgetService = {
   },
 
   // Apply markup
-  async applyMarkup(id: number, markupPercentage: number): Promise<Budget> {
-    const response = await api.post<Budget>(
-      `/budgets/${id}/apply-markup?markup_percentage=${markupPercentage}`
-    );
-    return response.data;
-  },
+  // [REMOVIDO] applyMarkup - funcionalidade de markup descontinuada
 
   // Calculate budget (preview)
   async calculateBudget(budget: Budget): Promise<BudgetCalculation> {
@@ -277,13 +293,7 @@ export const budgetService = {
   },
 
   // Calculate with markup (preview)
-  async calculateWithMarkup(budget: Budget, markupPercentage: number): Promise<BudgetCalculation> {
-    const response = await api.post<BudgetCalculation>(
-      `/budgets/calculate-with-markup?markup_percentage=${markupPercentage}`,
-      budget
-    );
-    return response.data;
-  },
+  // [REMOVIDO] calculateWithMarkup - funcionalidade de markup descontinuada
 
   // MÉTODOS SIMPLIFICADOS
 
@@ -294,10 +304,7 @@ export const budgetService = {
   },
 
   // Método para obter configurações de markup
-  async getMarkupSettings(): Promise<MarkupConfiguration> {
-    const response = await api.get<MarkupConfiguration>('/budgets/markup-settings');
-    return response.data;
-  },
+  // [REMOVIDO] getMarkupSettings - funcionalidade de markup descontinuada
 
   // Método para obter próximo número de pedido
   async getNextOrderNumber(): Promise<string> {
@@ -308,6 +315,17 @@ export const budgetService = {
   // Método para criar orçamento simplificado
   async createBudgetSimplified(budget: BudgetSimplified): Promise<Budget> {
     const response = await api.post<Budget>('/budgets/simplified', budget);
+    return response.data;
+  },
+
+  // Método para atualizar orçamento simplificado
+  async updateBudgetSimplified(id: number, budget: Partial<BudgetSimplified>): Promise<Budget> {
+    console.log('[budgetService.ts] Payload para updateBudgetSimplified (PUT):', JSON.stringify(budget, null, 2));
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Sending budget data to backend:', budget);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition being sent:', budget.payment_condition);
+    const response = await api.put<Budget>(`/budgets/simplified/${id}`, budget);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Response from backend:', response.data);
+    console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition in response:', response.data.payment_condition);
     return response.data;
   },
 

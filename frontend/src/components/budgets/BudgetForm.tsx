@@ -24,7 +24,8 @@ import {
 } from '@ant-design/icons';
 import type { Budget, BudgetItem } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
-import { formatCurrency } from '../../lib/utils';
+import { convertNumericToBrazilian, formatPercentageValue, parsePercentageValue } from '../../lib/utils';
+import CurrencyInput from '../common/CurrencyInput';
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -46,7 +47,6 @@ const initialBudgetItem: BudgetItem = {
   purchase_value_without_taxes: 0,
   sale_icms_percentage: 0.17, // Decimal format (17%)
   sale_value_without_taxes: 0,
-  dunamis_cost: 0,
   purchase_value_with_icms: 0,
   sale_value_with_icms: 0,
   ipi_percentage: 0.0, // 0% por padrão (formato decimal)
@@ -100,15 +100,12 @@ export default function BudgetForm({
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
+    // Auto-recalculate when critical fields change (especially ICMS percentages, IPI and outras despesas)
     if (field === 'sale_icms_percentage' || field === 'purchase_icms_percentage' || 
         field === 'sale_value_with_icms' || field === 'purchase_value_with_icms' ||
         field === 'weight' || field === 'sale_weight' || field === 'ipi_percentage' || 
-        field === 'delivery_time') {
-      // Debounce the auto-calculation to avoid too many API calls
-      setTimeout(() => {
-        autoCalculateBudget(newItems);
-      }, 300);
+        field === 'delivery_time' || field === 'purchase_other_expenses') {
+      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
     }
   };
 
@@ -130,7 +127,6 @@ export default function BudgetForm({
       form.setFieldsValue({
         total_purchase_value: calculation.total_purchase_value,
         total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
         profitability_percentage: calculation.profitability_percentage,
         // Update IPI totals if available
         total_ipi_value: calculation.total_ipi_value,
@@ -146,53 +142,7 @@ export default function BudgetForm({
     }
   };
 
-  // Auto-calculation function for real-time updates when ICMS changes
-  const autoCalculateBudget = async (updatedItems: BudgetItem[]) => {
-    try {
-      const formData = form.getFieldsValue();
-      
-      // Only auto-calculate if we have basic required data
-      if (!formData.client_name || updatedItems.length === 0) {
-        return;
-      }
-      
-      // Check if all items have minimum required fields for calculation
-      const hasValidItems = updatedItems.every(item => 
-        item.description && 
-        (item.weight ?? 0) > 0 &&
-        (item.purchase_value_with_icms ?? 0) > 0 &&
-        (item.sale_value_with_icms ?? 0) > 0
-      );
-      
-      if (!hasValidItems) {
-        return; // Skip auto-calculation if items are incomplete
-      }
-      
-      const budgetData: Budget = {
-        ...formData,
-        items: updatedItems,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-        freight_type: formData.freight_type || 'FOB',
-      };
-      
-      const calculation = await budgetService.calculateBudget(budgetData);
-      
-      // Update form with calculated values (without showing success message)
-      form.setFieldsValue({
-        total_purchase_value: calculation.total_purchase_value,
-        total_sale_value: calculation.total_sale_value,
-        total_commission: calculation.total_commission,
-        profitability_percentage: calculation.profitability_percentage,
-        // Update IPI totals if available
-        total_ipi_value: calculation.total_ipi_value,
-        total_final_value: calculation.total_final_value,
-      });
-      
-    } catch (error) {
-      // Silently handle errors in auto-calculation to avoid spamming user
-      console.warn('Auto-calculation failed:', error);
-    }
-  };
+  // Função de auto-cálculo removida - cálculos agora são feitos apenas no backend
 
   const handleSubmit = async () => {
     try {
@@ -238,6 +188,9 @@ export default function BudgetForm({
           step={0.001}
           precision={3}
           style={{ width: '100%' }}
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
@@ -261,14 +214,11 @@ export default function BudgetForm({
       key: 'purchase_other_expenses',
       width: 130,
       render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'purchase_other_expenses', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -276,32 +226,17 @@ export default function BudgetForm({
       title: 'ICMS Venda (%)',
       dataIndex: 'sale_icms_percentage',
       key: 'sale_icms_percentage',
-      width: 150,
-      render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
-          placeholder="0,00"
-        />
-      ),
-    },
-    {
-      title: '%ICMS (Venda)',
-      dataIndex: 'sale_icms_percentage',
-      key: 'sale_icms_percentage',
       width: 120,
       render: (value: number, _: BudgetItem, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val || 0) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'sale_icms_percentage', (val ?? 0) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           addonAfter="%"
           style={{ width: '100%' }}
         />
@@ -313,23 +248,34 @@ export default function BudgetForm({
       key: 'commission_value',
       width: 120,
       render: (value: number) => {
-        return value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00';
+        return convertNumericToBrazilian(value || 0);
       },
     },
     {
-      title: 'Custo Dunamis',
-      dataIndex: 'dunamis_cost',
-      key: 'dunamis_cost',
-      width: 130,
+      title: 'Valor Compra c/ ICMS',
+      dataIndex: 'purchase_value_with_icms',
+      key: 'purchase_value_with_icms',
+      width: 150,
       render: (value: number, _: BudgetItem, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
-          onChange={(val) => updateItem(index, 'dunamis_cost', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
+          onChange={(val) => updateItem(index, 'purchase_value_with_icms', val || 0)}
           placeholder="0,00"
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
+      title: 'Valor Venda c/ ICMS',
+      dataIndex: 'sale_value_with_icms',
+      key: 'sale_value_with_icms',
+      width: 150,
+      render: (value: number, _: BudgetItem, index: number) => (
+        <CurrencyInput
+          value={value}
+          onChange={(val) => updateItem(index, 'sale_value_with_icms', val || 0)}
+          placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -459,21 +405,6 @@ export default function BudgetForm({
           <Row gutter={[16, 16]}>
             <Col xs={24} md={6}>
               <Form.Item
-                label="% Markup"
-                name="markup_percentage"
-              >
-                <InputNumber
-                  min={0}
-                  max={1000}
-                  step={0.1}
-                  precision={1}
-                  addonAfter="%"
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item
                 label="Data de Expiração"
                 name="expires_at"
               >
@@ -541,7 +472,7 @@ export default function BudgetForm({
               dataSource={items}
               columns={itemColumns}
               pagination={false}
-              rowKey={(_, index) => index!}
+              rowKey={(record) => items.indexOf(record)}
               scroll={{ x: 1600 }}
               size="small"
             />
@@ -554,7 +485,7 @@ export default function BudgetForm({
               <Form.Item label="Total Compra" name="total_purchase_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -563,16 +494,7 @@ export default function BudgetForm({
               <Form.Item label="Total Venda" name="total_sale_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item label="Total Comissão" name="total_commission">
-                <InputNumber
-                  readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -581,7 +503,7 @@ export default function BudgetForm({
               <Form.Item label="% Rentabilidade" name="profitability_percentage">
                 <InputNumber
                   readOnly
-                  formatter={(value) => `${Number(value || 0).toFixed(1)}%`}
+                  formatter={(value) => formatPercentageValue(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>
@@ -594,16 +516,7 @@ export default function BudgetForm({
               <Form.Item label="Total IPI" name="total_ipi_value">
                 <InputNumber
                   readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={6}>
-              <Form.Item label="Valor Final c/ IPI" name="total_final_value">
-                <InputNumber
-                  readOnly
-                  formatter={(value) => formatCurrency(Number(value || 0))}
+                  formatter={(value) => convertNumericToBrazilian(Number(value || 0))}
                   style={{ width: '100%' }}
                 />
               </Form.Item>

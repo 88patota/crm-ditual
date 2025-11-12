@@ -3,6 +3,7 @@ Sistema de Comissões por Faixas de Rentabilidade
 Baseado no documento REGRAS_NEGOCIO_ORCAMENTOS_SISTEMA.md
 """
 from typing import Dict, List
+from app.utils.rounding import round_currency
 
 
 class CommissionService:
@@ -11,14 +12,14 @@ class CommissionService:
     Conforme seção 6 do documento de regras de negócio
     """
     
-    # Tabela de faixas de comissão conforme documento
+    # Tabela de faixas de comissão conforme documento - ATUALIZADA
     COMMISSION_BRACKETS = [
-        {"min_profitability": 0.0, "max_profitability": 0.20, "commission_rate": 0.00},    # < 20% = 0%
-        {"min_profitability": 0.20, "max_profitability": 0.30, "commission_rate": 0.01},   # 20-30% = 1%
-        {"min_profitability": 0.30, "max_profitability": 0.40, "commission_rate": 0.015},  # 30-40% = 1.5%
-        {"min_profitability": 0.40, "max_profitability": 0.50, "commission_rate": 0.025},  # 40-50% = 2.5%
-        {"min_profitability": 0.50, "max_profitability": 0.60, "commission_rate": 0.03},   # 50-60% = 3%
-        {"min_profitability": 0.60, "max_profitability": 0.80, "commission_rate": 0.04},   # 60-80% = 4%
+        {"min_profitability": 0.0, "max_profitability": 0.199999, "commission_rate": 0.00},    # < 19,99% = 0%
+        {"min_profitability": 0.20, "max_profitability": 0.299999, "commission_rate": 0.01},   # 20-29,99% = 1%
+        {"min_profitability": 0.30, "max_profitability": 0.399999, "commission_rate": 0.015},  # 30-39,99% = 1.5%
+        {"min_profitability": 0.40, "max_profitability": 0.499999, "commission_rate": 0.025},  # 40-49,99% = 2.5%
+        {"min_profitability": 0.50, "max_profitability": 0.599999, "commission_rate": 0.03},   # 50-59,99% = 3%
+        {"min_profitability": 0.60, "max_profitability": 0.799999, "commission_rate": 0.04},   # 60-79,99% = 4%
         {"min_profitability": 0.80, "max_profitability": float('inf'), "commission_rate": 0.05}  # >=80% = 5%
     ]
     
@@ -27,8 +28,8 @@ class CommissionService:
         """
         Calcula o percentual de comissão baseado na rentabilidade do item
         
-        Formula conforme documento:
-        IF(M7="","",IF(M7<20%,0,IF(M7<30%,1%,IF(M7<40%,1.5%,IF(M7<50%,2.5%,IF(M7<60%,3%,IF(M7<80%,4%,IF(M7<100%,5%,5%))))))))
+        Formula conforme documento - ATUALIZADA:
+        IF(M7="","",IF(M7<19.99%,0,IF(M7<29.99%,1%,IF(M7<39.99%,1.5%,IF(M7<49.99%,2.5%,IF(M7<59.99%,3%,IF(M7<79.99%,4%,IF(M7<100%,5%,5%))))))))
         
         Args:
             rentabilidade: Rentabilidade do item em decimal (ex: 0.25 = 25%)
@@ -36,13 +37,19 @@ class CommissionService:
         Returns:
             float: Percentual de comissão em decimal (ex: 0.015 = 1.5%)
         """
-        # Tratar valores nulos ou vazios
-        if rentabilidade is None or rentabilidade == "":
+        # Tratar valores nulos, vazios ou não numéricos
+        if rentabilidade is None or rentabilidade == "" or not isinstance(rentabilidade, (int, float)):
+            return 0.0
+        
+        # Converter para float se necessário e tratar valores inválidos
+        try:
+            rentabilidade = float(rentabilidade)
+        except (ValueError, TypeError):
             return 0.0
         
         # Implementação da fórmula usando as faixas definidas
         for bracket in CommissionService.COMMISSION_BRACKETS:
-            if rentabilidade >= bracket["min_profitability"] and rentabilidade < bracket["max_profitability"]:
+            if rentabilidade >= bracket["min_profitability"] and rentabilidade <= bracket["max_profitability"]:
                 return bracket["commission_rate"]
         
         # Para rentabilidades muito altas (>=80%), usar comissão máxima
@@ -75,14 +82,15 @@ class CommissionService:
             rentabilidade_unitaria = CommissionService._calculate_unit_profitability_with_icms(valor_com_icms_venda, valor_com_icms_compra)
             return CommissionService.calculate_commission_value(total_venda_item_com_icms, rentabilidade_unitaria)
         
-        # Para casos com diferença de peso, calcular rentabilidade baseada nos totais reais COM ICMS
+        # Para casos com diferença de peso, usar rentabilidade TOTAL da operação
+        # Conforme especificação e testes: (total_venda / total_compra - 1)
         rentabilidade_total = CommissionService._calculate_total_profitability(total_venda_item_com_icms, total_compra_item_com_icms)
-        
-        # Aplicar comissão sobre o valor total de venda COM ICMS
+
+        # Aplicar comissão sobre o valor total de venda COM ICMS usando a rentabilidade total
         percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade_total)
         valor_comissao = total_venda_item_com_icms * percentual_comissao
         
-        return round(valor_comissao, 2)
+        return round_currency(valor_comissao)
     
     @staticmethod
     def _calculate_unit_profitability_with_icms(valor_com_icms_venda: float, valor_com_icms_compra: float) -> float:
@@ -155,7 +163,7 @@ class CommissionService:
         """
         percentual_comissao = CommissionService.calculate_commission_percentage(rentabilidade)
         valor_comissao = total_venda_item * percentual_comissao
-        return round(valor_comissao, 2)
+        return round_currency(valor_comissao)
     
     @staticmethod
     def calculate_budget_total_commission(items_data: List[Dict]) -> Dict:
@@ -203,7 +211,7 @@ class CommissionService:
             })
         
         return {
-            'total_commission': round(total_commission, 2),
+            'total_commission': round_currency(total_commission),
             'commission_by_bracket': commission_by_bracket,
             'items_summary': items_summary,
             'items_count': len(items_data)

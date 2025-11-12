@@ -33,7 +33,9 @@ export default function BudgetEditSimplified() {
         notes: budgetData.notes,
         freight_type: budgetData.freight_type, // CORREÇÃO: Incluir freight_type
         payment_condition: budgetData.payment_condition, // CORREÇÃO: Incluir payment_condition
-        markup_percentage: 0, // Será calculado automaticamente
+        freight_value_total: budgetData.freight_value_total, // CORREÇÃO: Incluir freight_value_total
+        prazo_medio: budgetData.prazo_medio, // CORREÇÃO: Incluir prazo_medio
+        outras_despesas_totais: budgetData.outras_despesas_totais, // CORREÇÃO: Incluir outras_despesas_totais
         items: budgetData.items.map(item => ({
           description: item.description,
           delivery_time: item.delivery_time || '0', // CORREÇÃO: Incluir prazo de entrega
@@ -47,7 +49,6 @@ export default function BudgetEditSimplified() {
           sale_value_with_icms: item.valor_com_icms_venda,
           sale_icms_percentage: item.percentual_icms_venda, // Keep as decimal (0.18 for 18%)
           sale_value_without_taxes: 0, // Será calculado
-          dunamis_cost: 0,
           // CORREÇÃO CRÍTICA: Incluir IPI na conversão de volta para o backend
           ipi_percentage: item.percentual_ipi || 0.0, // Manter formato decimal (0.0, 0.0325, 0.05)
         })),
@@ -107,6 +108,7 @@ export default function BudgetEditSimplified() {
       notes: budget.notes,
       freight_type: budget.freight_type || 'FOB',
       payment_condition: budget.payment_condition, // CORREÇÃO: Mapear payment_condition do backend
+      freight_value_total: budget.freight_value_total, // CORREÇÃO: Mapear freight_value_total do backend
       prazo_medio: budget.prazo_medio || 30, // CORREÇÃO: Mapear prazo_medio do backend ou usar valor padrão
       outras_despesas_totais: budget.outras_despesas_totais || 0, // CORREÇÃO: Mapear outras_despesas_totais do backend ou usar valor padrão
       items: budget.items?.map((item) => ({

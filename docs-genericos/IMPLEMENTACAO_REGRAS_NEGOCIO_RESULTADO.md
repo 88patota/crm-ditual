@@ -84,14 +84,29 @@ COMMISSION_BRACKETS = [
 
 #### 3.1.1 BLOCO COMPRAS
 ```python
-# REGRA 3.2.1: Distribuição Proporcional de Outras Despesas
-# Formula: IF peso_item = 0 THEN 0 ELSE outras_despesas_totais * (peso_item / soma_pesos_pedido)
+# CORREÇÃO: Outras Despesas (R$/kg)
+# Semântica: outras_despesas_item é um valor por kg do item.
+# Uso: entra diretamente na formação do custo sem impostos por kg, 
+#      junto com o frete por kg.
+# Total do pedido: outras_despesas_totais = Σ(outras_despesas_item × peso_compra)
 
 # REGRA 3.2.2: Valor sem Impostos (Compra) 
-# Formula: valor_com_icms * (1 - percentual_icms) * (1 - 0.0925) + outras_despesas_distribuidas
+# Formula: valor_com_icms * (1 - percentual_icms) * (1 - 0.0925)
+#         + frete_distribuido_por_kg
+#         + outras_despesas_item
 
 # REGRA 3.2.3: Valor Corrigido por Diferença de Peso
 # Formula: IF peso_venda = 0 THEN 0 ELSE valor_sem_impostos_compra * peso_compra / peso_venda
+```
+
+##### Exemplo Rápido (R$/kg)
+
+```
+Item: peso_compra = 100 kg
+outras_despesas_item = R$ 2,00/kg
+
+Total de outras despesas do item = 2,00 × 100 = R$ 200,00
+Valor sem impostos (compra) por kg = base_sem_impostos + frete_por_kg + 2,00
 ```
 
 #### 3.1.2 BLOCO VENDAS

@@ -120,7 +120,11 @@ def test_budget_service_logic():
         
         # Calculate totals using business rules calculator (as BudgetService does)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in budget_data_items)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in budget_data_items)
+        # outras_despesas_item é R$/kg; somar multiplicando pelo peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in budget_data_items
+        )
         
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
             budget_data_items, outras_despesas_totais, soma_pesos_pedido

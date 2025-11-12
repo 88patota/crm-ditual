@@ -21,17 +21,20 @@ class Budget(Base):
     client_name = Column(String, nullable=False)
     client_id = Column(Integer, nullable=True)  # Future FK to client service
     
-    # Financial fields
+    # Calculated values
     total_purchase_value = Column(Float, default=0.0)
     total_sale_value = Column(Float, default=0.0)  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms = Column(Float, default=0.0)  # COM ICMS - valor real sem IPI
     total_commission = Column(Float, default=0.0)
-    markup_percentage = Column(Float, default=0.0)
+    commission_percentage_actual = Column(Float, default=0.0)  # Percentual de comissão real calculado
     profitability_percentage = Column(Float, default=0.0)
     
     # IPI totals
     total_ipi_value = Column(Float, nullable=True)  # Total do IPI de todos os itens
     total_final_value = Column(Float, nullable=True)  # Valor final incluindo IPI (valor que o cliente paga)
+    
+    # Weight difference
+    total_weight_difference_percentage = Column(Float, default=0.0)  # Diferença total de peso em porcentagem
     
     # Status and metadata
     status = Column(String, nullable=False, default=BudgetStatus.DRAFT.value)
@@ -42,7 +45,9 @@ class Budget(Base):
     prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
     outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
     freight_type = Column(String(10), nullable=False, default='FOB')
+    freight_value_total = Column(Float, nullable=True, comment='Valor total do frete')
     payment_condition = Column(String(50), nullable=True, comment='Condições de pagamento')
+    valor_frete_compra = Column(Float, nullable=True, comment='Valor do frete por kg (Valor Frete Total / Peso Total)')
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -90,13 +95,13 @@ class BudgetItem(Base):
     commission_percentage_actual = Column(Float, default=0.0)  # Actual percentage used by backend
     commission_value = Column(Float, default=0.0)
     
-    # Cost reference for external system (Dunamis)
-    dunamis_cost = Column(Float, nullable=True)
-    
     # IPI (Imposto sobre Produtos Industrializados)
     ipi_percentage = Column(Float, default=0.0)  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
     ipi_value = Column(Float, nullable=True)  # Valor do IPI calculado
     total_value_with_ipi = Column(Float, nullable=True)  # Valor total incluindo IPI
+    
+    # Weight difference display (JSON field for formatted display)
+    weight_difference_display = Column(Text, nullable=True)  # JSON string with weight difference display info
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

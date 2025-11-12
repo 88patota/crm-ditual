@@ -36,14 +36,6 @@ def test_calculate_budget_markup():
     result = BusinessRulesCalculator.calculate_budget_markup(120.0, 100.0)
     assert round(result, 6) == 0.200000
 
-def test_calculate_dunamis_cost_v1():
-    result = BusinessRulesCalculator.calculate_dunamis_cost_v1(100.0, 0.18)
-    assert round(result, 6) == 134.381509
-
-def test_calculate_dunamis_cost_v2():
-    result = BusinessRulesCalculator.calculate_dunamis_cost_v2(100.0, 0.18)
-    assert round(result, 6) == 121.951220
-
 def test_calculate_total_purchase_item():
     result = BusinessRulesCalculator.calculate_total_purchase_item(10.0, 20.0)
     assert round(result, 6) == 200.000000

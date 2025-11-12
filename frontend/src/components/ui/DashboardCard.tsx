@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from 'antd';
+import { formatPercentageValue } from '../../lib/utils';
 import { clsx } from 'clsx';
 
 interface BaseDashboardCardProps {
@@ -104,7 +105,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             {trend && (
               <div style={{ 
                 fontSize: '11px', 
-                color: trend.isPositive ? '#52c41a' : '#ff4d4f',
+                color: trend.isPositive ? '#86E2A1' : '#F4A6A6', // Verde pastel : Rosa claro
                 marginBottom: '2px' 
               }}>
                 {trend.isPositive ? '+' : ''}{trend.value}%
@@ -224,13 +225,13 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   const getProgressColor = () => {
     switch (status) {
       case 'success':
-        return '#52c41a';
+        return '#86E2A1'; // Verde pastel
       case 'exception':
-        return '#ff4d4f';
+        return '#F4A6A6'; // Rosa claro
       case 'active':
-        return '#1890ff';
+        return '#86CFE8'; // Azul pastel
       default:
-        return '#1890ff';
+        return '#86CFE8'; // Azul pastel
     }
   };
 
@@ -272,7 +273,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             lineHeight: 1.4,
             paddingBottom: '2px'
           }}>
-            {progress.toFixed(1)}%
+            {formatPercentageValue(progress)}
           </div>
         </div>
         

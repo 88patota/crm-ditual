@@ -113,6 +113,10 @@ export default function Dashboard() {
         },
       },
     },
+    backgroundColor: '#FFFFFF',
+    layout: {
+      padding: 0
+    }
   };
 
   ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);

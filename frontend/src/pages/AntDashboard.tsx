@@ -47,6 +47,7 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useState } from 'react';
 import dayjs from 'dayjs';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -119,13 +120,7 @@ const AntDashboard: React.FC = () => {
     return `Últimos ${filterDays} dias`;
   };
 
-  // Formatar valores monetários
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Formatação centralizada via utilitário
 
   // Cards de estatísticas removidos conforme solicitado
 
@@ -271,6 +266,7 @@ const AntDashboard: React.FC = () => {
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    backgroundColor: '#FFFFFF',
     plugins: {
       legend: {
         position: 'bottom' as const,
@@ -289,6 +285,9 @@ const AntDashboard: React.FC = () => {
         cornerRadius: 6,
         displayColors: true
       }
+    },
+    layout: {
+      padding: 0
     }
   };
 
@@ -301,8 +300,9 @@ const AntDashboard: React.FC = () => {
         callbacks: {
           label: function(context: { dataset: { data: number[] }, parsed: number, label: string }) {
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = total > 0 ? ((context.parsed * 100) / total).toFixed(1) : '0.0';
-            return `${context.label}: ${context.parsed} (${percentage}%)`;
+            const percentageNumber = total > 0 ? ((context.parsed * 100) / total) : 0;
+            const percentage = formatPercentageValue(percentageNumber);
+            return `${context.label}: ${context.parsed} (${percentage})`;
           }
         }
       }
@@ -542,7 +542,7 @@ const AntDashboard: React.FC = () => {
               <Col xs={24} lg={12}>
                 <Alert
                   message="💡 Dica Rápida"
-                  description="Use o formulário simplificado para criar orçamentos mais rapidamente com markup automático."
+                  description="Use o formulário simplificado para criar orçamentos com rentabilidade calculada automaticamente."
                   type="info"
                   showIcon
                   style={{ fontSize: '12px', margin: 0 }}
@@ -562,10 +562,10 @@ const AntDashboard: React.FC = () => {
           <Row gutter={[24, 16]}>
             <Col xs={24} md={12}>
               <div style={{ 
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                background: '#FFFFFF',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #bae6fd'
+                border: '1px solid #f0f0f0'
               }}>
                 <Title level={5} style={{ margin: '0 0 16px 0', color: '#0369a1' }}>
                   💰 Performance Financeira
@@ -593,17 +593,17 @@ const AntDashboard: React.FC = () => {
             
             <Col xs={24} md={12}>
               <div style={{ 
-                background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
+                background: '#FFFFFF',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #fdba74'
+                border: '1px solid #f0f0f0'
               }}>
                 <Title level={5} style={{ margin: '0 0 16px 0', color: '#c2410c' }}>
                   📊 Taxa de Conversão
                 </Title>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ea580c' }}>
-                    {dashboardStats.conversion_rate.toFixed(1)}%
+                    {formatPercentageValue(dashboardStats.conversion_rate)}
                   </div>
                   <Text type="secondary" style={{ fontSize: '12px' }}>
                     {dashboardStats.approved_budgets} de {dashboardStats.total_budgets} orçamentos aprovados

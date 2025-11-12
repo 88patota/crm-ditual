@@ -41,8 +41,9 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -50,6 +51,7 @@ const { RangePicker } = DatePicker;
 
 export default function Budgets() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [clientFilter, setClientFilter] = useState('');
@@ -321,7 +323,7 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => (a.total_sale_with_icms || 0) - (b.total_sale_with_icms || 0),
       render: (value: number) => (
         <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
-          R$ {(value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrency(value || 0)}
         </Text>
       ),
     },
@@ -334,12 +336,12 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => a.total_commission - b.total_commission,
       render: (value: number) => (
         <Text style={{ color: '#fa541c' }}>
-          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrency(value || 0)}
         </Text>
       ),
     },
     {
-      title: 'Markup',
+      title: 'Rentabilidade',
       dataIndex: 'profitability_percentage',
       key: 'profitability_percentage',
       width: 120,
@@ -347,7 +349,7 @@ export default function Budgets() {
       sorter: (a: BudgetSummary, b: BudgetSummary) => a.profitability_percentage - b.profitability_percentage,
       render: (percentage: number) => (
         <Badge 
-          count={`${percentage.toFixed(1)}%`}
+          count={formatPercentageValue(percentage)}
           style={{ 
             backgroundColor: percentage > 20 ? '#52c41a' : 
                           percentage > 10 ? '#faad14' : '#ff4d4f'
@@ -375,24 +377,24 @@ export default function Budgets() {
       fixed: 'right',
       render: (_, record: BudgetSummary) => (
         <Space size="small">
-          <Tooltip title="Visualizar">
-            <Link to={`/budgets/${record.id}`}>
+          <Link to={`/budgets/${record.id}`}>
+            <Tooltip title="Visualizar">
               <Button
                 type="text"
                 icon={<EyeOutlined />}
                 size="small"
               />
-            </Link>
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Link to={`/budgets/${record.id}/edit`}>
+            </Tooltip>
+          </Link>
+          <Link to={`/budgets/${record.id}/edit`}>
+            <Tooltip title="Editar">
               <Button
                 type="text"
                 icon={<EditOutlined />}
                 size="small"
               />
-            </Link>
-          </Tooltip>
+            </Tooltip>
+          </Link>
           <Dropdown
             menu={{ items: getActionItems(record) }}
             trigger={['click']}
@@ -603,7 +605,7 @@ export default function Budgets() {
         extra={
           <Space>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              Total: R$ {filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              Total: {formatCurrency(filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0))}
             </Text>
           </Space>
         }
@@ -627,6 +629,16 @@ export default function Budgets() {
             index % 2 === 0 ? 'table-row-light' : 'table-row-dark'
           }
           onRow={(record) => ({
+            onClick: (event) => {
+              // Verifica se o clique foi em um botão ou link de ação
+              const target = event.target as HTMLElement;
+              const isActionButton = target.closest('.ant-btn') || target.closest('a[href]');
+              
+              // Só navega se não foi clique em botão de ação
+              if (!isActionButton) {
+                navigate(`/budgets/${record.id}`);
+              }
+            },
             onDoubleClick: () => {
               window.open(`/budgets/${record.id}`, '_blank');
             },
