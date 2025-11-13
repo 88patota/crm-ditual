@@ -43,7 +43,7 @@ import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
 import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
-import { formatCurrency, formatPercentageValue } from '../lib/utils';
+import { formatCurrency, formatPercentFromFraction } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -275,6 +275,7 @@ export default function Budgets() {
       title: 'Cliente',
       dataIndex: 'client_name',
       key: 'client_name',
+      width: 240,
       ellipsis: true,
       render: (text: string) => (
         <Space>
@@ -347,15 +348,19 @@ export default function Budgets() {
       width: 120,
       align: 'center',
       sorter: (a: BudgetSummary, b: BudgetSummary) => a.profitability_percentage - b.profitability_percentage,
-      render: (percentage: number) => (
-        <Badge 
-          count={formatPercentageValue(percentage)}
-          style={{ 
-            backgroundColor: percentage > 20 ? '#52c41a' : 
-                          percentage > 10 ? '#faad14' : '#ff4d4f'
-          }}
-        />
-      ),
+      render: (value: number) => {
+        const percentNumber = (typeof value === 'number' ? value : 0) * 100;
+        const display = formatPercentFromFraction(value ?? 0, 2);
+        return (
+          <Badge 
+            count={display}
+            style={{ 
+              backgroundColor: percentNumber > 20 ? '#52c41a' : 
+                            percentNumber > 10 ? '#faad14' : '#ff4d4f'
+            }}
+          />
+        );
+      },
     },
     {
       title: 'Data',

@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ConfigProvider, theme } from 'antd';
+import ptBR from 'antd/locale/pt_BR';
+import dayjs from 'dayjs';
+import 'dayjs/locale/pt-br';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -202,8 +205,9 @@ const customTheme = {
 };
 
 function App() {
+  dayjs.locale('pt-br');
   return (
-    <ConfigProvider theme={customTheme}>
+    <ConfigProvider theme={customTheme} locale={ptBR}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router>

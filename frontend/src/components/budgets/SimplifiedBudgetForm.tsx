@@ -921,31 +921,33 @@ export default function SimplifiedBudgetForm({
                 label="Data de Expiração"
                 name="expires_at"
               >
-                <DatePicker style={{ width: '100%' }} />
+                <DatePicker style={{ width: '100%' }} format="DD-MM-YYYY" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={6}>
-              <Form.Item
-                label="Prazo Médio (dias)"
-                name="prazo_medio"
-              >
-                <InputNumber 
-                  min={1}
-                  step={1}
-                  precision={0}
-                  style={{ width: '100%' }}
-                  placeholder="Ex: 30"
-                  onChange={(value) => {
-                    console.log(`🔧 [EDIT DEBUG] Prazo médio changed to:`, value);
-                    // Auto-recalcular quando o prazo médio mudar
-                    const formData = form.getFieldsValue();
-                    if (formData.client_name && items.length > 0) {
-                      // Auto-cálculo removido - cálculos agora são feitos apenas no backend
-                    }
-                  }}
-                />
-              </Form.Item>
-            </Col>
+            {isEdit && (
+              <Col xs={24} md={6}>
+                <Form.Item
+                  label="Prazo Médio (dias)"
+                  name="prazo_medio"
+                >
+                  <InputNumber 
+                    min={1}
+                    step={1}
+                    precision={0}
+                    style={{ width: '100%' }}
+                    placeholder="Ex: 30"
+                    onChange={(value) => {
+                      console.log(`🔧 [EDIT DEBUG] Prazo médio changed to:`, value);
+                      // Auto-recalcular quando o prazo médio mudar
+                      const formData = form.getFieldsValue();
+                      if (formData.client_name && items.length > 0) {
+                        // Auto-cálculo removido - cálculos agora são feitos apenas no backend
+                      }
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+            )}
             <Col xs={24} md={6}>
               <Form.Item
                 label="Condições de Pagamento"
