@@ -79,7 +79,8 @@ export default function BudgetEdit() {
         valor_sem_icms_venda: item.sale_value_without_taxes,
         valor_ipi: item.ipi_value,
         valor_total_com_ipi: item.total_value_with_ipi,
-        rentabilidade: item.profitability,
+        // Exibir rentabilidade total do item para refletir diferença de peso
+        rentabilidade: item.total_profitability ?? item.profitability,
         comissao: item.commission_value,
         weight_difference_display: item.weight_difference_display,
       })) || [],

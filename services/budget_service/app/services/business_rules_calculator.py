@@ -444,8 +444,12 @@ class BusinessRulesCalculator:
         # Calcular valor de compra COM ICMS unitário incluindo frete distribuído por kg
         valor_com_icms_compra_unitario_com_frete = valor_com_icms_compra + frete_distribuido_por_kg
         
-        # Ajuste: Rentabilidade exibida deve usar valores SEM ICMS (inclui frete diluído no valor de compra sem impostos)
-        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
+        # Ajuste: Rentabilidade exibida deve usar valores SEM ICMS e compra CORRIGIDA por peso
+        # Fórmula correta (unitária): [Valor s/Impostos (Venda) / Valor c/Difer. Peso (Compra)] - 1
+        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(
+            valor_sem_impostos_venda,
+            valor_corrigido_peso
+        )
         
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
         

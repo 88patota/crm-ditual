@@ -68,6 +68,7 @@ export interface BudgetPreviewCalculation {
     total_purchase: number;
     total_sale: number;
     profitability: number;
+    total_profitability?: number;
     commission_value: number;
   }>;
   commission_percentage_default: number;
@@ -127,6 +128,7 @@ export interface BudgetItem {
   };
   
   // Calculated fields
+  total_profitability?: number;
   profitability?: number;
   total_purchase?: number;
   total_sale?: number;
@@ -209,6 +211,7 @@ export interface BudgetCalculation {
     total_purchase: number;
     total_sale: number;
     profitability: number;
+    total_profitability?: number;
     commission_value: number;
     weight_difference_display?: {
       has_difference: boolean;
