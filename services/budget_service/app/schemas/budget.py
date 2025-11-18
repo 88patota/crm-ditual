@@ -64,7 +64,7 @@ class BudgetSimplifiedCreate(BaseModel):
     notes: Optional[str] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
     freight_value_total: Optional[float] = None  # Valor total do frete
@@ -195,7 +195,7 @@ class BudgetBase(BaseModel):
     expires_at: Optional[datetime] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
     freight_value_total: Optional[float] = None  # Valor total do frete
@@ -230,6 +230,7 @@ class BudgetUpdate(BaseModel):
     freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
     valor_frete_compra: Optional[float] = None  # Valor do frete por kg
+    origem: Optional[str] = None
 
 
 class BudgetResponse(BudgetBase):

@@ -101,13 +101,13 @@ class DitualPDFTemplate:
         self.styles.add(ParagraphStyle(
             name='ProposalNumber',
             parent=self.styles['Heading1'],
-            fontSize=16,
+            fontSize=14,
             fontName='Helvetica-Bold',
             textColor=self.DITUAL_RED,
-            alignment=TA_CENTER,
+            alignment=TA_RIGHT,
             spaceAfter=0,
             spaceBefore=0,
-            leading=18
+            leading=16
         ))
         
         # Estilo para labels dos dados do cliente
@@ -242,7 +242,7 @@ class DitualPDFTemplate:
         ]
         
         # Larguras somando exatamente à largura útil (≈ 180 mm)
-        header_table = Table(company_data, colWidths=[55*mm, 85*mm, 40*mm])
+        header_table = Table(company_data, colWidths=[55*mm, 75*mm, 50*mm])
         header_table.setStyle(TableStyle([
             # Fundo branco moderno
             ('BACKGROUND', (0, 0), (-1, 0), self.HEADER_BG),
@@ -251,6 +251,8 @@ class DitualPDFTemplate:
             ('RIGHTPADDING', (0, 0), (-1, 0), 15),
             ('TOPPADDING', (0, 0), (-1, 0), 15),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 15),
+            ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+            ('VALIGN', (2, 0), (2, 0), 'TOP'),
             # Borda sutil na parte inferior
             ('LINEBELOW', (0, 0), (-1, 0), 2, self.BORDER_COLOR),
         ]))

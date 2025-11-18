@@ -92,7 +92,7 @@ class BudgetService:
             # Add payment_condition field - FIX: Campo estava faltando no mapeamento
             payment_condition=budget_data.payment_condition,
             # Add prazo_medio and outras_despesas_totais fields
-            prazo_medio=budget_data.prazo_medio,
+            origem=budget_data.origem,
             outras_despesas_totais=outras_despesas_totais,
             # Add freight fields
             freight_value_total=budget_data.freight_value_total,
@@ -565,7 +565,7 @@ class BudgetService:
             logger.info(f"🔧 [SERVICE DEBUG] Budget fields: client_name='{budget_data.get('client_name')}', "
                        f"order_number='{budget_data.get('order_number')}', "
                        f"freight_type='{budget_data.get('freight_type')}', "
-                       f"prazo_medio={budget_data.get('prazo_medio')}")
+                       f"origem={budget_data.get('origem')}")
             
             # Buscar orçamento existente
             logger.debug(f"🔧 [SERVICE DEBUG] Fetching existing budget {budget_id}...")
@@ -643,7 +643,7 @@ class BudgetService:
                 original_values = {
                     'client_name': budget.client_name,
                     'freight_type': budget.freight_type,
-                    'prazo_medio': budget.prazo_medio,
+                    'origem': budget.origem,
                     'order_number': budget.order_number
                 }
                 
@@ -651,7 +651,7 @@ class BudgetService:
                 budget.status = budget_data.get('status', budget.status)
                 budget.expires_at = budget_data.get('expires_at', budget.expires_at)
                 budget.notes = budget_data.get('notes', budget.notes)
-                budget.prazo_medio = budget_data.get('prazo_medio', budget.prazo_medio)
+                budget.origem = budget_data.get('origem', budget.origem)
                 budget.outras_despesas_totais = outras_despesas_totais
                 budget.freight_type = budget_data.get('freight_type', budget.freight_type)
                 budget.freight_value_total = budget_data.get('freight_value_total', budget.freight_value_total)
@@ -663,7 +663,7 @@ class BudgetService:
                 logger.info(f"🔧 [SERVICE DEBUG] Field updates: "
                            f"client_name: '{original_values['client_name']}' -> '{budget.client_name}', "
                            f"freight_type: '{original_values['freight_type']}' -> '{budget.freight_type}', "
-                           f"prazo_medio: {original_values['prazo_medio']} -> {budget.prazo_medio}, "
+                           f"origem: {original_values['origem']} -> {budget.origem}, "
                            f"order_number: '{original_values['order_number']}' -> '{budget.order_number}'")
                 
                 # Atualizar totais calculados

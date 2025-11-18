@@ -571,7 +571,7 @@ async def update_simplified_budget(
         logger.debug(f"🔧 [UPDATE DEBUG] Budget data summary: client_name='{budget_dict.get('client_name')}', "
                     f"order_number='{budget_dict.get('order_number')}', "
                     f"freight_type='{budget_dict.get('freight_type')}', "
-                    f"prazo_medio={budget_dict.get('prazo_medio')}")
+                    f"origem={budget_dict.get('origem')}")
         
         # Usar o método update_budget_simplified do BudgetService
         updated_budget = await BudgetService.update_budget_simplified(db, budget_id, budget_dict)
@@ -707,8 +707,7 @@ async def create_simplified_budget(
             client_name=budget_data.client_name,
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
-            # CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
-            prazo_medio=budget_data.prazo_medio,
+            origem=budget_data.origem,
             outras_despesas_totais=budget_data.outras_despesas_totais,
             freight_type=budget_data.freight_type,
             freight_value_total=budget_data.freight_value_total,  # CORREÇÃO: Incluir freight_value_total

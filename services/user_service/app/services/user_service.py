@@ -9,13 +9,15 @@ from app.services.auth import get_password_hash, verify_password
 async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     """Create a new user"""
     hashed_password = get_password_hash(user_data.password)
+    role_input = user_data.role
+    role_enum = UserRole(role_input.lower()) if isinstance(role_input, str) else role_input
     
     db_user = User(
         email=user_data.email,
         username=user_data.username,
         full_name=user_data.full_name,
         hashed_password=hashed_password,
-        role=user_data.role,
+        role=role_enum,
         is_active=user_data.is_active
     )
     
