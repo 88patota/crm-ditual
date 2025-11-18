@@ -139,8 +139,8 @@ export default function BudgetView() {
       case 'draft': return 'default';
       case 'pending': return 'processing';
       case 'approved': return 'success';
-      case 'rejected': return 'error';
-      case 'expired': return 'warning';
+      case 'lost': return 'error';
+      case 'sent': return 'warning';
       default: return 'default';
     }
   };
@@ -150,8 +150,8 @@ export default function BudgetView() {
       case 'draft': return 'Rascunho';
       case 'pending': return 'Pendente';
       case 'approved': return 'Aprovado';
-      case 'rejected': return 'Rejeitado';
-      case 'expired': return 'Expirado';
+      case 'lost': return 'Perdido';
+      case 'sent': return 'Orçamento Enviado';
       default: return status || 'Desconhecido';
     }
   };
@@ -159,8 +159,8 @@ export default function BudgetView() {
   const getStatusIcon = (status: string | undefined) => {
     switch (status) {
       case 'approved': return <CheckCircleOutlined />;
-      case 'rejected': return <CloseCircleOutlined />;
-      case 'expired': return <ExclamationCircleOutlined />;
+      case 'lost': return <CloseCircleOutlined />;
+      case 'sent': return <ExclamationCircleOutlined />;
       case 'pending': return <ClockCircleOutlined />;
       default: return <FileTextOutlined />;
     }

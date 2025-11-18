@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatCurrency, formatPercentageValue } from '../lib/utils';
+import { formatCurrency, formatPercentageValue, statusTheme } from '../lib/utils';
 import { 
   Card, 
   Row, 
@@ -144,17 +144,17 @@ const AdminDashboard: React.FC = () => {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'draft':
-        return { title: 'Rascunhos', icon: <FileTextOutlined />, color: '#8c8c8c' };
+        return { title: 'Rascunhos', icon: <FileTextOutlined />, color: statusTheme.draft };
       case 'pending':
-        return { title: 'Pendentes', icon: <ClockCircleOutlined />, color: '#faad14' };
+        return { title: 'Pendentes', icon: <ClockCircleOutlined />, color: statusTheme.pending };
       case 'approved':
-        return { title: 'Aprovados', icon: <CheckCircleOutlined />, color: '#52c41a' };
-      case 'rejected':
-        return { title: 'Rejeitados', icon: <CloseCircleOutlined />, color: '#ff4d4f' };
-      case 'expired':
-        return { title: 'Expirados', icon: <WarningOutlined />, color: '#fa8c16' };
+        return { title: 'Aprovados', icon: <CheckCircleOutlined />, color: statusTheme.approved };
+      case 'lost':
+        return { title: 'Perdidos', icon: <CloseCircleOutlined />, color: statusTheme.lost };
+      case 'sent':
+        return { title: 'Enviados', icon: <WarningOutlined />, color: statusTheme.sent };
       default:
-        return { title: status, icon: <ExclamationCircleOutlined />, color: '#8c8c8c' };
+        return { title: status, icon: <ExclamationCircleOutlined />, color: statusTheme.draft };
     }
   };
 

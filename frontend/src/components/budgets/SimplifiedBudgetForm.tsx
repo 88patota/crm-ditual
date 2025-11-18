@@ -11,13 +11,12 @@ import {
   Typography,
   Divider,
   Table,
-  Tooltip,
-  message,
   Popconfirm,
   Select,
   DatePicker,
   Alert,
-  Spin
+  Spin,
+  App as AntdApp
 } from 'antd';
 import {
   PlusOutlined,
@@ -101,6 +100,7 @@ export default function SimplifiedBudgetForm({
   isEdit = false
 }: SimplifiedBudgetFormProps) {
   const [form] = Form.useForm();
+  const { message } = AntdApp.useApp();
   const [items, setItems] = useState<BudgetItemSimplified[]>([{ ...initialBudgetItem }]);
   const [calculating, setCalculating] = useState(false);
   const [preview, setPreview] = useState<BudgetCalculation | null>(null);
@@ -389,8 +389,7 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado
-        // CORREÇÃO: Incluir campos prazo_medio e outras_despesas_totais
-        prazo_medio: formData.prazo_medio || undefined,
+        origem: formData.origem || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         freight_type: formData.freight_type || 'FOB',
         payment_condition: formData.payment_condition || 'À vista',
@@ -507,8 +506,7 @@ export default function SimplifiedBudgetForm({
       const budgetData: BudgetSimplified = {
         ...formData,
         order_number: orderNumber, // Usar o número gerado automaticamente
-        // CORREÇÃO: Incluir o campo prazo_medio na requisição
-        prazo_medio: formData.prazo_medio || undefined,
+        origem: formData.origem || undefined,
         outras_despesas_totais: formData.outras_despesas_totais || undefined,
         // Fix: Only include freight_type if it was explicitly set/changed
         ...(formData.freight_type !== undefined && { freight_type: formData.freight_type }),
@@ -908,8 +906,8 @@ export default function SimplifiedBudgetForm({
                   <Option value="draft">Rascunho</Option>
                   <Option value="pending">Pendente</Option>
                   <Option value="approved">Aprovado</Option>
-                  <Option value="rejected">Rejeitado</Option>
-                  <Option value="expired">Expirado</Option>
+                  <Option value="lost">Perdido</Option>
+                  <Option value="sent">Orçamento Enviado</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -924,30 +922,19 @@ export default function SimplifiedBudgetForm({
                 <DatePicker style={{ width: '100%' }} format="DD-MM-YYYY" />
               </Form.Item>
             </Col>
-            {isEdit && (
-              <Col xs={24} md={6}>
-                <Form.Item
-                  label="Prazo Médio (dias)"
-                  name="prazo_medio"
-                >
-                  <InputNumber 
-                    min={1}
-                    step={1}
-                    precision={0}
-                    style={{ width: '100%' }}
-                    placeholder="Ex: 30"
-                    onChange={(value) => {
-                      console.log(`🔧 [EDIT DEBUG] Prazo médio changed to:`, value);
-                      // Auto-recalcular quando o prazo médio mudar
-                      const formData = form.getFieldsValue();
-                      if (formData.client_name && items.length > 0) {
-                        // Auto-cálculo removido - cálculos agora são feitos apenas no backend
-                      }
-                    }}
-                  />
-                </Form.Item>
-              </Col>
-            )}
+            <Col xs={24} md={6}>
+              <Form.Item
+                label="Origem"
+                name="origem"
+              >
+                <Select style={{ width: '100%' }} placeholder="Selecione a origem">
+                  <Option value="Orpen">Orpen</Option>
+                  <Option value="Email">Email</Option>
+                  <Option value="Google">Google</Option>
+                  <Option value="Telefone">Telefone</Option>
+                </Select>
+              </Form.Item>
+            </Col>
             <Col xs={24} md={6}>
               <Form.Item
                 label="Condições de Pagamento"
@@ -1145,8 +1132,8 @@ export default function SimplifiedBudgetForm({
               
               {/* Totais do Pedido - Design Integrado */}
               <Card style={{ 
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                border: '1px solid #bae6fd',
+                background: '#FFFFFF',
+                border: '1px solid #f0f0f0',
                 marginBottom: '24px'
               }}>
                 <Row gutter={[24, 16]}>

@@ -61,7 +61,7 @@ export default function BudgetEdit() {
       freight_type: budget.freight_type || 'FOB',
       payment_condition: budget.payment_condition,
       freight_value_total: budget.freight_value_total,
-      prazo_medio: budget.prazo_medio || 30,
+      origem: budget.origem,
       outras_despesas_totais: budget.outras_despesas_totais || 0,
       items: budget.items?.map((item) => ({
         description: item.description,

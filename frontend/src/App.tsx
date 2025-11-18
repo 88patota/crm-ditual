@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App as AntdApp } from 'antd';
 import ptBR from 'antd/locale/pt_BR';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
@@ -38,34 +38,23 @@ const queryClient = new QueryClient({
 const customTheme = {
   algorithm: theme.defaultAlgorithm,
   token: {
-    // === CORES PRINCIPAIS (Base da Paleta) ===
-    colorPrimary: '#93CFF0',           // Azul pastel - cor principal (ações, botões primários, links)
-    colorSuccess: '#86E2A1',           // Verde pastel - sucesso (geral)
-    colorWarning: '#FFE8A1',           // Amarelo pastel - aviso (alertas de atenção)
-    colorError: '#F4A6A6',             // Rosa claro - erro (geral)
-    colorInfo: '#A7D8F5',              // Azul claro - informação (mensagens neutras)
-    
-    // === CORES DE FUNDO (Base) ===
-    colorBgContainer: '#F7F8FA',       // Fundo geral - cinza muito claro
-    colorBgElevated: '#FFFFFF',        // Branco gelo - cards e blocos
-    colorBgLayout: '#F7F8FA',          // Fundo geral das telas e dashboards
-    colorBgSpotlight: '#FFFFFF',       // Branco gelo para destaques
-    
-    // === CORES DE TEXTO (Base) ===
-    colorText: '#333333',              // Cinza escuro - texto principal
-    colorTextSecondary: '#666666',     // Cinza médio - texto secundário
-    colorTextTertiary: '#666666',      // Cinza médio - labels, descrições, tooltips
-    colorTextQuaternary: '#666666',    // Cinza médio
-    
-    // === CORES DE BORDA ===
-    colorBorder: '#FFFFFF',            // Branco gelo - boa legibilidade
-    colorBorderSecondary: '#FFFFFF',   // Branco gelo - bordas secundárias
-    
-    // === SOMBRAS ===
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-    boxShadowSecondary: '0 4px 12px rgba(0, 0, 0, 0.08)',
-    
-    // === TIPOGRAFIA ===
+    colorPrimary: '#1677ff',
+    colorSuccess: '#52c41a',
+    colorWarning: '#faad14',
+    colorError: '#ff4d4f',
+    colorInfo: '#1890ff',
+    colorBgContainer: '#ffffff',
+    colorBgElevated: '#ffffff',
+    colorBgLayout: '#f5f5f5',
+    colorBgSpotlight: '#ffffff',
+    colorText: '#1f1f1f',
+    colorTextSecondary: '#595959',
+    colorTextTertiary: '#595959',
+    colorTextQuaternary: '#595959',
+    colorBorder: '#f0f0f0',
+    colorBorderSecondary: '#f0f0f0',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+    boxShadowSecondary: '0 4px 12px rgba(0, 0, 0, 0.12)',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
     fontSize: 14,
     fontSizeHeading1: 32,
@@ -73,39 +62,21 @@ const customTheme = {
     fontSizeHeading3: 20,
     fontSizeHeading4: 16,
     fontSizeHeading5: 14,
-    
-    // === BORDAS ARREDONDADAS ===
     borderRadius: 8,
     borderRadiusLG: 12,
     borderRadiusSM: 6,
-    
-    // === ESPAÇAMENTOS ===
     padding: 16,
     paddingLG: 24,
     paddingSM: 12,
     paddingXS: 8,
-    
-    // === CORES ESPECÍFICAS DE COMPONENTES ===
-    colorFillAlter: '#F7F8FA',         // Fundo geral
-    colorFillContent: '#FFFFFF',       // Branco gelo - fundo de conteúdo
-    colorFillContentHover: '#C8A2C8',  // Lilás claro - hover
-    
-    // === MENU ===
-    colorBgMenuItemSelected: '#C8A2C8', // Lilás claro - item de menu selecionado
-    colorTextMenuItemSelected: '#93CFF0', // Azul pastel - texto do item selecionado
-    
-    // === BOTÕES ===
-    colorPrimaryHover: '#93CFF0',      // Azul pastel - hover do botão primário
-    colorPrimaryActive: '#93CFF0',     // Azul pastel - active do botão primário
-    
-    // === INPUTS ===
-    colorBgContainerDisabled: '#FFFFFF', // Branco gelo - fundo de input desabilitado
-    colorTextDisabled: '#666666',      // Cinza médio - texto desabilitado
-    
-    // === LINKS ===
-    colorLink: '#93CFF0',              // Azul pastel - cor dos links
-    colorLinkHover: '#93CFF0',         // Azul pastel - hover dos links
-    colorLinkActive: '#93CFF0',        // Azul pastel - active dos links
+    colorFillAlter: '#f5f5f5',
+    colorFillContent: '#ffffff',
+    colorFillContentHover: '#f5f5f5',
+    colorBgContainerDisabled: '#ffffff',
+    colorTextDisabled: '#8c8c8c',
+    colorLink: '#1677ff',
+    colorLinkHover: '#3c8cff',
+    colorLinkActive: '#1358cc',
   },
   components: {
     Layout: {
@@ -119,13 +90,13 @@ const customTheme = {
     },
     Menu: {
       itemBg: 'transparent',
-      itemSelectedBg: '#E8F4FD',       // Azul pastel muito suave - item selecionado
-      itemSelectedColor: '#93CFF0',    // Azul pastel - texto selecionado
-      itemHoverBg: '#E8F4FD',          // Azul pastel muito suave - hover
-      itemHoverColor: '#93CFF0',       // Azul pastel - texto hover
-      itemActiveBg: '#E8F4FD',         // Azul pastel muito suave - active
+      itemSelectedBg: '#e6f4ff',
+      itemSelectedColor: '#1677ff',
+      itemHoverBg: '#e6f4ff',
+      itemHoverColor: '#1677ff',
+      itemActiveBg: '#e6f4ff',
       subMenuItemBg: 'transparent',
-      groupTitleColor: '#666666',      // Cinza médio - títulos de grupo
+      groupTitleColor: '#595959',
     },
     Button: {
       primaryShadow: '0 2px 8px rgba(147, 207, 240, 0.3)',
@@ -156,9 +127,9 @@ const customTheme = {
       activeShadow: '0 0 0 2px rgba(147, 207, 240, 0.2)',
     },
     Select: {
-      optionSelectedBg: '#C8A2C8',     // Lilás claro - opção selecionada
-      optionSelectedColor: '#93CFF0',  // Azul pastel - texto selecionado
-      optionActiveBg: '#C8A2C8',       // Lilás claro - opção ativa
+      optionSelectedBg: '#e6f4ff',
+      optionSelectedColor: '#1677ff',
+      optionActiveBg: '#e6f4ff',
     },
     DatePicker: {
       hoverBorderColor: '#93CFF0',     // Azul pastel - borda hover
@@ -196,10 +167,10 @@ const customTheme = {
       titleMarginBottom: 16,
     },
     Tooltip: {
-      colorText: '#000000',            // Preto - texto do tooltip
-      colorBgSpotlight: '#ffffff',     // Fundo branco para o tooltip
-      colorTextLightSolid: '#000000',  // Força texto preto
-      colorBgElevated: '#ffffff',      // Fundo branco elevado
+      colorText: '#1f1f1f',
+      colorBgSpotlight: '#ffffff',
+      colorTextLightSolid: '#1f1f1f',
+      colorBgElevated: '#ffffff',
     },
   },
 };
@@ -208,9 +179,10 @@ function App() {
   dayjs.locale('pt-br');
   return (
     <ConfigProvider theme={customTheme} locale={ptBR}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Router>
+      <AntdApp>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Router>
             <div style={{ minHeight: '100vh', backgroundColor: '#F7F8FA' }}>
               <Routes>
                 <Route path="/login" element={<AntLogin />} />
@@ -317,6 +289,7 @@ function App() {
         </AuthProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
+    </AntdApp>
     </ConfigProvider>
   );
 }

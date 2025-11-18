@@ -43,7 +43,7 @@ export interface BudgetSimplified {
   freight_type?: string;
   
   // Novos campos conforme regras de negócio
-  prazo_medio?: number; // Prazo médio em dias
+  origem?: string;
   outras_despesas_totais?: number; // Outras despesas do pedido
   payment_condition?: string;
   
@@ -91,8 +91,8 @@ export interface DashboardStats {
     draft: number;
     pending: number;
     approved: number;
-    rejected: number;
-    expired: number;
+    lost: number;
+    sent: number;
   };
   total_budgets: number;
   total_value: number;
@@ -157,7 +157,7 @@ export interface Budget {
   payment_condition?: string;
   
   // Business fields
-  prazo_medio?: number; // Prazo médio em dias
+  origem?: string;
   outras_despesas_totais?: number; // Outras despesas do pedido
   
   // Campos de frete
@@ -176,7 +176,7 @@ export interface Budget {
   total_ipi_value?: number; // Total do IPI de todos os itens
   total_final_value?: number; // Valor final incluindo IPI (valor que o cliente paga)
   
-  status?: 'draft' | 'pending' | 'approved' | 'rejected' | 'expired';
+  status?: 'draft' | 'pending' | 'approved' | 'lost' | 'sent';
   created_by?: string;
   created_at?: string;
   updated_at?: string;
@@ -441,8 +441,8 @@ export const budgetService = {
         draft: 0,
         pending: 0,
         approved: 0,
-        rejected: 0,
-        expired: 0
+        lost: 0,
+        sent: 0
       },
       total_budgets: apiData.totals?.total_budgets || 0,
       total_value: apiData.totals?.total_value || 0,

@@ -315,10 +315,10 @@
 
 /* Status colors for different budget states */
 .status-draft { color: #8c8c8c; }
-.status-pending { color: #faad14; }
+.status-pending { color: #1890ff; }
 .status-approved { color: #52c41a; }
-.status-rejected { color: #ff4d4f; }
-.status-expired { color: #fa8c16; }
+.status-lost { color: #ff4d4f; }
+.status-sent { color: #faad14; }
 
 /* Global text overflow handling for all dashboard cards */
 .ant-card .ant-statistic-content {

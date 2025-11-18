@@ -47,7 +47,7 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useState } from 'react';
 import dayjs from 'dayjs';
-import { formatCurrency, formatPercentageValue } from '../lib/utils';
+import { formatCurrency, formatPercentageValue, statusTheme } from '../lib/utils';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -130,31 +130,31 @@ const AntDashboard: React.FC = () => {
       title: 'Rascunhos',
       value: dashboardStats.budgets_by_status.draft,
       icon: <FileTextOutlined />,
-      color: '#8c8c8c'
+      color: statusTheme.draft
     },
     {
       title: 'Pendentes',
       value: dashboardStats.budgets_by_status.pending,
       icon: <ClockCircleOutlined />,
-      color: '#1890ff'
+      color: statusTheme.pending
     },
     {
       title: 'Aprovados',
       value: dashboardStats.budgets_by_status.approved,
       icon: <CheckCircleOutlined />,
-      color: '#52c41a'
+      color: statusTheme.approved
     },
     {
-      title: 'Rejeitados',
-      value: dashboardStats.budgets_by_status.rejected,
+      title: 'Perdidos',
+      value: dashboardStats.budgets_by_status.lost,
       icon: <CloseCircleOutlined />,
-      color: '#ff4d4f'
+      color: statusTheme.lost
     },
     {
-      title: 'Expirados',
-      value: dashboardStats.budgets_by_status.expired,
+      title: 'Enviados',
+      value: dashboardStats.budgets_by_status.sent,
       icon: <WarningOutlined />,
-      color: '#faad14'
+      color: statusTheme.sent
     }
   ] : [];
 
@@ -162,15 +162,15 @@ const AntDashboard: React.FC = () => {
 
   // Dados para gráfico de pizza - Status dos Orçamentos
   const statusChartData = {
-    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Rejeitados', 'Expirados'],
+    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
     datasets: [
       {
         data: [
           dashboardStats?.budgets_by_status.draft || 0,
           dashboardStats?.budgets_by_status.pending || 0,
           dashboardStats?.budgets_by_status.approved || 0,
-          dashboardStats?.budgets_by_status.rejected || 0,
-          dashboardStats?.budgets_by_status.expired || 0
+          dashboardStats?.budgets_by_status.lost || 0,
+          dashboardStats?.budgets_by_status.sent || 0
         ],
         backgroundColor: [
           '#8c8c8c',

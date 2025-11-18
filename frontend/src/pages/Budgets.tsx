@@ -35,9 +35,6 @@ import {
   CalendarOutlined,
   SearchOutlined
 } from '@ant-design/icons';
-import { 
-  StatusCard 
-} from '../components/ui/DashboardCard';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
@@ -137,9 +134,9 @@ export default function Budgets() {
         return 'processing';
       case 'approved':
         return 'success';
-      case 'rejected':
+      case 'lost':
         return 'error';
-      case 'expired':
+      case 'sent':
         return 'warning';
       default:
         return 'default';
@@ -154,10 +151,10 @@ export default function Budgets() {
         return 'Pendente';
       case 'approved':
         return 'Aprovado';
-      case 'rejected':
-        return 'Rejeitado';
-      case 'expired':
-        return 'Expirado';
+      case 'lost':
+        return 'Perdido';
+      case 'sent':
+        return 'Orçamento Enviado';
       default:
         return status;
     }
@@ -167,9 +164,9 @@ export default function Budgets() {
     switch (status) {
       case 'approved':
         return <CheckCircleOutlined />;
-      case 'rejected':
+      case 'lost':
         return <CloseCircleOutlined />;
-      case 'expired':
+      case 'sent':
         return <ExclamationCircleOutlined />;
       case 'pending':
         return <ClockCircleOutlined />;
@@ -211,46 +208,6 @@ export default function Budgets() {
     budget.order_number.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  // Cards de estatísticas removidos conforme solicitado
-
-  // Dados para os StatusCards
-  const statusCounts = budgets.reduce((acc, budget) => {
-    acc[budget.status] = (acc[budget.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const statusData = [
-    {
-      title: 'Rascunhos',
-      value: statusCounts.draft || 0,
-      icon: <FileTextOutlined />,
-      color: '#8c8c8c'
-    },
-    {
-      title: 'Pendentes',
-      value: statusCounts.pending || 0,
-      icon: <ClockCircleOutlined />,
-      color: '#1890ff'
-    },
-    {
-      title: 'Aprovados',
-      value: statusCounts.approved || 0,
-      icon: <CheckCircleOutlined />,
-      color: '#52c41a'
-    },
-    {
-      title: 'Rejeitados',
-      value: statusCounts.rejected || 0,
-      icon: <CloseCircleOutlined />,
-      color: '#ff4d4f'
-    },
-    {
-      title: 'Expirados',
-      value: statusCounts.expired || 0,
-      icon: <ExclamationCircleOutlined />,
-      color: '#faad14'
-    }
-  ];
 
   // Configuração da tabela
   const columns: TableColumnsType<BudgetSummary> = [
@@ -292,8 +249,8 @@ export default function Budgets() {
         { text: 'Rascunho', value: 'draft' },
         { text: 'Pendente', value: 'pending' },
         { text: 'Aprovado', value: 'approved' },
-        { text: 'Rejeitado', value: 'rejected' },
-        { text: 'Expirado', value: 'expired' },
+        { text: 'Perdido', value: 'lost' },
+        { text: 'Orçamento Enviado', value: 'sent' },
       ],
       onFilter: (value: boolean | React.Key, record: BudgetSummary) => record.status === value,
       render: (status: string) => (
@@ -491,25 +448,7 @@ export default function Budgets() {
       </div>
 
 
-      {/* Status Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={4} style={{ margin: '0 0 16px 0' }}>
-            <FileTextOutlined style={{ marginRight: '8px' }} />
-            Status dos Orçamentos
-          </Title>
-        </Col>
-        {statusData.map((status, index) => (
-          <Col xs={12} sm={8} lg={5} key={index}>
-            <StatusCard
-              title={status.title}
-              value={status.value}
-              icon={status.icon}
-              color={status.color}
-            />
-          </Col>
-        ))}
-      </Row>
+      
 
       {/* Filtros Avançados */}
       {showFilters && (
@@ -535,8 +474,8 @@ export default function Budgets() {
                 <Option value="draft">🗂️ Rascunho</Option>
                 <Option value="pending">⏳ Pendente</Option>
                 <Option value="approved">✅ Aprovado</Option>
-                <Option value="rejected">❌ Rejeitado</Option>
-                <Option value="expired">⚠️ Expirado</Option>
+                <Option value="lost">❌ Perdido</Option>
+                <Option value="sent">✉️ Orçamento Enviado</Option>
               </Select>
             </Col>
             <Col xs={12} md={4}>
