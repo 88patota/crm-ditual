@@ -26,9 +26,11 @@ import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { budgetService, type DashboardStats } from '../services/budgetService';
 import { StatsCard, StatusCard, ProgressCard, InfoCard } from '../components/ui/DashboardCard';
+import { statusTheme } from '../lib/utils';
 import '../styles/DashboardCard.css';
 import dayjs from 'dayjs';
 import 'dayjs/locale/pt-br';
+import { formatCurrency, formatPercentageValue } from '../lib/utils';
 
 dayjs.locale('pt-br');
 
@@ -81,27 +83,22 @@ const AdminDashboardRefactored: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
+  // Usa utilitário central de moeda (ROUND_HALF_UP)
 
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'draft':
-        return { title: 'Rascunhos', icon: <FileTextOutlined />, color: '#8c8c8c' };
+        return { title: 'Rascunhos', icon: <FileTextOutlined />, color: statusTheme.draft };
       case 'pending':
-        return { title: 'Pendentes', icon: <ClockCircleOutlined />, color: '#faad14' };
+        return { title: 'Pendentes', icon: <ClockCircleOutlined />, color: statusTheme.pending };
       case 'approved':
-        return { title: 'Aprovados', icon: <CheckCircleOutlined />, color: '#52c41a' };
-      case 'rejected':
-        return { title: 'Rejeitados', icon: <CloseCircleOutlined />, color: '#ff4d4f' };
-      case 'expired':
-        return { title: 'Expirados', icon: <WarningOutlined />, color: '#fa8c16' };
+        return { title: 'Aprovados', icon: <CheckCircleOutlined />, color: statusTheme.approved };
+      case 'lost':
+        return { title: 'Perdidos', icon: <CloseCircleOutlined />, color: statusTheme.lost };
+      case 'sent':
+        return { title: 'Enviados', icon: <WarningOutlined />, color: statusTheme.sent };
       default:
-        return { title: status, icon: <ExclamationCircleOutlined />, color: '#8c8c8c' };
+        return { title: status, icon: <ExclamationCircleOutlined />, color: statusTheme.draft };
     }
   };
 
@@ -135,8 +132,19 @@ const AdminDashboardRefactored: React.FC = () => {
     );
   }
 
+  // Tipo para os cards principais (compatível com StatsCard)
+  type MainStat = {
+    title: string;
+    value: string | number;
+    prefix?: React.ReactNode;
+    color?: string;
+    trend?: { value: number; isPositive: boolean };
+    description?: string;
+    suffix?: string;
+  };
+
   // Dados para os cards principais usando os novos componentes
-  const mainStatsData = [
+  const mainStatsData: MainStat[] = [
     {
       title: 'Total de Orçamentos',
       value: dashboardStats?.total_budgets || 0,
@@ -163,8 +171,7 @@ const AdminDashboardRefactored: React.FC = () => {
     },
     {
       title: 'Taxa de Conversão',
-      value: (dashboardStats?.conversion_rate || 0).toFixed(2),
-      suffix: '%',
+      value: formatPercentageValue(dashboardStats?.conversion_rate || 0),
       prefix: <UserOutlined />,
       color: '#fa8c16',
       trend: { value: 3, isPositive: false },

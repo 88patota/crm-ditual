@@ -110,8 +110,8 @@ export default function StripeMetricCard({
 
       {/* Subtle background pattern */}
       <div className="absolute top-0 right-0 w-32 h-32 opacity-5 overflow-hidden">
-        <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-blue-400"></div>
-        <div className="absolute top-8 right-8 w-12 h-12 rounded-full bg-gradient-to-br from-purple-300 to-blue-300"></div>
+        <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-white border-2 border-gray-200"></div>
+        <div className="absolute top-8 right-8 w-12 h-12 rounded-full bg-white border border-gray-100"></div>
       </div>
     </div>
   );

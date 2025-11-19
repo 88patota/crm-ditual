@@ -11,6 +11,7 @@ import {
   Typography,
   Divider,
   Table,
+  Tooltip,
   message,
   Popconfirm,
   DatePicker,
@@ -27,7 +28,8 @@ import {
 import type { BudgetSimplified, BudgetItemSimplified, BudgetCalculation } from '../../services/budgetService';
 import { budgetService } from '../../services/budgetService';
 import { ErrorHandler } from '../../utils/errorHandler';
-import { formatCurrency } from '../../lib/utils';
+import { convertNumericToBrazilian, formatPercentageValue, formatPercentageValueNoRound, parsePercentageValue } from '../../lib/utils';
+import CurrencyInput from '../common/CurrencyInput';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -80,15 +82,7 @@ export default function AutoMarkupBudgetForm({
     setItems(newItems);
     setPreview(null); // Limpar preview quando alterar item
     
-    // Auto-recalculate when critical fields change (especially ICMS percentages and IPI)
-    if (field === 'percentual_icms_venda' || field === 'percentual_icms_compra' || 
-        field === 'valor_com_icms_venda' || field === 'valor_com_icms_compra' ||
-        field === 'peso_venda' || field === 'peso_compra' || field === 'percentual_ipi') {
-      // Debounce the auto-calculation to avoid too many API calls
-      setTimeout(() => {
-        autoCalculatePreview(newItems);
-      }, 300);
-    }
+    // Cálculos automáticos removidos - todos os cálculos são feitos no backend
   };
 
   const calculatePreview = async () => {
@@ -114,44 +108,7 @@ export default function AutoMarkupBudgetForm({
     }
   };
 
-  // Auto-calculation function for real-time updates when ICMS changes
-  const autoCalculatePreview = async (updatedItems: BudgetItemSimplified[]) => {
-    try {
-      const formData = form.getFieldsValue();
-      
-      // Only auto-calculate if we have basic required data
-      if (!formData.client_name || updatedItems.length === 0) {
-        return;
-      }
-      
-      // Check if all items have minimum required fields for calculation
-      const hasValidItems = updatedItems.every(item => 
-        item.description && 
-        item.peso_compra > 0 && 
-        item.peso_venda > 0 &&
-        item.valor_com_icms_compra > 0 &&
-        item.valor_com_icms_venda > 0
-      );
-      
-      if (!hasValidItems) {
-        return; // Skip auto-calculation if items are incomplete
-      }
-      
-      const budgetData: BudgetSimplified = {
-        ...formData,
-        items: updatedItems,
-        expires_at: formData.expires_at ? formData.expires_at.toISOString() : undefined,
-      };
-      
-      const calculation = await budgetService.calculateBudgetSimplified(budgetData);
-      setPreview(calculation);
-      
-    } catch (error) {
-      // Silently handle errors in auto-calculation to avoid spamming user
-      console.warn('Auto-calculation failed:', error);
-      setPreview(null);
-    }
-  };
+  // Função de auto-cálculo removida - cálculos agora são feitos apenas no backend
 
   const handleSubmit = async () => {
     try {
@@ -184,7 +141,7 @@ export default function AutoMarkupBudgetForm({
       ),
     },
     {
-      title: 'Peso Compra (kg) *',
+      title: 'Quantidade Compra *',
       dataIndex: 'peso_compra',
       key: 'peso_compra',
       width: 120,
@@ -198,11 +155,14 @@ export default function AutoMarkupBudgetForm({
           style={{ width: '100%' }}
           placeholder="0,000"
           required
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
     {
-      title: 'Peso Venda (kg) *',
+      title: 'Quantidade Venda *',
       dataIndex: 'peso_venda',
       key: 'peso_venda',
       width: 120,
@@ -216,6 +176,9 @@ export default function AutoMarkupBudgetForm({
           style={{ width: '100%' }}
           placeholder="0,000"
           required
+          decimalSeparator=","
+          formatter={(value) => value ? value.toString().replace('.', ',') : ''}
+          parser={(value) => value ? parseFloat(value.replace(',', '.')) : 0}
         />
       ),
     },
@@ -225,15 +188,12 @@ export default function AutoMarkupBudgetForm({
       key: 'valor_com_icms_compra',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_compra', val || 0)}
-          min={0.01}
-          step={0.01}
-          precision={2}
+          placeholder="0,00"
           style={{ width: '100%' }}
           required
-          placeholder="0,00"
         />
       ),
     },
@@ -244,14 +204,14 @@ export default function AutoMarkupBudgetForm({
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val || 17) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_compra', (val ?? 17) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => Number(value!.replace('%', ''))}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
           required
         />
@@ -263,14 +223,11 @@ export default function AutoMarkupBudgetForm({
       key: 'outras_despesas_item',
       width: 150,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'outras_despesas_item', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -280,14 +237,11 @@ export default function AutoMarkupBudgetForm({
       key: 'valor_com_icms_venda',
       width: 180,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
-        <InputNumber
+        <CurrencyInput
           value={value}
           onChange={(val) => updateItem(index, 'valor_com_icms_venda', val || 0)}
-          min={0}
-          step={0.01}
-          precision={2}
-          style={{ width: '100%' }}
           placeholder="0,00"
+          style={{ width: '100%' }}
         />
       ),
     },
@@ -298,14 +252,14 @@ export default function AutoMarkupBudgetForm({
       width: 120,
       render: (value: number, _: BudgetItemSimplified, index: number) => (
         <InputNumber
-          value={value * 100} // Convert from decimal to percentage for display
-          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val || 18) / 100)} // Convert back to decimal
+          value={value * 100}
+          onChange={(val) => updateItem(index, 'percentual_icms_venda', (val ?? 18) / 100)}
           min={0}
           max={100}
           step={0.1}
           precision={1}
-          formatter={(value) => `${value}%`}
-          parser={(value) => Number(value!.replace('%', ''))}
+          formatter={(v) => formatPercentageValue(Number(v || 0))}
+          parser={(v) => parsePercentageValue(v || '')}
           style={{ width: '100%' }}
           required
         />
@@ -465,7 +419,7 @@ export default function AutoMarkupBudgetForm({
               dataSource={items}
               columns={itemColumns}
               pagination={false}
-              rowKey={(_, index) => index!}
+              rowKey={(record) => items.indexOf(record)}
               scroll={{ x: 1200 }}
               size="small"
             />
@@ -486,27 +440,35 @@ export default function AutoMarkupBudgetForm({
                   <Col xs={24} lg={16}>
                     <div style={{ padding: '8px 0' }}>
                       <Alert
-                        message="🎯 Markup Automático Aplicado"
-                        description={`Markup calculado: ${preview.markup_percentage.toFixed(1)}% baseado nos valores de compra e venda informados.`}
+                        message="🎯 Cálculo Realizado pelo Backend"
+            description={`Rentabilidade calculada pelo backend: ${formatPercentageValueNoRound(preview.profitability_percentage)} baseada nos valores de compra e venda informados.`}
                         type="success"
                         showIcon
                         style={{ marginBottom: '16px' }}
                       />
                       
                       <Row gutter={[16, 8]}>
-                        <Col span={12}>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
                             <Text type="secondary" style={{ fontSize: '11px' }}>COMISSÃO TOTAL</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#722ed1' }}>
-                              {formatCurrency(preview.total_commission || 0)}
+                              {convertNumericToBrazilian(preview.total_commission || 0)}
                             </div>
                           </div>
                         </Col>
-                        <Col span={12}>
+                        <Col span={8}>
                           <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
-                            <Text type="secondary" style={{ fontSize: '11px' }}>MARKUP</Text>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>DIFERENÇA PESO</Text>
+                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f5222d' }}>
+                              {formatPercentageValue(preview.total_weight_difference_percentage || 0)}
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={8}>
+                          <div style={{ textAlign: 'center', padding: '8px', background: 'rgba(255,255,255,0.7)', borderRadius: '6px' }}>
+                            <Text type="secondary" style={{ fontSize: '11px' }}>RENTABILIDADE</Text>
                             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#13c2c2' }}>
-                              {preview.markup_percentage.toFixed(1)}%
+              {formatPercentageValueNoRound(preview.profitability_percentage)}
                             </div>
                           </div>
                         </Col>
@@ -525,7 +487,7 @@ export default function AutoMarkupBudgetForm({
                     }}>
                       <Text type="secondary" style={{ fontSize: '12px' }}>VALOR TOTAL</Text>
                       <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#52c41a' }}>
-                        {formatCurrency(preview.total_sale_value + preview.total_taxes)}
+                        {convertNumericToBrazilian(preview.total_sale_value + preview.total_taxes)}
                       </div>
                       <Text type="secondary" style={{ fontSize: '11px' }}>
                         COM ICMS
@@ -535,7 +497,7 @@ export default function AutoMarkupBudgetForm({
                       {preview.total_ipi_value && preview.total_ipi_value > 0 && (
                         <Alert 
                           message="IPI Aplicado" 
-                          description={`Inclui ${formatCurrency(preview.total_ipi_value)} de IPI`}
+                          description={`Inclui ${convertNumericToBrazilian(preview.total_ipi_value)} de IPI`}
                           type="warning" 
                           showIcon 
                           style={{ marginTop: '12px', fontSize: '11px' }}

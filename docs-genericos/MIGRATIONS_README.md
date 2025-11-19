@@ -1,6 +1,8 @@
-# Guia de Migrações do Banco de Dados - Ambiente EC2
+# Guia de Migrações do Banco de Dados
 
-Este guia explica como executar as migrações do banco de dados no ambiente EC2 com Docker.
+Este guia explica como executar as migrações do banco de dados em dois cenários:
+- Ambiente EC2 com Docker (produção)
+- Ambiente local no Mac, sem Docker (desenvolvimento)
 
 ## 📋 Pré-requisitos
 
@@ -83,6 +85,69 @@ docker-compose -f docker-compose.prod.yml exec user_service alembic upgrade head
 docker-compose -f docker-compose.prod.yml exec budget_service alembic upgrade head
 ```
 
+### 4. Ambiente Local (Mac, sem Docker)
+
+Para desenvolvimento local sem Docker, use uma instância PostgreSQL local (Postgres.app ou Homebrew) e configure a URL do Alembic.
+
+#### Pré-requisitos
+- PostgreSQL disponível em `localhost:5432` (via Postgres.app ou `brew services start postgresql`)
+- Banco de dados `crm_ditual` criado e acessível
+
+#### Variáveis de Ambiente
+Você pode usar uma URL dedicada ao Alembic ou aproveitar a `DATABASE_URL` convertida automaticamente:
+
+```bash
+# Opção A: definir URL síncrona dedicada ao Alembic
+export ALEMBIC_DATABASE_URL="postgresql://crm_user:crm_password@localhost:5432/crm_ditual"
+
+# Opção B: usar a mesma URL do runtime (async) e deixar o Alembic converter
+export DATABASE_URL="postgresql+asyncpg://crm_user:crm_password@localhost:5432/crm_ditual"
+```
+
+#### Executar Migrações
+No diretório do serviço de orçamento:
+
+```bash
+cd services/budget_service
+alembic upgrade head
+```
+
+O arquivo `alembic/env.py` foi ajustado para:
+- Sobrescrever `sqlalchemy.url` quando `ALEMBIC_DATABASE_URL` ou `DATABASE_URL` estiver definida.
+- Converter automaticamente `postgresql+asyncpg` para `postgresql` quando necessário.
+- Usar defaults locais (`POSTGRES_HOST=localhost`) quando não houver URL explícita.
+
+#### User Service (local)
+
+Variáveis de ambiente (exemplo `.env.local`):
+```bash
+ALEMBIC_DATABASE_URL=postgresql://crm_user:crm_strong_password_2024@localhost:5432/crm_db
+USER_SERVICE_DATABASE_URL=postgresql+asyncpg://crm_user:crm_strong_password_2024@localhost:5432/crm_db
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=crm_db
+```
+
+Observação: o `user_service` usa uma tabela de versão própria do Alembic (`alembic_version_user`) para evitar conflito com o `budget_service`.
+
+Executar migrações:
+```bash
+cd services/user_service
+alembic upgrade head
+```
+
+Se as tabelas já existirem e você quiser apenas alinhar o estado do Alembic, faça o stamp:
+```bash
+cd services/user_service
+alembic stamp 001
+```
+
+Ou inicie o serviço local carregando `.env.local` e executando migrações automaticamente:
+```bash
+cd services/user_service
+bash start.sh
+```
+
 ## 🔍 Verificação das Migrações
 
 ### Verificar estado atual das migrações
@@ -121,11 +186,11 @@ docker-compose -f docker-compose.prod.yml up -d
 
 ### Problema: Banco de dados não acessível
 ```bash
-# Testar conectividade
-docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U crm_user -d crm_db
+# Testar conectividade (local)
+pg_isready -h localhost -p 5432 -U crm_user -d crm_ditual
 
-# Verificar logs do PostgreSQL
-docker-compose -f docker-compose.prod.yml logs postgres
+# Verificar serviço (Homebrew)
+brew services list | grep postgres
 ```
 
 ### Problema: Erro de migração

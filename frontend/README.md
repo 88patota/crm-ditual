@@ -203,6 +203,21 @@ DELETE /api/v1/users/{id}
 // Error handling consistente
 ```
 
+## 🧮 **Política de Arredondamento e Formatação**
+
+- Moeda (`BRL`): usar `formatCurrency` (locale `pt-BR`) com arredondamento `HALF_UP` em 2 casas.
+- Percentuais inteiros: usar `formatPercentageValue` com 1 casa decimal (`HALF_UP`).
+- Percentuais fracionais (ex.: `0.0325` → `3,25%`): usar `formatPercentFromFraction(decimals)`.
+- Pesos e valores numéricos: aplicar `roundHalfUp` para o número e formatar com `Intl.NumberFormat('pt-BR')`.
+- Inputs monetários: `CurrencyInput` utiliza `formatCurrencyAsYouType`, `convertBrazilianToNumeric` e `convertNumericToBrazilian` para digitação e blur consistentes.
+- Evitar `toFixed`/`toLocaleString` diretos; preferir os utilitários centrais em `src/lib/utils.ts`.
+
+### Exemplos
+
+- `formatCurrency(1234.005)` → `R$ 1.234,01`
+- `formatPercentageValue(17.45)` → `17,5%`
+- `formatPercentFromFraction(0.175, 2)` → `17,50%`
+
 ### **Client State (React Context)**
 ```typescript
 // Autenticação global

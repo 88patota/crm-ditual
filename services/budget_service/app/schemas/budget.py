@@ -2,6 +2,7 @@ from pydantic import BaseModel, validator
 from typing import List, Optional
 from datetime import datetime
 from app.models.budget import BudgetStatus
+from app.utils.json_utils import safe_json_loads
 
 
 # Schema simplificado - APENAS campos que o vendedor deve preencher
@@ -63,10 +64,12 @@ class BudgetSimplifiedCreate(BaseModel):
     notes: Optional[str] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
     
     items: List[BudgetItemSimplified]
 
@@ -83,14 +86,7 @@ class BudgetSimplifiedCreate(BaseModel):
         return v
 
 
-class MarkupConfiguration(BaseModel):
-    """Configurações do sistema para cálculo de markup"""
-    minimum_markup_percentage: float = 20.0
-    maximum_markup_percentage: float = 200.0
-    default_market_position: str = "competitive"
-    icms_sale_default: float = 17.0
-    commission_default: float = 1.5
-    other_expenses_default: float = 0.0
+# Removido: Configurações de markup não são mais usadas
 
 
 class BudgetItemBase(BaseModel):
@@ -115,9 +111,11 @@ class BudgetItemBase(BaseModel):
     # IPI (Imposto sobre Produtos Industrializados)
     ipi_percentage: float = 0.0  # Percentual IPI (formato decimal: 0.0, 0.0325, 0.05)
     
-    # Commission
+    # Comissão
     commission_percentage: float = 0.0
-    dunamis_cost: Optional[float] = None
+    
+    # Weight difference display info
+    weight_difference_display: Optional[dict] = None
 
 
     @validator('purchase_value_with_icms', 'sale_value_with_icms')
@@ -151,7 +149,6 @@ class BudgetItemUpdate(BaseModel):
     sale_value_without_taxes: Optional[float] = None
     ipi_percentage: Optional[float] = None  # IPI percentual
     commission_percentage: Optional[float] = None
-    dunamis_cost: Optional[float] = None
 
 
 class BudgetItemResponse(BudgetItemBase):
@@ -160,19 +157,31 @@ class BudgetItemResponse(BudgetItemBase):
     
     # Calculated fields
     profitability: float
+    total_profitability: float
     total_purchase: float
     total_sale: float
     unit_value: float
     total_value: float
     commission_value: float
     commission_percentage_actual: float  # Actual commission percentage used (for display)
+    rentabilidade_comissao: Optional[float] = None  # Rentabilidade usada para comissão (SEM ICMS)
     
-    # IPI calculated fields
+    # IPI calculated values
     ipi_value: Optional[float] = None  # Valor do IPI calculado
     total_value_with_ipi: Optional[float] = None  # Valor total incluindo IPI
     
+    # Weight difference display info
+    weight_difference_display: Optional[dict] = None  # Weight difference display info
+    
     created_at: datetime
     updated_at: datetime
+
+    @validator('weight_difference_display', pre=True)
+    def parse_weight_difference_display(cls, v):
+        """Convert JSON string to dict if needed"""
+        if isinstance(v, str):
+            return safe_json_loads(v)
+        return v
 
     class Config:
         from_attributes = True
@@ -182,15 +191,16 @@ class BudgetBase(BaseModel):
     order_number: str
     client_name: str
     client_id: Optional[int] = None
-    markup_percentage: float = 0.0
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
 
     @validator('order_number')
     def validate_order_number(cls, v):
@@ -212,13 +222,15 @@ class BudgetCreate(BudgetBase):
 class BudgetUpdate(BaseModel):
     client_name: Optional[str] = None
     client_id: Optional[int] = None
-    markup_percentage: Optional[float] = None
     status: Optional[BudgetStatus] = None
     notes: Optional[str] = None
     expires_at: Optional[datetime] = None
     items: Optional[List[BudgetItemCreate]] = None
     freight_type: Optional[str] = None  # Remove default value to properly handle updates
+    freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
+    valor_frete_compra: Optional[float] = None  # Valor do frete por kg
+    origem: Optional[str] = None
 
 
 class BudgetResponse(BudgetBase):
@@ -230,11 +242,15 @@ class BudgetResponse(BudgetBase):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
     
     # IPI totals
     total_ipi_value: Optional[float] = None  # Total do IPI de todos os itens
     total_final_value: Optional[float] = None  # Valor final incluindo IPI (valor que o cliente paga)
+    
+    # Weight difference
+    total_weight_difference_percentage: Optional[float] = None  # Diferença total de peso em porcentagem
     
     created_by: str
     created_at: datetime
@@ -254,8 +270,10 @@ class BudgetSummary(BaseModel):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: Optional[float] = 0.0  # Percentual de comissão real calculado
     profitability_percentage: float
     items_count: int
+    origem: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -263,19 +281,23 @@ class BudgetSummary(BaseModel):
 
 
 class BudgetCalculation(BaseModel):
-    """Response model for budget calculations"""
+    # Valores principais
     total_purchase_value: float
     total_sale_value: float  # COM ICMS - valor real pago pelo cliente
     total_net_revenue: float  # SEM impostos - receita líquida após impostos
     total_taxes: float  # Impostos totais = total_sale_value - total_net_revenue
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
-    markup_percentage: float
+    rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
     items_calculations: List[dict]
     
     # IPI calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens
     total_final_value: float = 0.0  # Valor final incluindo IPI
+    
+    # Total weight difference
+    total_weight_difference_percentage: float = 0.0  # Diferença total de peso em porcentagem
 
 
 class BudgetPreviewCalculation(BaseModel):
@@ -284,8 +306,9 @@ class BudgetPreviewCalculation(BaseModel):
     total_sale_value: float  # SEM impostos - valor que muda quando ICMS muda
     total_sale_with_icms: float  # COM ICMS - valor real sem IPI
     total_commission: float
+    commission_percentage_actual: float  # Percentual de comissão real calculado
     profitability_percentage: float
-    markup_percentage: float  # CALCULADO AUTOMATICAMENTE
+    rentabilidade_comissao_total: float  # Rentabilidade total usada para comissão (SEM ICMS)
     items_preview: List[dict]
     
     # Configurações utilizadas no cálculo
@@ -293,9 +316,10 @@ class BudgetPreviewCalculation(BaseModel):
     sale_icms_percentage_default: float = 17.0  # Padrão ICMS venda
     other_expenses_default: float = 0.0  # Outras despesas padrão
     # NOVOS CAMPOS
-    minimum_markup_applied: float = 20.0
-    maximum_markup_applied: float = 200.0
     
     # IPI preview calculations
     total_ipi_value: float = 0.0  # Total do IPI de todos os itens
     total_final_value: float = 0.0  # Valor final incluindo IPI
+    
+    # Total weight difference
+    total_weight_difference_percentage: float = 0.0  # Diferença total de peso em porcentagem

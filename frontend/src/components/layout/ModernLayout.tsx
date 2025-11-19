@@ -10,8 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bell,
-  ChevronDown,
 } from 'lucide-react';
 
 interface ModernLayoutProps {
@@ -72,8 +70,8 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children }) => {
               <span className="text-sm font-bold">C</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold">CRM Ditual</span>
-              <span className="text-xs text-muted-foreground">Business Suite</span>
+              <span className="text-sm font-semibold">LoenCRM</span>
+              <span className="text-xs text-muted-foreground">Conecte. Entenda. Cresça.</span>
             </div>
           </div>
 
@@ -148,29 +146,12 @@ const ModernLayout: React.FC<ModernLayoutProps> = ({ children }) => {
                 )}
               </Button>
               
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">
-                  {navigation.find(item => item.current)?.name || 'Dashboard'}
-                </h1>
-              </div>
-            </div>
-
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
-              
-              <div className="hidden lg:flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                  <span className="text-xs font-medium">
-                    {user?.full_name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="text-sm font-medium">{user?.full_name}</span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </div>
+              <h1 className="text-lg font-semibold">
+                {navigation.find(item => item.current)?.name || 'Dashboard'}
+              </h1>
             </div>
+          </div>
           </div>
         </header>
 

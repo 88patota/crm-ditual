@@ -5,9 +5,24 @@
 
 echo "Iniciando budget_service..."
 
+# Carregar variáveis locais, se existir
+if [ -f ".env.local" ]; then
+  set -a
+  . ./.env.local
+  set +a
+fi
+
+# Garantir binários da venv no PATH
+if [ -d ".venv/bin" ]; then
+  export PATH=".venv/bin:$PATH"
+fi
+
 # Aguardar o banco de dados estar disponível
 echo "Aguardando banco de dados..."
-while ! nc -z postgres 5432; do
+# Usar variáveis de ambiente com defaults locais
+POSTGRES_HOST=${POSTGRES_HOST:-localhost}
+POSTGRES_PORT=${POSTGRES_PORT:-5432}
+while ! nc -z "$POSTGRES_HOST" "$POSTGRES_PORT"; do
   sleep 1
 done
 echo "Banco de dados disponível!"

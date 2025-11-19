@@ -56,7 +56,11 @@ def test_commission_calculation_by_item():
         
         # Calcular totais
         soma_pesos_pedido = sum(item['peso_compra'] for item in test_items)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in test_items)
+        # outras_despesas_item é R$/kg; somar multiplicando pelo peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in test_items
+        )
         
         # Calcular usando BusinessRulesCalculator
         budget_result = BusinessRulesCalculator.calculate_complete_budget(

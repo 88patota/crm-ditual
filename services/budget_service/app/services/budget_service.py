@@ -5,7 +5,11 @@ from sqlalchemy.orm import selectinload
 from app.models.budget import Budget, BudgetItem, BudgetStatus
 from app.schemas.budget import BudgetCreate, BudgetUpdate, BudgetItemCreate, BudgetItemUpdate
 from app.services.business_rules_calculator import BusinessRulesCalculator
+from app.utils.json_utils import safe_json_dumps
 import logging
+
+# Configurar logger
+logger = logging.getLogger(__name__)
 
 
 class BudgetService:
@@ -48,18 +52,24 @@ class BudgetService:
                 raise ValueError(f"Dados inválidos: {'; '.join(errors)}")
         
         # Calculate totals using business rules calculator
+        # CORREÇÃO: Usar peso_compra para distribuir frete (não peso_venda)
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
+        # Correção: outras_despesas_item é R$/kg; somatório deve ser R$/kg * peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in transformed_items
+        )
         
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
-            transformed_items, outras_despesas_totais, soma_pesos_pedido
+            transformed_items, outras_despesas_totais, soma_pesos_pedido, 
+            budget_data.freight_value_total or 0.0
         )
         
         totals = {
             'total_purchase_value': budget_result['totals']['soma_total_compra'],
             'total_sale_value': budget_result['totals']['soma_total_venda'],
             'total_commission': sum(item['valor_comissao'] for item in budget_result['items']),
-            'profitability_percentage': budget_result['totals']['markup_pedido']
+            'profitability_percentage': budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido'])
         }
         
         # Create budget
@@ -67,7 +77,6 @@ class BudgetService:
             order_number=budget_data.order_number,
             client_name=budget_data.client_name,
             client_id=budget_data.client_id,
-            markup_percentage=budget_result['totals']['markup_pedido'],  # Use calculated markup
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             created_by=created_by,
@@ -76,16 +85,23 @@ class BudgetService:
             total_sale_with_icms=budget_result['totals']['soma_total_venda_com_icms'],
             total_commission=totals['total_commission'],
             profitability_percentage=totals['profitability_percentage'],
+            # Calcular commission_percentage_actual médio ponderado
+            commission_percentage_actual=BudgetService._calculate_weighted_commission_percentage(budget_result['items']),
             # Add freight_type field
             freight_type=budget_data.freight_type,
             # Add payment_condition field - FIX: Campo estava faltando no mapeamento
             payment_condition=budget_data.payment_condition,
-            # Add prazo_medio and outras_despesas_totais fields - FIX: Campos estavam faltando no mapeamento
-            prazo_medio=budget_data.prazo_medio,
-            outras_despesas_totais=budget_data.outras_despesas_totais,
+            # Add prazo_medio and outras_despesas_totais fields
+            origem=budget_data.origem,
+            outras_despesas_totais=outras_despesas_totais,
+            # Add freight fields
+            freight_value_total=budget_data.freight_value_total,
+            valor_frete_compra=budget_result['totals'].get('valor_frete_compra', 0.0),
             # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
             total_ipi_value=budget_result['totals'].get('total_ipi_orcamento', 0.0),
-            total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0)
+            total_final_value=budget_result['totals'].get('total_final_com_ipi', 0.0),
+            # Weight difference
+            total_weight_difference_percentage=budget_result['totals'].get('total_weight_difference_percentage', 0.0)
         )
         
         db.add(budget)
@@ -108,6 +124,10 @@ class BudgetService:
             # Use correct IPI field names from BusinessRulesCalculator
             total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
             
+            # Weight difference display
+            weight_diff_raw = calculated_item.get('weight_difference_display')
+            weight_diff_json = safe_json_dumps(weight_diff_raw) if weight_diff_raw else None
+            
             budget_item = BudgetItem(
                 budget_id=budget.id,
                 description=calculated_item['description'],
@@ -115,7 +135,7 @@ class BudgetService:
                 weight=calculated_item['peso_compra'],
                 purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                 purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                purchase_other_expenses=calculated_item['outras_despesas_item'],
                 purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
                 purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
                 sale_weight=calculated_item['peso_venda'],
@@ -123,7 +143,8 @@ class BudgetService:
                 sale_icms_percentage=calculated_item['percentual_icms_venda'],
                 sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                 weight_difference=calculated_item['diferenca_peso'],
-                profitability=calculated_item['rentabilidade_item'] * 100,  # Convert to percentage
+                profitability=(calculated_item['rentabilidade_item'] or 0) * 100,  # Convert to percentage
+                total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
                 total_purchase=calculated_item['total_compra_item'],
                 total_sale=calculated_item['total_venda_item'],
                 unit_value=calculated_item['valor_unitario_venda'],
@@ -135,7 +156,8 @@ class BudgetService:
                 ipi_percentage=ipi_percentage,
                 ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
                 total_value_with_ipi=total_value_with_ipi,
-                dunamis_cost=item_data.get('dunamis_cost')
+                # Weight difference display
+                weight_difference_display=weight_diff_json
             )
             db.add(budget_item)
         
@@ -222,7 +244,7 @@ class BudgetService:
             logger.debug(f"Updating budget {budget_id}")
             
             # Buscar orçamento existente
-            result = await self.db.execute(
+            result = await db.execute(
                 select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
             )
             budget = result.scalar_one_or_none()
@@ -312,10 +334,15 @@ class BudgetService:
                 
                 # Calculate totals using business rules calculator
                 soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in transformed_items)
-                outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in transformed_items)
+                # Correção: somar outras despesas como R$/kg * peso_compra
+                outras_despesas_totais = sum(
+                    (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+                    for item in transformed_items
+                )
                 
                 budget_result = BusinessRulesCalculator.calculate_complete_budget(
-                    transformed_items, outras_despesas_totais, soma_pesos_pedido
+                    transformed_items, outras_despesas_totais, soma_pesos_pedido,
+                    budget_dict.get('freight_value_total', 0.0)
                 )
                 
                 # Create new items with calculations from business rules
@@ -339,6 +366,10 @@ class BudgetService:
                     # Use correct IPI field names from BusinessRulesCalculator
                     total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
                     
+                    # Debug weight_difference_display
+                    weight_diff_display = calculated_item.get('weight_difference_display')
+                    logger.info(f"DEBUG - Item {item_data.get('description', 'N/A')}: weight_difference_display = {weight_diff_display}")
+                    
                     budget_item = BudgetItem(
                         budget_id=budget.id,
                         description=calculated_item['description'],
@@ -346,7 +377,7 @@ class BudgetService:
                         weight=calculated_item['peso_compra'],
                         purchase_value_with_icms=calculated_item['valor_com_icms_compra'],
                         purchase_icms_percentage=calculated_item['percentual_icms_compra'],
-                        purchase_other_expenses=calculated_item['outras_despesas_distribuidas'],
+                        purchase_other_expenses=calculated_item['outras_despesas_item'],
                         purchase_value_without_taxes=calculated_item['valor_sem_impostos_compra'],
                         purchase_value_with_weight_diff=calculated_item['valor_corrigido_peso'],
                         sale_weight=calculated_item['peso_venda'],
@@ -354,7 +385,8 @@ class BudgetService:
                         sale_icms_percentage=calculated_item['percentual_icms_venda'],
                         sale_value_without_taxes=calculated_item['valor_sem_impostos_venda'],
                         weight_difference=calculated_item['diferenca_peso'],
-                        profitability=calculated_item['rentabilidade_item'] * 100,  # Convert to percentage
+                        profitability=(calculated_item['rentabilidade_item'] or 0) * 100,  # Convert to percentage
+                        total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
                         total_purchase=calculated_item['total_compra_item'],
                         total_sale=calculated_item['total_venda_item'],
                         unit_value=calculated_item['valor_unitario_venda'],
@@ -366,7 +398,8 @@ class BudgetService:
                         ipi_percentage=ipi_percentage,
                         ipi_value=calculated_item.get('valor_ipi_total', ipi_value),  # Use valor_ipi_total from calculator
                         total_value_with_ipi=total_value_with_ipi,
-                        dunamis_cost=item_data.get('dunamis_cost')
+                        # Weight difference display
+                        weight_difference_display=safe_json_dumps(weight_diff_display) if weight_diff_display else None
                     )
                     db.add(budget_item)
                 
@@ -375,12 +408,14 @@ class BudgetService:
                 setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
                 setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
                 setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
-                setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
-                # Always set markup_percentage to the calculated value from business rules
-                setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+                setattr(budget, 'profitability_percentage', budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido']))
                 # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
                 setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
                 setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
+                # Update freight fields
+                if 'freight_value_total' in budget_dict:
+                    setattr(budget, 'freight_value_total', budget_dict['freight_value_total'])
+                setattr(budget, 'valor_frete_compra', budget_result['totals'].get('valor_frete_compra', 0.0))
             
             # CORREÇÃO: Garantir que o freight_type seja sempre definido corretamente
             # Se freight_type estiver nos dados de atualização, use-o
@@ -440,10 +475,15 @@ class BudgetService:
         
         # Recalculate using business rules
         soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
+        # Correção: somar outras despesas do pedido como R$/kg * peso_compra
+        outras_despesas_totais = sum(
+            (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+            for item in items_data
+        )
         
         budget_result = BusinessRulesCalculator.calculate_complete_budget(
-            items_data, outras_despesas_totais, soma_pesos_pedido
+            items_data, outras_despesas_totais, soma_pesos_pedido,
+            budget.freight_value_total or 0.0
         )
         
         # Update budget totals
@@ -451,11 +491,12 @@ class BudgetService:
         setattr(budget, 'total_sale_value', budget_result['totals']['soma_total_venda'])
         setattr(budget, 'total_sale_with_icms', budget_result['totals']['soma_total_venda_com_icms'])
         setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in budget_result['items'])))
-        setattr(budget, 'profitability_percentage', budget_result['totals']['markup_pedido'])
-        setattr(budget, 'markup_percentage', budget_result['totals']['markup_pedido'])
+        setattr(budget, 'profitability_percentage', budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido']))
         # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
         setattr(budget, 'total_ipi_value', budget_result['totals'].get('total_ipi_orcamento', 0.0))
         setattr(budget, 'total_final_value', budget_result['totals'].get('total_final_com_ipi', 0.0))
+        # Update freight value per kg
+        setattr(budget, 'valor_frete_compra', budget_result['totals'].get('valor_frete_compra', 0.0))
         
         # Recalculate each item
         for i, item in enumerate(budget.items):
@@ -465,7 +506,8 @@ class BudgetService:
             item.purchase_value_with_weight_diff = calculated_item['valor_corrigido_peso']
             item.sale_value_without_taxes = calculated_item['valor_sem_impostos_venda']
             item.weight_difference = calculated_item['diferenca_peso']
-            item.profitability = calculated_item['rentabilidade_item'] * 100  # Convert to percentage
+            item.profitability = (calculated_item['rentabilidade_item'] or 0) * 100  # Convert to percentage
+            item.total_profitability = (calculated_item.get('rentabilidade_item_total') or 0) * 100
             item.total_purchase = calculated_item['total_compra_item']
             item.total_sale = calculated_item['total_venda_item']
             item.unit_value = calculated_item['valor_unitario_venda']
@@ -486,62 +528,238 @@ class BudgetService:
             item.ipi_percentage = ipi_percentage
             item.ipi_value = ipi_value
             item.total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+            # Weight difference display
+            weight_diff_raw = calculated_item.get('weight_difference_display')
+            print(f"🔍 DEBUG - budget_service salvamento:")
+            print(f"🔍 DEBUG - weight_diff_raw: {weight_diff_raw}")
+            print(f"🔍 DEBUG - type(weight_diff_raw): {type(weight_diff_raw)}")
+            weight_diff_json = safe_json_dumps(weight_diff_raw) if weight_diff_raw else None
+            print(f"🔍 DEBUG - weight_diff_json: {weight_diff_json}")
+            print(f"🔍 DEBUG - type(weight_diff_json): {type(weight_diff_json)}")
+            item.weight_difference_display = weight_diff_json
         
         await db.commit()
         await db.refresh(budget)
         return budget
     
     @staticmethod
-    async def apply_markup_to_budget(db: AsyncSession, budget_id: int, markup_percentage: float) -> Optional[Budget]:
-        """Apply markup percentage to budget and adjust prices"""
-        budget = await BudgetService.get_budget_by_id(db, budget_id)
-        if not budget:
-            return None
-        
-        # Get items data in BusinessRulesCalculator format
-        items_data = []
-        for item in budget.items:
-            items_data.append({
-                'description': item.description,
-                'peso_compra': item.weight,
-                'valor_com_icms_compra': item.purchase_value_with_icms,
-                'percentual_icms_compra': item.purchase_icms_percentage,
-                'outras_despesas_item': item.purchase_other_expenses,
-                'peso_venda': item.sale_weight or item.weight,
-                'valor_com_icms_venda': item.sale_value_with_icms,
-                'percentual_icms_venda': item.sale_icms_percentage,
-                'percentual_ipi': item.ipi_percentage or 0.0  # IPI percentage
-            })
-        
-        # Recalculate with existing values first
-        soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
-        outras_despesas_totais = sum(item.get('outras_despesas_item', 0) for item in items_data)
-        
-        result = BusinessRulesCalculator.calculate_complete_budget(
-            items_data, outras_despesas_totais, soma_pesos_pedido
-        )
-        
-        # Update budget with new markup
-        setattr(budget, 'markup_percentage', cast(float, markup_percentage))
-        setattr(budget, 'total_purchase_value', result['totals']['soma_total_compra'])
-        setattr(budget, 'total_sale_value', result['totals']['soma_total_venda'])
-        setattr(budget, 'total_sale_with_icms', result['totals']['soma_total_venda_com_icms'])
-        setattr(budget, 'total_commission', cast(float, sum(item['valor_comissao'] for item in result['items'])))
-        setattr(budget, 'profitability_percentage', cast(float, markup_percentage))  # Set to desired markup
-        # IPI totals - Fix the key names to match what's returned from BusinessRulesCalculator
-        setattr(budget, 'total_ipi_value', result['totals'].get('total_ipi_orcamento', 0.0))
-        setattr(budget, 'total_final_value', result['totals'].get('total_final_com_ipi', 0.0))
-        
-        # Update items with calculated values
-        for i, item in enumerate(budget.items):
-            calculated_item = result['items'][i]
+    def _calculate_weighted_commission_percentage(items: List[dict]) -> float:
+        """Calcula o percentual de comissão médio ponderado baseado nos itens do orçamento"""
+        total_sale_value = sum(item['total_venda_com_icms_item'] for item in items)
+        if total_sale_value > 0:
+            weighted_commission_percentage = sum(
+                item['commission_percentage_actual'] * item['total_venda_com_icms_item'] 
+                for item in items
+            ) / total_sale_value
+            return weighted_commission_percentage
+        return 0.0
+
+    @staticmethod
+    async def update_budget_simplified(db: AsyncSession, budget_id: int, budget_data: dict) -> Optional[Budget]:
+        """Atualizar orçamento simplificado existente"""
+        try:
+            logger.info(f"🔧 [SERVICE DEBUG] Starting update_budget_simplified for budget {budget_id}")
+            logger.info(f"🔧 [SERVICE DEBUG] Received data keys: {list(budget_data.keys())}")
             
-            item.sale_value_with_icms = calculated_item['valor_com_icms_venda']
-            item.sale_value_without_taxes = calculated_item['valor_sem_impostos_venda']
-            item.total_sale = calculated_item['total_venda_item']
-            item.unit_value = calculated_item['valor_unitario_venda']
-            item.total_value = calculated_item['total_venda_item']
-            item.profitability = calculated_item['rentabilidade_item'] * 100  # Convert to percentage
+            # Log critical budget fields
+            logger.info(f"🔧 [SERVICE DEBUG] Budget fields: client_name='{budget_data.get('client_name')}', "
+                       f"order_number='{budget_data.get('order_number')}', "
+                       f"freight_type='{budget_data.get('freight_type')}', "
+                       f"origem={budget_data.get('origem')}")
+            
+            # Buscar orçamento existente
+            logger.debug(f"🔧 [SERVICE DEBUG] Fetching existing budget {budget_id}...")
+            result = await db.execute(
+                select(Budget).options(selectinload(Budget.items)).where(Budget.id == budget_id)
+            )
+            budget = result.scalar_one_or_none()
+            
+            if not budget:
+                logger.error(f"🔧 [SERVICE DEBUG] Budget {budget_id} not found in database")
+                return None
+            
+            logger.info(f"🔧 [SERVICE DEBUG] Found existing budget: order_number={budget.order_number}, "
+                       f"client_name='{budget.client_name}', items_count={len(budget.items)}")
+            
+            # Verificar se o número do pedido já existe (se fornecido e diferente do atual)
+            if 'order_number' in budget_data and budget_data['order_number'] != budget.order_number:
+                logger.debug(f"🔧 [SERVICE DEBUG] Checking order number uniqueness: {budget_data['order_number']}")
+                existing_budget = await BudgetService.get_budget_by_order_number(db, budget_data['order_number'])
+                if existing_budget and existing_budget.id != budget_id:
+                    logger.error(f"🔧 [SERVICE DEBUG] Order number conflict: {budget_data['order_number']} exists in budget {existing_budget.id}")
+                    raise ValueError(f"Número do pedido '{budget_data['order_number']}' já existe")
+            
+            # Preparar dados dos itens para cálculo
+            items_data = []
+            if 'items' in budget_data:
+                logger.info(f"🔧 [SERVICE DEBUG] Processing {len(budget_data['items'])} items...")
+                for i, item_data in enumerate(budget_data['items']):
+                    logger.debug(f"🔧 [SERVICE DEBUG] Item {i}: description='{item_data.get('description', 'N/A')}', "
+                                f"peso_compra={item_data.get('peso_compra', 'N/A')}, "
+                                f"valor_com_icms_compra={item_data.get('valor_com_icms_compra', 'N/A')}, "
+                                f"valor_com_icms_venda={item_data.get('valor_com_icms_venda', 'N/A')}, "
+                                f"percentual_ipi={item_data.get('percentual_ipi', 'N/A')}")
+                    
+                    processed_item = {
+                        'description': item_data.get('description', ''),
+                        'delivery_time': item_data.get('delivery_time', '0'),
+                        'peso_compra': item_data.get('peso_compra', 1.0),
+                        'peso_venda': item_data.get('peso_venda') or item_data.get('peso_compra', 1.0),
+                        'valor_com_icms_compra': item_data.get('valor_com_icms_compra', 0),
+                        'percentual_icms_compra': item_data.get('percentual_icms_compra', 0.18),
+                        'outras_despesas_item': item_data.get('outras_despesas_item', 0),
+                        'valor_com_icms_venda': item_data.get('valor_com_icms_venda', 0),
+                        'percentual_icms_venda': item_data.get('percentual_icms_venda', 0.18),
+                        'percentual_ipi': item_data.get('percentual_ipi', 0.0)
+                    }
+                    items_data.append(processed_item)
+                    logger.debug(f"🔧 [SERVICE DEBUG] Processed item {i}: {processed_item}")
+            
+            # Calcular valores usando BusinessRulesCalculator
+            if items_data:
+                logger.info(f"🔧 [SERVICE DEBUG] Calculating budget with {len(items_data)} items...")
+                soma_pesos_pedido = sum(item.get('peso_compra', 0) for item in items_data)
+                # Correção: calcular outras despesas totais como R$/kg * peso_compra
+                outras_despesas_totais = sum(
+                    (item.get('outras_despesas_item', 0) or 0.0) * (item.get('peso_compra', 0) or 0.0)
+                    for item in items_data
+                )
+                freight_value_total = budget_data.get('freight_value_total') or 0.0
+                
+                logger.debug(f"🔧 [SERVICE DEBUG] Calculation parameters: soma_pesos_pedido={soma_pesos_pedido}, "
+                            f"outras_despesas_totais={outras_despesas_totais}, freight_value_total={freight_value_total}")
+                
+                budget_result = BusinessRulesCalculator.calculate_complete_budget(
+                    items_data, outras_despesas_totais, soma_pesos_pedido, freight_value_total
+                )
+                
+                logger.info(f"🔧 [SERVICE DEBUG] Calculation completed. Totals: "
+                           f"soma_total_compra={budget_result['totals']['soma_total_compra']}, "
+                           f"soma_total_venda={budget_result['totals']['soma_total_venda']}, "
+                           f"markup_pedido={budget_result['totals']['markup_pedido']}")
+                
+                # Atualizar campos do orçamento
+                logger.debug(f"🔧 [SERVICE DEBUG] Updating budget fields...")
+                original_values = {
+                    'client_name': budget.client_name,
+                    'freight_type': budget.freight_type,
+                    'origem': budget.origem,
+                    'order_number': budget.order_number
+                }
+                
+                budget.client_name = budget_data.get('client_name', budget.client_name)
+                budget.status = budget_data.get('status', budget.status)
+                budget.expires_at = budget_data.get('expires_at', budget.expires_at)
+                budget.notes = budget_data.get('notes', budget.notes)
+                budget.origem = budget_data.get('origem', budget.origem)
+                budget.outras_despesas_totais = outras_despesas_totais
+                budget.freight_type = budget_data.get('freight_type', budget.freight_type)
+                budget.freight_value_total = budget_data.get('freight_value_total', budget.freight_value_total)
+                budget.payment_condition = budget_data.get('payment_condition', budget.payment_condition)
+                
+                if 'order_number' in budget_data:
+                    budget.order_number = budget_data['order_number']
+                
+                logger.info(f"🔧 [SERVICE DEBUG] Field updates: "
+                           f"client_name: '{original_values['client_name']}' -> '{budget.client_name}', "
+                           f"freight_type: '{original_values['freight_type']}' -> '{budget.freight_type}', "
+                           f"origem: {original_values['origem']} -> {budget.origem}, "
+                           f"order_number: '{original_values['order_number']}' -> '{budget.order_number}'")
+                
+                # Atualizar totais calculados
+                budget.total_purchase_value = budget_result['totals']['soma_total_compra']
+                budget.total_sale_value = budget_result['totals']['soma_total_venda']
+                budget.total_sale_with_icms = budget_result['totals']['soma_total_venda_com_icms']
+                budget.total_commission = cast(float, sum(item['valor_comissao'] for item in budget_result['items']))
+                
+                # Calcular commission_percentage_actual médio ponderado
+                budget.commission_percentage_actual = BudgetService._calculate_weighted_commission_percentage(budget_result['items'])
+                
+                budget.profitability_percentage = budget_result['totals'].get('markup_pedido_sem_impostos', budget_result['totals']['markup_pedido'])
+                budget.total_ipi_value = budget_result['totals'].get('total_ipi_orcamento', 0.0)
+                budget.total_final_value = budget_result['totals'].get('total_final_com_ipi', 0.0)
+                budget.valor_frete_compra = budget_result['totals'].get('valor_frete_compra', 0.0)
+                budget.total_weight_difference_percentage = budget_result['totals'].get('total_weight_difference_percentage', 0.0)
+                
+                logger.debug(f"🔧 [SERVICE DEBUG] Updated calculated totals: "
+                            f"total_purchase_value={budget.total_purchase_value}, "
+                            f"total_sale_value={budget.total_sale_value}, "
+                            f"profitability_percentage={budget.profitability_percentage}")
+                
+                # Remover itens existentes
+                logger.debug(f"🔧 [SERVICE DEBUG] Removing {len(budget.items)} existing items...")
+                for item in budget.items:
+                    await db.delete(item)
+                
+                # Criar novos itens
+                logger.debug(f"🔧 [SERVICE DEBUG] Creating {len(budget_data['items'])} new items...")
+                for i, item_data in enumerate(budget_data['items']):
+                    calculated_item = budget_result['items'][i]
+                    
+                    # Calcular valores IPI
+                    ipi_percentage = calculated_item.get('percentual_ipi', 0.0)
+                    sale_value_with_icms = calculated_item.get('valor_com_icms_venda', 0.0)
+                    sale_weight = calculated_item.get('peso_venda', item_data.get('peso_venda', item_data.get('peso_compra', 1.0)))
+                    
+                    ipi_value = BusinessRulesCalculator.calculate_total_ipi_item(
+                        sale_weight, sale_value_with_icms, ipi_percentage
+                    )
+                    
+                    total_value_with_ipi = calculated_item.get('total_final_com_ipi', 0.0)
+                    
+                    logger.debug(f"🔧 [SERVICE DEBUG] Creating item {i}: description='{item_data.get('description', '')}', "
+                                f"peso_compra={item_data.get('peso_compra', 1.0)}, "
+                                f"ipi_percentage={ipi_percentage}, ipi_value={ipi_value}")
+                    
+                    budget_item = BudgetItem(
+                        budget_id=budget.id,
+                        description=item_data.get('description', ''),
+                        delivery_time=item_data.get('delivery_time', '0'),
+                        weight=item_data.get('peso_compra', 1.0),
+                        purchase_value_with_icms=item_data.get('valor_com_icms_compra', 0),
+                        purchase_icms_percentage=item_data.get('percentual_icms_compra', 0.18),
+                        purchase_other_expenses=item_data.get('outras_despesas_item', 0),
+                        purchase_value_without_taxes=calculated_item.get('valor_sem_impostos_compra', 0),
+                        purchase_value_with_weight_diff=calculated_item.get('valor_corrigido_peso', 0),
+                        sale_weight=item_data.get('peso_venda') or item_data.get('peso_compra', 1.0),
+                        sale_value_with_icms=item_data.get('valor_com_icms_venda', 0),
+                        sale_icms_percentage=item_data.get('percentual_icms_venda', 0.18),
+                        sale_value_without_taxes=calculated_item.get('valor_sem_impostos_venda', 0),
+                        weight_difference=calculated_item.get('diferenca_peso', 0),
+                        profitability=(calculated_item.get('rentabilidade_item') or 0) * 100,
+                        total_profitability=(calculated_item.get('rentabilidade_item_total') or 0) * 100,
+                        total_purchase=calculated_item.get('total_compra_item', 0),
+                        total_sale=calculated_item.get('total_venda_item', 0),
+                        unit_value=calculated_item.get('valor_unitario_venda', 0),
+                        total_value=calculated_item.get('total_venda_item', 0),
+                        commission_value=calculated_item.get('valor_comissao', 0),
+                        commission_percentage=calculated_item.get('percentual_comissao', 0.0),
+                        commission_percentage_actual=calculated_item.get('commission_percentage_actual', 0.0),
+                        ipi_percentage=ipi_percentage,
+                        ipi_value=ipi_value,
+                        total_value_with_ipi=total_value_with_ipi,
+                        # Weight difference display
+                        weight_difference_display=safe_json_dumps(calculated_item.get('weight_difference_display')) if calculated_item.get('weight_difference_display') else None
+                    )
+                    db.add(budget_item)
+            
+            logger.debug(f"🔧 [SERVICE DEBUG] Committing changes to database...")
+            await db.commit()
+            await db.refresh(budget)
+            
+            logger.info(f"🔧 [SERVICE DEBUG] Budget {budget_id} updated successfully")
+            logger.info(f"🔧 [SERVICE DEBUG] Final budget state: order_number={budget.order_number}, "
+                       f"client_name='{budget.client_name}', items_count={len(budget.items)}, "
+                       f"total_sale_value={budget.total_sale_value}")
+            
+            return budget
+            
+        except Exception as e:
+            logger.error(f"🔧 [SERVICE DEBUG] Error updating simplified budget {budget_id}: {str(e)}", exc_info=True)
+            raise
+    
+    # Removida função de aplicação de markup; o sistema não utiliza mais ajuste por markup
+            item.profitability = (calculated_item['rentabilidade_item'] or 0) * 100  # Convert to percentage
             item.commission_value = calculated_item['valor_comissao']
             item.commission_percentage = calculated_item.get('percentual_comissao', 0.0)
             item.commission_percentage_actual = calculated_item.get('commission_percentage_actual', 0.0)

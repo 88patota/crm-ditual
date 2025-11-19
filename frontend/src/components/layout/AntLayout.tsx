@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Button, Badge } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Button } from 'antd';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -9,7 +9,6 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BellOutlined,
   SettingOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
@@ -36,7 +35,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
     {
       key: '/budgets',
       icon: <FileTextOutlined />,
-      label: <Link to="/budgets">Orçamentos</Link>,
+      label: <Link to="/budgets">Proposta</Link>,
     },
     {
       key: '/profile',
@@ -109,7 +108,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
           textAlign: 'center'
         }}>
           {!collapsed ? (
-            <Space direction="vertical" size={4}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <div style={{
                 width: 40,
                 height: 40,
@@ -123,17 +122,17 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
                 fontWeight: 'bold',
                 margin: '0 auto'
               }}>
-                C
+                L
               </div>
               <div>
                 <Title level={5} style={{ margin: 0, color: '#262626' }}>
-                  CRM Ditual
+                  LoenCRM
                 </Title>
                 <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Business Suite
+                  Conecte. Entenda. Cresça.
                 </Text>
               </div>
-            </Space>
+            </div>
           ) : (
             <div style={{
               width: 32,
@@ -148,7 +147,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
               fontWeight: 'bold',
               margin: '0 auto'
             }}>
-              C
+              L
             </div>
           )}
         </div>
@@ -163,48 +162,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
           }}
         />
 
-        {/* User info at bottom */}
-        {!collapsed && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: '16px 24px',
-            borderTop: '1px solid #f0f0f0',
-            background: '#fafafa'
-          }}>
-            <Space>
-              <Avatar 
-                style={{ 
-                  backgroundColor: '#1890ff',
-                  fontSize: '14px'
-                }}
-                size="small"
-              >
-                {user?.full_name?.charAt(0).toUpperCase()}
-              </Avatar>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ 
-                  fontSize: '14px', 
-                  fontWeight: 500,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {user?.full_name}
-                </div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#8c8c8c',
-                  textTransform: 'capitalize'
-                }}>
-                  {user?.role}
-                </div>
-              </div>
-            </Space>
-          </div>
-        )}
+        
       </Sider>
 
       <Layout>
@@ -218,7 +176,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
           height: '64px',
           lineHeight: '64px'
         }}>
-          <Space size="middle" align="center">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -235,25 +193,9 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
             <Title level={4} style={{ margin: 0, color: '#262626', lineHeight: 1 }}>
               {getCurrentPageTitle()}
             </Title>
-          </Space>
+          </div>
 
-          <Space size="large" align="center">
-            <Badge count={3} size="small" offset={[-2, 2]}>
-              <Button 
-                type="text" 
-                icon={<BellOutlined />} 
-                style={{
-                  fontSize: '16px',
-                  width: 40,
-                  height: 40,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '6px'
-                }}
-              />
-            </Badge>
-            
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
             <Dropdown 
               menu={{ items: userMenuItems }}
               trigger={['click']}
@@ -312,7 +254,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
                 </div>
               </div>
             </Dropdown>
-          </Space>
+          </div>
         </Header>
 
         <Content style={{ 
