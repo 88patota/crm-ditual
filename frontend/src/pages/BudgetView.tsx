@@ -139,8 +139,8 @@ export default function BudgetView() {
       case 'draft': return 'default';
       case 'pending': return 'processing';
       case 'approved': return 'success';
-      case 'rejected': return 'error';
-      case 'expired': return 'warning';
+      case 'lost': return 'error';
+      case 'sent': return 'warning';
       default: return 'default';
     }
   };
@@ -150,8 +150,8 @@ export default function BudgetView() {
       case 'draft': return 'Rascunho';
       case 'pending': return 'Pendente';
       case 'approved': return 'Aprovado';
-      case 'rejected': return 'Rejeitado';
-      case 'expired': return 'Expirado';
+      case 'lost': return 'Perdido';
+      case 'sent': return 'Orçamento Enviado';
       default: return status || 'Desconhecido';
     }
   };
@@ -159,8 +159,8 @@ export default function BudgetView() {
   const getStatusIcon = (status: string | undefined) => {
     switch (status) {
       case 'approved': return <CheckCircleOutlined />;
-      case 'rejected': return <CloseCircleOutlined />;
-      case 'expired': return <ExclamationCircleOutlined />;
+      case 'lost': return <CloseCircleOutlined />;
+      case 'sent': return <ExclamationCircleOutlined />;
       case 'pending': return <ClockCircleOutlined />;
       default: return <FileTextOutlined />;
     }
@@ -578,7 +578,7 @@ export default function BudgetView() {
               </Button>
               <div>
                 <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
-                  📋 Pedido {budget.order_number}
+                  📋 Proposta {budget.order_number}
                 </Title>
                 <Space>
                   <Tag 
@@ -633,7 +633,7 @@ export default function BudgetView() {
       </Card>
 
       {/* Informações Gerais - Layout Otimizado */}
-      <Card title="Informações do Orçamento" style={{ marginBottom: '24px' }}>
+      <Card title="Informações da Proposta" style={{ marginBottom: '24px' }}>
         <Row gutter={[24, 16]}>
           <Col xs={24} lg={16}>
             <Descriptions column={{ xs: 1, sm: 2 }} size="middle">
@@ -674,6 +674,9 @@ export default function BudgetView() {
               <Descriptions.Item label="Condições de Pagamento">
                 <Text>{budget.payment_condition || 'À vista'}</Text>
               </Descriptions.Item>
+              <Descriptions.Item label="Origem">
+                <Text>{budget.origem || 'Não informada'}</Text>
+              </Descriptions.Item>
             </Descriptions>
             {budget.notes && (
               <>
@@ -686,7 +689,7 @@ export default function BudgetView() {
             )}
           </Col>
           
-          {/* Totais do Pedido - Integrados */}
+          {/* Totais da Proposta - Integrados */}
           <Col xs={24} lg={8}>
             <div style={{ 
               background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
@@ -695,7 +698,7 @@ export default function BudgetView() {
               border: '1px solid #bae6fd'
             }}>
               <Title level={5} style={{ margin: '0 0 16px 0', color: '#0369a1' }}>
-                💰 Totais do Pedido
+                💰 Totais da Proposta
               </Title>
               <Row gutter={[12, 12]}>
                 <Col span={24}>
@@ -798,7 +801,7 @@ export default function BudgetView() {
               fontWeight: 600,
               color: '#333333'
             }}>
-              Itens do Orçamento
+              Itens da Proposta
             </span>
             <Tag 
               color="#E8F4FD" 

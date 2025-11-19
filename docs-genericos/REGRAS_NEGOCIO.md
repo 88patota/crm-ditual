@@ -46,6 +46,17 @@
 - **Descrição**: Representa o markup ou margem de lucro unitário sobre o custo ajustado
 - **Formato**: Decimal (ex: 0.3077 = 30,77%)
 
+#### 1.3.1.1 Rentabilidade por Item (Unitária) vs Rentabilidade Total por Item
+- **Rentabilidade unitária (rentabilidade_item)**: calculada com valores SEM impostos (venda vs compra ajustada por peso), refletindo a margem por unidade.
+- **Rentabilidade total por item (rentabilidade_item_total)**: calculada com os totais SEM impostos do item, considerando quantidades/pesos reais.
+  - Fórmula: `rentabilidade_item_total = (Total Venda s/Impostos) / (Total Compra s/Impostos) - 1`
+  - Onde: `Total Compra s/Impostos = peso_compra * valor_sem_impostos_compra` e `Total Venda s/Impostos = peso_venda * valor_sem_impostos_venda`.
+- **Quando usar cada uma**:
+  - Se `peso_venda == peso_compra`: ambos os indicadores coincidem; comissão usa a rentabilidade unitária.
+  - Se `peso_venda != peso_compra`: a rentabilidade total por item representa melhor o resultado da operação; comissão usa rentabilidade baseada nos totais.
+- **Persistência e API**:
+  - Persistimos `total_profitability` no modelo `BudgetItem` (percentual, exibição em %) e expomos `rentabilidade_item_total` nos endpoints `/calculate` e `/calculate-simplified`.
+
 #### 1.3.2 Markup do Pedido
 - **Fórmula**: `Markup = (soma_total_venda_pedido / soma_total_compra_pedido) - 1`
 - **Descrição**: Markup agregado de todo o pedido

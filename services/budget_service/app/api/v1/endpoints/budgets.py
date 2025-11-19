@@ -26,26 +26,38 @@ security = HTTPBearer()
 
 
 async def generate_order_number(db: AsyncSession) -> str:
-    """Gera número sequencial do pedido no formato PED-0001"""
+    """Gera número sequencial da proposta no formato PROP-00001"""
     from sqlalchemy import text
     
-    # Buscar o último número de pedido
-    result = await db.execute(
-        text("SELECT order_number FROM budgets WHERE order_number LIKE 'PED-%' ORDER BY order_number DESC LIMIT 1")
+    # Buscar o último número com prefixo novo
+    prop_result = await db.execute(
+        text("SELECT order_number FROM budgets WHERE order_number LIKE 'PROP-%' ORDER BY order_number DESC LIMIT 1")
     )
-    last_order = result.scalar()
+    last_prop = prop_result.scalar()
     
-    if last_order:
-        # Extrair número e incrementar
+    next_number: int
+    if last_prop:
         try:
-            last_number = int(last_order.split('-')[1])
+            last_number = int(last_prop.split('-')[1])
             next_number = last_number + 1
         except (IndexError, ValueError):
             next_number = 1
     else:
-        next_number = 1
+        # Fallback: buscar último PED para manter sequência
+        ped_result = await db.execute(
+            text("SELECT order_number FROM budgets WHERE order_number LIKE 'PED-%' ORDER BY order_number DESC LIMIT 1")
+        )
+        last_ped = ped_result.scalar()
+        if last_ped:
+            try:
+                last_number = int(last_ped.split('-')[1])
+                next_number = last_number + 1
+            except (IndexError, ValueError):
+                next_number = 1
+        else:
+            next_number = 1
     
-    return f"PED-{next_number:04d}"
+    return f"PROP-{next_number:05d}"
 
 
 @router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
@@ -116,6 +128,7 @@ async def get_budgets(
             profitability_percentage=budget.profitability_percentage,
             commission_percentage_actual=budget.commission_percentage_actual if budget.commission_percentage_actual is not None else 0.0,
             items_count=len(budget.items),
+            origem=budget.origem,
             created_at=budget.created_at
         ))
     
@@ -362,6 +375,7 @@ async def calculate_budget(
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
                 'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Conversão para % com HALF_UP
+                'rentabilidade_item_total': round_percent_display((item.get('rentabilidade_item_total', 0.0) or 0), 2),
                 'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'ipi_percentage': item['percentual_ipi'],
@@ -464,6 +478,7 @@ async def calculate_simplified_budget(
                 'total_purchase': item['total_compra_item'],
                 'total_sale': item['total_venda_item'],
                 'profitability': round_percent_display((item['rentabilidade_item'] or 0), 2),  # Converter para percentual com HALF_UP
+                'rentabilidade_item_total': round_percent_display((item.get('rentabilidade_item_total', 0.0) or 0), 2),
                 'rentabilidade_comissao': round_percent_display((item.get('rentabilidade_comissao', 0.0) or 0), 2),
                 'commission_value': item['valor_comissao'],
                 'commission_percentage_actual': item.get('commission_percentage_actual', 0.0),  # Actual percentage used
@@ -569,7 +584,7 @@ async def update_simplified_budget(
         logger.debug(f"🔧 [UPDATE DEBUG] Budget data summary: client_name='{budget_dict.get('client_name')}', "
                     f"order_number='{budget_dict.get('order_number')}', "
                     f"freight_type='{budget_dict.get('freight_type')}', "
-                    f"prazo_medio={budget_dict.get('prazo_medio')}")
+                    f"origem={budget_dict.get('origem')}")
         
         # Usar o método update_budget_simplified do BudgetService
         updated_budget = await BudgetService.update_budget_simplified(db, budget_id, budget_dict)
@@ -705,8 +720,7 @@ async def create_simplified_budget(
             client_name=budget_data.client_name,
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
-            # CORREÇÃO: Incluir campos prazo_medio, outras_despesas_totais e freight_type
-            prazo_medio=budget_data.prazo_medio,
+            origem=budget_data.origem,
             outras_despesas_totais=budget_data.outras_despesas_totais,
             freight_type=budget_data.freight_type,
             freight_value_total=budget_data.freight_value_total,  # CORREÇÃO: Incluir freight_value_total

@@ -9,8 +9,8 @@ class BudgetStatus(str, enum.Enum):
     DRAFT = "draft"
     PENDING = "pending"
     APPROVED = "approved"
-    REJECTED = "rejected"
-    EXPIRED = "expired"
+    LOST = "lost"
+    SENT = "sent"
 
 
 class Budget(Base):
@@ -42,7 +42,7 @@ class Budget(Base):
     created_by = Column(String, nullable=False)  # Username who created
     
     # Business fields
-    prazo_medio = Column(Integer, nullable=True, comment='Prazo médio em dias')
+    origem = Column(String(50), nullable=True)
     outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
     freight_type = Column(String(10), nullable=False, default='FOB')
     freight_value_total = Column(Float, nullable=True, comment='Valor total do frete')
@@ -85,6 +85,7 @@ class BudgetItem(Base):
     
     # Calculated fields
     profitability = Column(Float, default=0.0)
+    total_profitability = Column(Float, default=0.0)  # Rentabilidade total por item (percentual)
     total_purchase = Column(Float, nullable=False)
     total_sale = Column(Float, nullable=False)
     unit_value = Column(Float, nullable=False)

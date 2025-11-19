@@ -391,14 +391,14 @@ export default function BudgetForm({
                 label="Status"
                 name="status"
               >
-                <Select>
-                  <Option value="draft">Rascunho</Option>
-                  <Option value="pending">Pendente</Option>
-                  <Option value="approved">Aprovado</Option>
-                  <Option value="rejected">Rejeitado</Option>
-                  <Option value="expired">Expirado</Option>
-                </Select>
-              </Form.Item>
+              <Select>
+                <Option value="draft">Rascunho</Option>
+                <Option value="pending">Pendente</Option>
+                <Option value="approved">Aprovado</Option>
+                <Option value="lost">Perdido</Option>
+                <Option value="sent">Orçamento Enviado</Option>
+              </Select>
+            </Form.Item>
             </Col>
           </Row>
 

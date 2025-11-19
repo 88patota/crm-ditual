@@ -53,7 +53,7 @@ async def create_admin_user():
         "email": "admin@crmditual.com",
         "password": "admin102030",
         "full_name": "Administrador do Sistema",
-        "role": UserRole.ADMIN,
+        "role": UserRole.ADMIN.value,
         "is_active": True
     }
     

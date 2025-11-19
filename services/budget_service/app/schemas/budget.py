@@ -64,7 +64,7 @@ class BudgetSimplifiedCreate(BaseModel):
     notes: Optional[str] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
     freight_value_total: Optional[float] = None  # Valor total do frete
@@ -157,6 +157,7 @@ class BudgetItemResponse(BudgetItemBase):
     
     # Calculated fields
     profitability: float
+    total_profitability: float
     total_purchase: float
     total_sale: float
     unit_value: float
@@ -194,7 +195,7 @@ class BudgetBase(BaseModel):
     expires_at: Optional[datetime] = None
     
     # Campos de negócio
-    prazo_medio: Optional[int] = None  # Prazo médio em dias
+    origem: Optional[str] = None
     outras_despesas_totais: Optional[float] = None  # Outras despesas do pedido
     freight_type: str = "FOB"
     freight_value_total: Optional[float] = None  # Valor total do frete
@@ -229,6 +230,7 @@ class BudgetUpdate(BaseModel):
     freight_value_total: Optional[float] = None  # Valor total do frete
     payment_condition: Optional[str] = None  # Condições de pagamento
     valor_frete_compra: Optional[float] = None  # Valor do frete por kg
+    origem: Optional[str] = None
 
 
 class BudgetResponse(BudgetBase):
@@ -271,6 +273,7 @@ class BudgetSummary(BaseModel):
     commission_percentage_actual: Optional[float] = 0.0  # Percentual de comissão real calculado
     profitability_percentage: float
     items_count: int
+    origem: Optional[str] = None
     created_at: datetime
 
     class Config:

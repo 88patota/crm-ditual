@@ -198,3 +198,11 @@ export function parsePercentageValue(value: string | undefined): number {
   
   return isNaN(parsed) ? 0 : parsed;
 }
+
+export const statusTheme = {
+  draft: '#8c8c8c',
+  pending: '#1890ff',
+  approved: '#52c41a',
+  lost: '#ff4d4f',
+  sent: '#faad14',
+};

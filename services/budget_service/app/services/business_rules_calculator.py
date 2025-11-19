@@ -444,12 +444,26 @@ class BusinessRulesCalculator:
         # Calcular valor de compra COM ICMS unitário incluindo frete distribuído por kg
         valor_com_icms_compra_unitario_com_frete = valor_com_icms_compra + frete_distribuido_por_kg
         
-        # Ajuste: Rentabilidade exibida deve usar valores SEM ICMS (inclui frete diluído no valor de compra sem impostos)
-        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(valor_sem_impostos_venda, valor_sem_impostos_compra)
+        # Ajuste: Rentabilidade exibida deve usar valores SEM ICMS e compra CORRIGIDA por peso
+        # Fórmula correta (unitária): [Valor s/Impostos (Venda) / Valor c/Difer. Peso (Compra)] - 1
+        rentabilidade_item = BusinessRulesCalculator.calculate_item_profitability(
+            valor_sem_impostos_venda,
+            valor_corrigido_peso
+        )
         
         total_compra_item = BusinessRulesCalculator.calculate_total_purchase_item(peso_compra, valor_sem_impostos_compra)
         
         total_venda_item = peso_venda * valor_sem_impostos_venda
+
+        # NOVO: Rentabilidade total por item baseada em totais SEM impostos
+        rentabilidade_item_total = 0.0
+        try:
+            if total_compra_item > 0:
+                rentabilidade_item_total = (total_venda_item / total_compra_item) - 1
+            else:
+                rentabilidade_item_total = 0.0
+        except Exception:
+            rentabilidade_item_total = 0.0
         
         # CORREÇÃO: Calcular total COM ICMS incluindo frete distribuído
         total_compra_item_com_icms = peso_compra * valor_com_icms_compra_unitario_com_frete
@@ -496,6 +510,7 @@ class BusinessRulesCalculator:
             'diferenca_peso': diferenca_peso,
             'valor_unitario_venda': valor_unitario_venda,
             'rentabilidade_item': rentabilidade_item,
+            'rentabilidade_item_total': rentabilidade_item_total,
             'rentabilidade_comissao': rentabilidade_comissao,
             'total_compra_item': total_compra_item,
             'total_venda_item': total_venda_item,

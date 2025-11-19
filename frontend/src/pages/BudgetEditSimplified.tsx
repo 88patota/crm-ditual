@@ -28,13 +28,13 @@ export default function BudgetEditSimplified() {
       const convertedBudget: Partial<Budget> = {
         order_number: budgetData.order_number || '',
         client_name: budgetData.client_name,
-        status: budgetData.status as 'draft' | 'pending' | 'approved' | 'rejected' | 'expired',
+        status: budgetData.status as 'draft' | 'pending' | 'approved' | 'lost' | 'sent',
         expires_at: budgetData.expires_at,
         notes: budgetData.notes,
         freight_type: budgetData.freight_type, // CORREÇÃO: Incluir freight_type
         payment_condition: budgetData.payment_condition, // CORREÇÃO: Incluir payment_condition
         freight_value_total: budgetData.freight_value_total, // CORREÇÃO: Incluir freight_value_total
-        prazo_medio: budgetData.prazo_medio, // CORREÇÃO: Incluir prazo_medio
+        origem: budgetData.origem,
         outras_despesas_totais: budgetData.outras_despesas_totais, // CORREÇÃO: Incluir outras_despesas_totais
         items: budgetData.items.map(item => ({
           description: item.description,
@@ -107,9 +107,9 @@ export default function BudgetEditSimplified() {
       expires_at: budget.expires_at,
       notes: budget.notes,
       freight_type: budget.freight_type || 'FOB',
-      payment_condition: budget.payment_condition, // CORREÇÃO: Mapear payment_condition do backend
+      payment_condition: budget.payment_condition,
       freight_value_total: budget.freight_value_total, // CORREÇÃO: Mapear freight_value_total do backend
-      prazo_medio: budget.prazo_medio || 30, // CORREÇÃO: Mapear prazo_medio do backend ou usar valor padrão
+      origem: budget.origem,
       outras_despesas_totais: budget.outras_despesas_totais || 0, // CORREÇÃO: Mapear outras_despesas_totais do backend ou usar valor padrão
       items: budget.items?.map((item) => ({
         description: item.description,

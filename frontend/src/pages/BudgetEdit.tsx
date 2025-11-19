@@ -61,7 +61,7 @@ export default function BudgetEdit() {
       freight_type: budget.freight_type || 'FOB',
       payment_condition: budget.payment_condition,
       freight_value_total: budget.freight_value_total,
-      prazo_medio: budget.prazo_medio || 30,
+      origem: budget.origem,
       outras_despesas_totais: budget.outras_despesas_totais || 0,
       items: budget.items?.map((item) => ({
         description: item.description,
@@ -79,7 +79,8 @@ export default function BudgetEdit() {
         valor_sem_icms_venda: item.sale_value_without_taxes,
         valor_ipi: item.ipi_value,
         valor_total_com_ipi: item.total_value_with_ipi,
-        rentabilidade: item.profitability,
+        // Exibir rentabilidade total do item para refletir diferença de peso
+        rentabilidade: item.total_profitability ?? item.profitability,
         comissao: item.commission_value,
         weight_difference_display: item.weight_difference_display,
       })) || [],
