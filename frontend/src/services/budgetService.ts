@@ -1,5 +1,11 @@
 import api from '../lib/api';
 
+const sanitizeOrigin = (o?: string): string | undefined => {
+  if (!o) return undefined;
+  const s = o.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return s.slice(0, 20);
+};
+
 // Tipos simplificados - APENAS campos obrigatórios (atualizados conforme novas regras de negócio)
 export interface BudgetItemSimplified {
   description: string;
@@ -233,7 +239,8 @@ export interface BudgetCalculation {
 export const budgetService = {
   // Create budget
   async createBudget(budget: Budget): Promise<Budget> {
-    const response = await api.post<Budget>('/budgets/', budget);
+    const payload = { ...budget, origem: sanitizeOrigin(budget.origem) };
+    const response = await api.post<Budget>('/budgets/', payload);
     return response.data;
   },
 
@@ -271,7 +278,8 @@ export const budgetService = {
     console.log('[budgetService.ts] Payload para updateBudget (PUT):', JSON.stringify(budget, null, 2));
     console.log('🔍 DEBUG - budgetService updateBudget - Sending budget data to backend:', budget);
     console.log('🔍 DEBUG - budgetService updateBudget - payment_condition being sent:', budget.payment_condition);
-    const response = await api.put<Budget>(`/budgets/${id}`, budget);
+    const payload = { ...budget, origem: sanitizeOrigin(budget.origem) };
+    const response = await api.put<Budget>(`/budgets/${id}`, payload);
     console.log('🔍 DEBUG - budgetService updateBudget - Response from backend:', response.data);
     console.log('🔍 DEBUG - budgetService updateBudget - payment_condition in response:', response.data.payment_condition);
     return response.data;
@@ -303,7 +311,8 @@ export const budgetService = {
 
   // Método para calcular orçamento simplificado
   async calculateBudgetSimplified(budget: BudgetSimplified): Promise<BudgetCalculation> {
-    const response = await api.post<BudgetCalculation>('/budgets/calculate-simplified', budget);
+    const payload = { ...budget, origem: sanitizeOrigin(budget.origem) };
+    const response = await api.post<BudgetCalculation>('/budgets/calculate-simplified', payload);
     return response.data;
   },
 
@@ -318,7 +327,8 @@ export const budgetService = {
 
   // Método para criar orçamento simplificado
   async createBudgetSimplified(budget: BudgetSimplified): Promise<Budget> {
-    const response = await api.post<Budget>('/budgets/simplified', budget);
+    const payload = { ...budget, origem: sanitizeOrigin(budget.origem) };
+    const response = await api.post<Budget>('/budgets/simplified', payload);
     return response.data;
   },
 
@@ -327,7 +337,8 @@ export const budgetService = {
     console.log('[budgetService.ts] Payload para updateBudgetSimplified (PUT):', JSON.stringify(budget, null, 2));
     console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Sending budget data to backend:', budget);
     console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition being sent:', budget.payment_condition);
-    const response = await api.put<Budget>(`/budgets/simplified/${id}`, budget);
+    const payload = { ...budget, origem: sanitizeOrigin(budget.origem) };
+    const response = await api.put<Budget>(`/budgets/simplified/${id}`, payload);
     console.log('🔍 DEBUG - budgetService updateBudgetSimplified - Response from backend:', response.data);
     console.log('🔍 DEBUG - budgetService updateBudgetSimplified - payment_condition in response:', response.data.payment_condition);
     return response.data;

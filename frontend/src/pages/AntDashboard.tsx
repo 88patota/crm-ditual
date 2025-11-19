@@ -83,7 +83,29 @@ const AntDashboard: React.FC = () => {
     enabled: user?.role === 'admin'
   });
 
-  const isLoading = user?.role === 'admin' ? adminLoading : false;
+  const { data: sellerBudgets = [], isLoading: sellerLoading, refetch: sellerRefetch, isRefetching: sellerRefetching } = useQuery<BudgetSummary[]>({
+    queryKey: ['seller-budgets', user?.username, filterDays, customDateRange],
+    queryFn: async () => {
+      const params: Record<string, string | number | undefined> = {};
+      if (customDateRange) {
+        params.custom_start = customDateRange[0];
+        params.custom_end = customDateRange[1];
+      } else {
+        params.days = filterDays;
+      }
+      try {
+        return await budgetService.getBudgets(params);
+      } catch {
+        if (user?.username) {
+          return await budgetService.getBudgets({ ...params, created_by: user.username });
+        }
+        return [];
+      }
+    },
+    enabled: !!user && user.role !== 'admin'
+  });
+
+  const isLoading = user?.role === 'admin' ? adminLoading : sellerLoading;
 
   const handlePeriodChange = (value: string) => {
     if (value === 'custom') {
@@ -152,13 +174,12 @@ const AntDashboard: React.FC = () => {
 
 
   const adminStatusCountsData = {
-    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
+    labels: ['Rascunhos', 'Aprovados', 'Perdidos', 'Enviados'],
     datasets: [
       {
         label: 'Quantidade',
         data: [
           adminBudgets.filter((b) => b.status === 'draft').length,
-          adminBudgets.filter((b) => b.status === 'pending').length,
           adminBudgets.filter((b) => b.status === 'approved').length,
           adminBudgets.filter((b) => b.status === 'lost').length,
           adminBudgets.filter((b) => b.status === 'sent').length,
@@ -173,16 +194,55 @@ const AntDashboard: React.FC = () => {
   };
 
   const adminStatusValuesData = {
-    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
+    labels: ['Rascunhos', 'Aprovados', 'Perdidos', 'Enviados'],
     datasets: [
       {
         label: 'Valor Total (R$)',
         data: [
           adminBudgets.filter((b) => b.status === 'draft').reduce((s, x) => s + (x.total_sale_value || 0), 0),
-          adminBudgets.filter((b) => b.status === 'pending').reduce((s, x) => s + (x.total_sale_value || 0), 0),
           adminBudgets.filter((b) => b.status === 'approved').reduce((s, x) => s + (x.total_sale_value || 0), 0),
           adminBudgets.filter((b) => b.status === 'lost').reduce((s, x) => s + (x.total_sale_value || 0), 0),
           adminBudgets.filter((b) => b.status === 'sent').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+        ],
+        backgroundColor: 'rgba(250, 140, 22, 0.8)',
+        borderColor: '#fa8c16',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const sellerStatusCountsData = {
+    labels: ['Rascunhos', 'Aprovados', 'Perdidos', 'Enviados'],
+    datasets: [
+      {
+        label: 'Quantidade',
+        data: [
+          sellerBudgets.filter((b) => b.status === 'draft').length,
+          sellerBudgets.filter((b) => b.status === 'approved').length,
+          sellerBudgets.filter((b) => b.status === 'lost').length,
+          sellerBudgets.filter((b) => b.status === 'sent').length,
+        ],
+        backgroundColor: 'rgba(24, 144, 255, 0.8)',
+        borderColor: '#1890ff',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const sellerStatusValuesData = {
+    labels: ['Rascunhos', 'Aprovados', 'Perdidos', 'Enviados'],
+    datasets: [
+      {
+        label: 'Valor Total (R$)',
+        data: [
+          sellerBudgets.filter((b) => b.status === 'draft').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          sellerBudgets.filter((b) => b.status === 'approved').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          sellerBudgets.filter((b) => b.status === 'lost').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          sellerBudgets.filter((b) => b.status === 'sent').reduce((s, x) => s + (x.total_sale_value || 0), 0),
         ],
         backgroundColor: 'rgba(250, 140, 22, 0.8)',
         borderColor: '#fa8c16',
@@ -218,15 +278,37 @@ const AntDashboard: React.FC = () => {
     }
   };
 
-  const origins = Array.from(
+  const adminOrigins = Array.from(
     new Set(adminBudgets.map((b) => b.origem || 'Não informada'))
   );
   const adminOriginsCountsData = {
-    labels: origins,
+    labels: adminOrigins.length ? adminOrigins : ['Sem dados'],
     datasets: [
       {
         label: 'Quantidade',
-        data: origins.map((o) => adminBudgets.filter((b) => (b.origem || 'Não informada') === o).length),
+        data: (adminOrigins.length ? adminOrigins : ['Sem dados']).map((o) =>
+          adminOrigins.length ? adminBudgets.filter((b) => (b.origem || 'Não informada') === o).length : 0
+        ),
+        backgroundColor: 'rgba(114, 46, 209, 0.8)',
+        borderColor: '#722ed1',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const sellerOrigins = Array.from(
+    new Set(sellerBudgets.map((b) => b.origem || 'Não informada'))
+  );
+  const sellerOriginsCountsData = {
+    labels: sellerOrigins.length ? sellerOrigins : ['Sem dados'],
+    datasets: [
+      {
+        label: 'Quantidade',
+        data: (sellerOrigins.length ? sellerOrigins : ['Sem dados']).map((o) =>
+          sellerOrigins.length ? sellerBudgets.filter((b) => (b.origem || 'Não informada') === o).length : 0
+        ),
         backgroundColor: 'rgba(114, 46, 209, 0.8)',
         borderColor: '#722ed1',
         borderWidth: 2,
@@ -391,6 +473,70 @@ const AntDashboard: React.FC = () => {
                 </Col>
               </Row>
             </>
+          )}
+
+          {user?.role !== 'admin' && (
+            <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+              <Col span={24}>
+                <Title level={4} style={{ margin: '0 0 16px 0' }}>
+                  Minhas Propostas
+                </Title>
+              </Col>
+              <Col xs={24} lg={8}>
+                <Card 
+                  title={
+                    <Space>
+                      <FileTextOutlined />
+                      <span>Propostas por Status</span>
+                    </Space>
+                  }
+                  extra={
+                    <Button 
+                      icon={<ReloadOutlined spin={sellerRefetching} />} 
+                      onClick={() => sellerRefetch()}
+                      loading={sellerRefetching}
+                    >
+                      Atualizar
+                    </Button>
+                  }
+                  style={{ height: '400px' }}
+                >
+                  <div style={{ height: '300px', position: 'relative' }}>
+                    <Bar data={sellerStatusCountsData} options={chartOptions} />
+                  </div>
+                </Card>
+              </Col>
+              <Col xs={24} lg={8}>
+                <Card 
+                  title={
+                    <Space>
+                      <DollarCircleOutlined />
+                      <span>Valor Total por Status (R$)</span>
+                    </Space>
+                  }
+                  style={{ height: '400px' }}
+                >
+                  <div style={{ height: '300px', position: 'relative' }}>
+                    <Bar data={sellerStatusValuesData} options={currencyBarOptions} />
+                  </div>
+                </Card>
+              </Col>
+              <Col xs={24} lg={8}>
+                <Card 
+                  title={
+                    <Space>
+                      <TrophyOutlined />
+                      <span>Propostas por Origem</span>
+                    </Space>
+                  }
+                  style={{ height: '400px' }}
+                >
+                  <div style={{ height: '300px', position: 'relative' }}>
+                    <Bar data={sellerOriginsCountsData} options={chartOptions} />
+                  </div>
+                </Card>
+              </Col>
+            </Row>
           )}
 
       
