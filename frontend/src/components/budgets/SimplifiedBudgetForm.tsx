@@ -928,12 +928,12 @@ export default function SimplifiedBudgetForm({
               >
                 <Select style={{ width: '100%' }} placeholder="Selecione a origem">
                   <Option value="Orpen Whatsapp">Orpen Whatsapp</Option>
-                  <Option value="Prospecção">Prospecção</Option>
-                  <Option value="Primeiro Contato Google">Primeiro Contato Google</Option>
-                  <Option value="E-mail Vendas">E-mail Vendas</Option>
+                  <Option value="Prospeccao">Prospecção</Option>
+                  <Option value="Primeiro Google">Primeiro Contato Google</Option>
+                  <Option value="Email Vendas">E-mail Vendas</Option>
                   <Option value="Cliente Ativo">Cliente Ativo</Option>
-                  <Option value="Reativação Cliente">Reativação Cliente</Option>
-                  <Option value="Indicação">Indicação</Option>
+                  <Option value="Reativacao Cliente">Reativação Cliente</Option>
+                  <Option value="Indicacao">Indicação</Option>
                 </Select>
               </Form.Item>
             </Col>

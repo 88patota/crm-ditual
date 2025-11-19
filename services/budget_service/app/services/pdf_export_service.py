@@ -230,7 +230,7 @@ class DitualPDFTemplate:
                 # Informações da empresa
                 Paragraph("""
                     <b>DITUAL SAO PAULO DISTRIBUIDORA DE TUBOS E ACOS\u00A0LTDA</b><br/>
-                    CNPJ: 26.600.524/0001-07<br/>
+                    CNPJ: 25.033.094/0001-26<br/>
                     Estr. Presidente Juscelino Kubitschek De Oliveira, 1996<br/>
                     Jardim Albertina - Guarulhos/SP - CEP: 07260-000<br/>
                     Telefone: (11) 2489-9110 | E-mail: vendas@ditualsp.com.br
