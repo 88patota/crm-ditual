@@ -41,6 +41,20 @@ import '../styles/budget-table.css';
 
 const { Title, Text } = Typography;
 
+const ORIGIN_LABELS: Record<string, string> = {
+  'Orpen Whatsapp': 'Orpen Whatsapp',
+  Prospeccao: 'Prospecção',
+  'Primeiro Google': 'Primeiro Contato Google',
+  'Email Vendas': 'E-mail Vendas',
+  'Cliente Ativo': 'Cliente Ativo',
+  'Reativacao Cliente': 'Reativação Cliente',
+  Indicacao: 'Indicação',
+};
+
+const getOriginDisplay = (o?: string): string => {
+  if (!o) return 'Não informada';
+  return ORIGIN_LABELS[o] ?? o;
+};
 // Função removida - agora usamos os valores calculados que vêm do backend
 
 export default function BudgetView() {
@@ -675,7 +689,7 @@ export default function BudgetView() {
                 <Text>{budget.payment_condition || 'À vista'}</Text>
               </Descriptions.Item>
               <Descriptions.Item label="Origem">
-                <Text>{budget.origem || 'Não informada'}</Text>
+                <Text>{getOriginDisplay(budget.origem)}</Text>
               </Descriptions.Item>
             </Descriptions>
             {budget.notes && (

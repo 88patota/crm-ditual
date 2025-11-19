@@ -41,6 +41,9 @@ import type { BudgetSummary } from '../services/budgetService';
 import { Link, useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { formatCurrency, formatPercentFromFraction } from '../lib/utils';
+import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
+import type { User } from '../types/auth';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -49,18 +52,27 @@ const { RangePicker } = DatePicker;
 export default function Budgets() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [clientFilter, setClientFilter] = useState('');
   const [filterDays, setFilterDays] = useState<number>(30);
   const [customDateRange, setCustomDateRange] = useState<[string, string] | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [sellerFilter, setSellerFilter] = useState<string | undefined>();
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: authService.getAllUsers,
+    enabled: user?.role === 'admin'
+  });
 
   const { data: budgets = [], isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['budgets', searchText, statusFilter, clientFilter, filterDays, customDateRange],
+    queryKey: ['budgets', searchText, statusFilter, clientFilter, filterDays, customDateRange, sellerFilter],
     queryFn: () => budgetService.getBudgets({
       client_name: clientFilter || undefined,
       status: statusFilter,
+      created_by: user?.role === 'admin' ? (sellerFilter || undefined) : undefined,
       days: customDateRange ? undefined : (filterDays > 0 ? filterDays : undefined),
       custom_start: customDateRange ? customDateRange[0] : undefined,
       custom_end: customDateRange ? customDateRange[1] : undefined,
@@ -485,6 +497,21 @@ export default function Budgets() {
                 onChange={(e) => setClientFilter(e.target.value)}
               />
             </Col>
+            {user?.role === 'admin' && (
+              <Col xs={12} md={6}>
+                <Select
+                  placeholder="Vendedor"
+                  allowClear
+                  value={sellerFilter}
+                  onChange={setSellerFilter}
+                  style={{ width: '100%' }}
+                >
+                  {users.filter((u) => u.role === 'vendas').map((u) => (
+                    <Option key={u.id} value={u.username}>{u.full_name}</Option>
+                  ))}
+                </Select>
+              </Col>
+            )}
             <Col xs={24} md={6}>
               <Select
                 placeholder="Período"
@@ -525,6 +552,7 @@ export default function Budgets() {
                   setClientFilter('');
                   setFilterDays(30);
                   setCustomDateRange(null);
+                  setSellerFilter(undefined);
                 }}
                 title="Limpar filtros"
               >
