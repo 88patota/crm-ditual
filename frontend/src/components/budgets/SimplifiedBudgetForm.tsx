@@ -884,7 +884,7 @@ export default function SimplifiedBudgetForm({
                       title="Gerar novo número"
                     />
                   }
-                  placeholder={loadingOrderNumber ? "Gerando número..." : "PED-0001"}
+                  placeholder={loadingOrderNumber ? "Gerando número..." : "PROP-00001"}
                 />
               </Form.Item>
             </Col>
@@ -904,7 +904,6 @@ export default function SimplifiedBudgetForm({
               >
                 <Select>
                   <Option value="draft">Rascunho</Option>
-                  <Option value="pending">Pendente</Option>
                   <Option value="approved">Aprovado</Option>
                   <Option value="lost">Perdido</Option>
                   <Option value="sent">Orçamento Enviado</Option>
@@ -928,10 +927,13 @@ export default function SimplifiedBudgetForm({
                 name="origem"
               >
                 <Select style={{ width: '100%' }} placeholder="Selecione a origem">
-                  <Option value="Orpen">Orpen</Option>
-                  <Option value="Email">Email</Option>
-                  <Option value="Google">Google</Option>
-                  <Option value="Telefone">Telefone</Option>
+                  <Option value="Orpen Whatsapp">Orpen Whatsapp</Option>
+                  <Option value="Prospecção">Prospecção</Option>
+                  <Option value="Primeiro Contato Google">Primeiro Contato Google</Option>
+                  <Option value="E-mail Vendas">E-mail Vendas</Option>
+                  <Option value="Cliente Ativo">Cliente Ativo</Option>
+                  <Option value="Reativação Cliente">Reativação Cliente</Option>
+                  <Option value="Indicação">Indicação</Option>
                 </Select>
               </Form.Item>
             </Col>

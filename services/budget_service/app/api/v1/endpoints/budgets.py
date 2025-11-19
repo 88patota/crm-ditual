@@ -26,26 +26,38 @@ security = HTTPBearer()
 
 
 async def generate_order_number(db: AsyncSession) -> str:
-    """Gera número sequencial do pedido no formato PED-0001"""
+    """Gera número sequencial da proposta no formato PROP-00001"""
     from sqlalchemy import text
     
-    # Buscar o último número de pedido
-    result = await db.execute(
-        text("SELECT order_number FROM budgets WHERE order_number LIKE 'PED-%' ORDER BY order_number DESC LIMIT 1")
+    # Buscar o último número com prefixo novo
+    prop_result = await db.execute(
+        text("SELECT order_number FROM budgets WHERE order_number LIKE 'PROP-%' ORDER BY order_number DESC LIMIT 1")
     )
-    last_order = result.scalar()
+    last_prop = prop_result.scalar()
     
-    if last_order:
-        # Extrair número e incrementar
+    next_number: int
+    if last_prop:
         try:
-            last_number = int(last_order.split('-')[1])
+            last_number = int(last_prop.split('-')[1])
             next_number = last_number + 1
         except (IndexError, ValueError):
             next_number = 1
     else:
-        next_number = 1
+        # Fallback: buscar último PED para manter sequência
+        ped_result = await db.execute(
+            text("SELECT order_number FROM budgets WHERE order_number LIKE 'PED-%' ORDER BY order_number DESC LIMIT 1")
+        )
+        last_ped = ped_result.scalar()
+        if last_ped:
+            try:
+                last_number = int(last_ped.split('-')[1])
+                next_number = last_number + 1
+            except (IndexError, ValueError):
+                next_number = 1
+        else:
+            next_number = 1
     
-    return f"PED-{next_number:04d}"
+    return f"PROP-{next_number:05d}"
 
 
 @router.post("/", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
@@ -116,6 +128,7 @@ async def get_budgets(
             profitability_percentage=budget.profitability_percentage,
             commission_percentage_actual=budget.commission_percentage_actual if budget.commission_percentage_actual is not None else 0.0,
             items_count=len(budget.items),
+            origem=budget.origem,
             created_at=budget.created_at
         ))
     

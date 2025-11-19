@@ -7,47 +7,37 @@ import {
   Typography, 
   Space, 
   Button,
-  Alert,
   Select,
   DatePicker
 } from 'antd';
 import { 
   FileTextOutlined,
   DollarCircleOutlined,
-  CheckCircleOutlined,
   TrophyOutlined,
   PlusOutlined,
   EyeOutlined,
-  CalculatorOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  WarningOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
-import { budgetService, type DashboardStats } from '../services/budgetService';
+import { budgetService } from '../services/budgetService';
 import { Link } from 'react-router-dom';
-import { 
-  StatusCard
-} from '../components/ui/DashboardCard';
+import { authService } from '../services/authService';
 import { 
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
   Title as ChartTitle,
   Tooltip,
-  Legend,
-  Filler
+  Legend
 } from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { useState } from 'react';
-import dayjs from 'dayjs';
-import { formatCurrency, formatPercentageValue, statusTheme } from '../lib/utils';
+import dayjs, { Dayjs } from 'dayjs';
+import { formatCurrency } from '../lib/utils';
+import type { BudgetSummary } from '../services/budgetService';
+import type { User } from '../types/auth';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -58,37 +48,42 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
-  ArcElement,
   ChartTitle,
   Tooltip,
-  Legend,
-  Filler
+  Legend
 );
 
 const AntDashboard: React.FC = () => {
   const { user } = useAuth();
   const [filterDays, setFilterDays] = useState<number>(30);
   const [customDateRange, setCustomDateRange] = useState<[string, string] | null>(null);
+  const [selectedSeller, setSelectedSeller] = useState<string | undefined>(undefined);
 
-  // Buscar estatísticas dos orçamentos com filtros dinâmicos
-  const { 
-    data: dashboardStats, 
-    isLoading, 
-    refetch,
-    isRefetching 
-  } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats', filterDays, customDateRange],
-    queryFn: () => {
-      if (customDateRange) {
-        return budgetService.getDashboardStats(undefined, customDateRange[0], customDateRange[1]);
-      }
-      return budgetService.getDashboardStats(filterDays);
-    },
-    enabled: !!user,
-    refetchInterval: 5 * 60 * 1000, // Refetch a cada 5 minutos
+  
+
+  const { data: users = [] } = useQuery<User[]>({
+    queryKey: ['users'],
+    queryFn: authService.getAllUsers,
+    enabled: user?.role === 'admin'
   });
+
+  const { data: adminBudgets = [], isLoading: adminLoading, refetch: adminRefetch, isRefetching: adminRefetching } = useQuery<BudgetSummary[]>({
+    queryKey: ['admin-budgets', selectedSeller, filterDays, customDateRange],
+    queryFn: () => {
+      const params: Record<string, string | number | undefined> = {};
+      if (selectedSeller) params.created_by = selectedSeller;
+      if (customDateRange) {
+        params.custom_start = customDateRange[0];
+        params.custom_end = customDateRange[1];
+      } else {
+        params.days = filterDays;
+      }
+      return budgetService.getBudgets(params);
+    },
+    enabled: user?.role === 'admin'
+  });
+
+  const isLoading = user?.role === 'admin' ? adminLoading : false;
 
   const handlePeriodChange = (value: string) => {
     if (value === 'custom') {
@@ -101,8 +96,7 @@ const AntDashboard: React.FC = () => {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleCustomDateChange = (dates: any) => {
+  const handleCustomDateChange = (dates: [Dayjs, Dayjs] | null) => {
     if (dates && dates[0] && dates[1]) {
       setCustomDateRange([
         dates[0].format('YYYY-MM-DD'),
@@ -122,145 +116,10 @@ const AntDashboard: React.FC = () => {
 
   // Formatação centralizada via utilitário
 
-  // Cards de estatísticas removidos conforme solicitado
-
-  // Dados para os StatusCards padronizados
-  const statusData = dashboardStats ? [
-    {
-      title: 'Rascunhos',
-      value: dashboardStats.budgets_by_status.draft,
-      icon: <FileTextOutlined />,
-      color: statusTheme.draft
-    },
-    {
-      title: 'Pendentes',
-      value: dashboardStats.budgets_by_status.pending,
-      icon: <ClockCircleOutlined />,
-      color: statusTheme.pending
-    },
-    {
-      title: 'Aprovados',
-      value: dashboardStats.budgets_by_status.approved,
-      icon: <CheckCircleOutlined />,
-      color: statusTheme.approved
-    },
-    {
-      title: 'Perdidos',
-      value: dashboardStats.budgets_by_status.lost,
-      icon: <CloseCircleOutlined />,
-      color: statusTheme.lost
-    },
-    {
-      title: 'Enviados',
-      value: dashboardStats.budgets_by_status.sent,
-      icon: <WarningOutlined />,
-      color: statusTheme.sent
-    }
-  ] : [];
+  
 
 
 
-  // Dados para gráfico de pizza - Status dos Orçamentos
-  const statusChartData = {
-    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
-    datasets: [
-      {
-        data: [
-          dashboardStats?.budgets_by_status.draft || 0,
-          dashboardStats?.budgets_by_status.pending || 0,
-          dashboardStats?.budgets_by_status.approved || 0,
-          dashboardStats?.budgets_by_status.lost || 0,
-          dashboardStats?.budgets_by_status.sent || 0
-        ],
-        backgroundColor: [
-          '#8c8c8c',
-          '#1890ff',
-          '#52c41a',
-          '#ff4d4f',
-          '#faad14'
-        ],
-        borderWidth: 2,
-        borderColor: '#ffffff',
-        hoverOffset: 4
-      }
-    ]
-  };
-
-  // Dados para gráfico de linha - Evolução de Orçamentos (mock data baseado em dados reais)
-  const evolutionChartData = {
-    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
-    datasets: [
-      {
-        label: 'Orçamentos Criados',
-        data: [
-          Math.round((dashboardStats?.total_budgets || 0) * 0.6),
-          Math.round((dashboardStats?.total_budgets || 0) * 0.7),
-          Math.round((dashboardStats?.total_budgets || 0) * 0.8),
-          Math.round((dashboardStats?.total_budgets || 0) * 0.9),
-          Math.round((dashboardStats?.total_budgets || 0) * 0.95),
-          dashboardStats?.total_budgets || 0
-        ],
-        borderColor: '#1890ff',
-        backgroundColor: 'rgba(24, 144, 255, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#1890ff',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
-      },
-      {
-        label: 'Orçamentos Aprovados',
-        data: [
-          Math.round((dashboardStats?.budgets_by_status.approved || 0) * 0.5),
-          Math.round((dashboardStats?.budgets_by_status.approved || 0) * 0.6),
-          Math.round((dashboardStats?.budgets_by_status.approved || 0) * 0.7),
-          Math.round((dashboardStats?.budgets_by_status.approved || 0) * 0.8),
-          Math.round((dashboardStats?.budgets_by_status.approved || 0) * 0.9),
-          dashboardStats?.budgets_by_status.approved || 0
-        ],
-        borderColor: '#52c41a',
-        backgroundColor: 'rgba(82, 196, 26, 0.1)',
-        tension: 0.4,
-        fill: true,
-        pointRadius: 4,
-        pointBackgroundColor: '#52c41a',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2
-      }
-    ]
-  };
-
-  // Dados para gráfico de barras - Performance Financeira
-  const performanceChartData = {
-    labels: ['Total Orçado', 'Total Aprovado', 'Comissões', 'Meta Mensal'],
-    datasets: [
-      {
-        label: 'Valores (R$)',
-        data: [
-          dashboardStats?.total_value || 0,
-          dashboardStats?.approved_value || 0,
-          (dashboardStats?.approved_value || 0) * 0.1, // 10% de comissão estimada
-          (dashboardStats?.total_value || 0) * 1.2 // Meta 20% acima do atual
-        ],
-        backgroundColor: [
-          'rgba(24, 144, 255, 0.8)',
-          'rgba(82, 196, 26, 0.8)',
-          'rgba(250, 140, 22, 0.8)',
-          'rgba(114, 46, 209, 0.8)'
-        ],
-        borderColor: [
-          '#1890ff',
-          '#52c41a',
-          '#fa8c16',
-          '#722ed1'
-        ],
-        borderWidth: 2,
-        borderRadius: 4,
-        borderSkipped: false
-      }
-    ]
-  };
 
   // Configurações comuns para os gráficos
   const chartOptions = {
@@ -291,33 +150,56 @@ const AntDashboard: React.FC = () => {
     }
   };
 
-  const statusChartOptions = {
-    ...chartOptions,
-    plugins: {
-      ...chartOptions.plugins,
-      tooltip: {
-        ...chartOptions.plugins.tooltip,
-        callbacks: {
-          label: function(context: { dataset: { data: number[] }, parsed: number, label: string }) {
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentageNumber = total > 0 ? ((context.parsed * 100) / total) : 0;
-            const percentage = formatPercentageValue(percentageNumber);
-            return `${context.label}: ${context.parsed} (${percentage})`;
-          }
-        }
-      }
-    }
+
+  const adminStatusCountsData = {
+    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
+    datasets: [
+      {
+        label: 'Quantidade',
+        data: [
+          adminBudgets.filter((b) => b.status === 'draft').length,
+          adminBudgets.filter((b) => b.status === 'pending').length,
+          adminBudgets.filter((b) => b.status === 'approved').length,
+          adminBudgets.filter((b) => b.status === 'lost').length,
+          adminBudgets.filter((b) => b.status === 'sent').length,
+        ],
+        backgroundColor: 'rgba(24, 144, 255, 0.8)',
+        borderColor: '#1890ff',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const performanceChartOptions: any = {
+  const adminStatusValuesData = {
+    labels: ['Rascunhos', 'Pendentes', 'Aprovados', 'Perdidos', 'Enviados'],
+    datasets: [
+      {
+        label: 'Valor Total (R$)',
+        data: [
+          adminBudgets.filter((b) => b.status === 'draft').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          adminBudgets.filter((b) => b.status === 'pending').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          adminBudgets.filter((b) => b.status === 'approved').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          adminBudgets.filter((b) => b.status === 'lost').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+          adminBudgets.filter((b) => b.status === 'sent').reduce((s, x) => s + (x.total_sale_value || 0), 0),
+        ],
+        backgroundColor: 'rgba(250, 140, 22, 0.8)',
+        borderColor: '#fa8c16',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  };
+
+  const currencyBarOptions = {
     ...chartOptions,
     scales: {
       y: {
         beginAtZero: true,
         ticks: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          callback: function(value: any) {
+          callback: function(value: number | string) {
             return formatCurrency(Number(value));
           }
         }
@@ -328,13 +210,30 @@ const AntDashboard: React.FC = () => {
       tooltip: {
         ...chartOptions.plugins.tooltip,
         callbacks: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          label: function(tooltipItem: any) {
+          label: function(tooltipItem: { dataset: { label?: string }; parsed: { y: number } }) {
             return `${tooltipItem.dataset.label || 'Dados'}: ${formatCurrency(tooltipItem.parsed.y)}`;
           }
         }
       }
     }
+  };
+
+  const origins = Array.from(
+    new Set(adminBudgets.map((b) => b.origem || 'Não informada'))
+  );
+  const adminOriginsCountsData = {
+    labels: origins,
+    datasets: [
+      {
+        label: 'Quantidade',
+        data: origins.map((o) => adminBudgets.filter((b) => (b.origem || 'Não informada') === o).length),
+        backgroundColor: 'rgba(114, 46, 209, 0.8)',
+        borderColor: '#722ed1',
+        borderWidth: 2,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
   };
 
   return (
@@ -348,7 +247,7 @@ const AntDashboard: React.FC = () => {
                 📊 Dashboard - Olá, {user?.full_name}!
               </Title>
               <Text type="secondary" style={{ fontSize: '16px' }}>
-                Análise visual dos seus orçamentos • {getPeriodText()}
+                Análise visual das suas propostas • {getPeriodText()}
               </Text>
             </Space>
           </Col>
@@ -382,9 +281,9 @@ const AntDashboard: React.FC = () => {
               )}
               
               <Button 
-                icon={<ReloadOutlined spin={isRefetching} />} 
-                onClick={() => refetch()}
-                loading={isRefetching}
+                icon={<ReloadOutlined spin={adminRefetching} />} 
+                onClick={() => adminRefetch()}
+                loading={adminRefetching}
               >
                 Atualizar
               </Button>
@@ -397,7 +296,7 @@ const AntDashboard: React.FC = () => {
               
               <Link to="/budgets/new">
                 <Button type="primary" icon={<PlusOutlined />}>
-                  Novo Orçamento
+                  Nova Proposta
                 </Button>
               </Link>
             </Space>
@@ -423,197 +322,80 @@ const AntDashboard: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Status dos Orçamentos com StatusCards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col span={24}>
-          <Title level={4} style={{ margin: '0 0 16px 0' }}>
-            <FileTextOutlined style={{ marginRight: '8px' }} />
-            Status dos Orçamentos
-          </Title>
-        </Col>
-        {statusData.map((status, index) => (
-          <Col xs={12} sm={8} lg={5} key={index}>
-            <StatusCard
-              title={status.title}
-              value={status.value}
-              icon={status.icon}
-              color={status.color}
-            />
-          </Col>
-        ))}
-      </Row>
-
-      {/* Gráficos Analíticos */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        {/* Gráfico de Pizza - Status dos Orçamentos */}
-        <Col xs={24} lg={8}>
-          <Card 
-            title={
-              <Space>
-                <FileTextOutlined />
-                <span>Distribuição por Status</span>
-              </Space>
-            }
-            loading={isLoading}
-            style={{ height: '400px' }}
-          >
-            <div style={{ height: '300px', position: 'relative' }}>
-              <Doughnut data={statusChartData} options={statusChartOptions} />
-                </div>
-          </Card>
-        </Col>
-
-        {/* Gráfico de Linha - Evolução Temporal */}
-        <Col xs={24} lg={8}>
-            <Card 
-            title={
-                        <Space>
-                <TrophyOutlined />
-                <span>Evolução dos Orçamentos</span>
-                        </Space>
-                      }
-            loading={isLoading}
-            style={{ height: '400px' }}
-          >
-            <div style={{ height: '300px', position: 'relative' }}>
-              <Line data={evolutionChartData} options={chartOptions} />
-            </div>
-          </Card>
-        </Col>
-        
-        {/* Gráfico de Barras - Performance Financeira */}
-        <Col xs={24} lg={8}>
-          <Card 
-            title={
-              <Space>
-                <DollarCircleOutlined />
-                <span>Performance Financeira</span>
-              </Space>
-            }
-            loading={isLoading}
-            style={{ height: '400px' }}
-          >
-            <div style={{ height: '300px', position: 'relative' }}>
-              <Bar data={performanceChartData} options={performanceChartOptions} />
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Ações Rápidas - Mantida em layout horizontal */}
-      <Row gutter={[16, 16]}>
-        <Col span={24}>
-          <Card 
-            title={
-              <Space>
-                <CalculatorOutlined />
-                <span>⚡ Ações Rápidas</span>
-              </Space>
-            }
-          >
-            <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} lg={6}>
-                <Link to="/budgets/new" style={{ width: '100%' }}>
-                  <Button 
-                    type="primary" 
-                    size="large" 
-                    icon={<PlusOutlined />}
-                    block
-                    style={{ height: '50px', fontSize: '16px' }}
+          
+          {user?.role === 'admin' && (
+            <>
+              <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+                <Col span={24}>
+                  <Title level={4} style={{ margin: '0 0 16px 0' }}>
+                    Administração
+                  </Title>
+                </Col>
+                <Col xs={24} lg={8}>
+                  <Card 
+                    title={
+                      <Space>
+                        <FileTextOutlined />
+                        <span>Propostas por Status</span>
+                      </Space>
+                    }
+                    extra={
+                      <Select
+                        placeholder="Selecionar vendedor"
+                        allowClear
+                        style={{ width: 220 }}
+                        value={selectedSeller}
+                        onChange={(val) => setSelectedSeller(val)}
+                      >
+                        {users.map((u) => (
+                          <Option key={u.id} value={u.username}>{u.full_name}</Option>
+                        ))}
+                      </Select>
+                    }
+                    style={{ height: '400px' }}
                   >
-                    Criar Novo Orçamento
-                  </Button>
-                </Link>
-              </Col>
-              
-              <Col xs={24} sm={12} lg={6}>
-                <Link to="/budgets" style={{ width: '100%' }}>
-                  <Button 
-                    size="large" 
-                    icon={<FileTextOutlined />}
-                    block
-                    style={{ height: '50px', fontSize: '16px' }}
+                    <div style={{ height: '300px', position: 'relative' }}>
+                      <Bar data={adminStatusCountsData} options={chartOptions} />
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={24} lg={8}>
+                  <Card 
+                    title={
+                      <Space>
+                        <DollarCircleOutlined />
+                        <span>Valor Total por Status (R$)</span>
+                      </Space>
+                    }
+                    style={{ height: '400px' }}
                   >
-                    Ver Todos os Orçamentos
-                  </Button>
-                </Link>
-        </Col>
-        
-              <Col xs={24} lg={12}>
-                <Alert
-                  message="💡 Dica Rápida"
-                  description="Use o formulário simplificado para criar orçamentos com rentabilidade calculada automaticamente."
-                  type="info"
-                  showIcon
-                  style={{ fontSize: '12px', margin: 0 }}
-                />
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
+                    <div style={{ height: '300px', position: 'relative' }}>
+                      <Bar data={adminStatusValuesData} options={currencyBarOptions} />
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={24} lg={8}>
+                  <Card 
+                    title={
+                      <Space>
+                        <TrophyOutlined />
+                        <span>Propostas por Origem</span>
+                      </Space>
+                    }
+                    style={{ height: '400px' }}
+                  >
+                    <div style={{ height: '300px', position: 'relative' }}>
+                      <Bar data={adminOriginsCountsData} options={chartOptions} />
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+            </>
+          )}
 
-      {/* Resumo de Performance */}
-      {dashboardStats && (
-        <Card 
-          title="📈 Resumo de Performance"
-          style={{ marginTop: '24px' }}
-        >
-          <Row gutter={[24, 16]}>
-            <Col xs={24} md={12}>
-              <div style={{ 
-                background: '#FFFFFF',
-                padding: '20px',
-                borderRadius: '8px',
-                border: '1px solid #f0f0f0'
-              }}>
-                <Title level={5} style={{ margin: '0 0 16px 0', color: '#0369a1' }}>
-                  💰 Performance Financeira
-                </Title>
-                <Row gutter={[16, 8]}>
-                  <Col span={12}>
-                    <div style={{ textAlign: 'center' }}>
-                      <Text type="secondary" style={{ fontSize: '11px' }}>TOTAL ORÇADO</Text>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#52c41a' }}>
-                        {formatCurrency(dashboardStats.total_value)}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ textAlign: 'center' }}>
-                      <Text type="secondary" style={{ fontSize: '11px' }}>TOTAL APROVADO</Text>
-                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#722ed1' }}>
-                        {formatCurrency(dashboardStats.approved_value)}
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              </div>
-            </Col>
-            
-            <Col xs={24} md={12}>
-              <div style={{ 
-                background: '#FFFFFF',
-                padding: '20px',
-                borderRadius: '8px',
-                border: '1px solid #f0f0f0'
-              }}>
-                <Title level={5} style={{ margin: '0 0 16px 0', color: '#c2410c' }}>
-                  📊 Taxa de Conversão
-                </Title>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ea580c' }}>
-                    {formatPercentageValue(dashboardStats.conversion_rate)}
-                  </div>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {dashboardStats.approved_budgets} de {dashboardStats.total_budgets} orçamentos aprovados
-                  </Text>
-                </div>
-              </div>
-            </Col>
-          </Row>
-        </Card>
-      )}
+      
+
+      
         </>
       )}
     </div>

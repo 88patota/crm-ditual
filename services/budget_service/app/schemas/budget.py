@@ -273,6 +273,7 @@ class BudgetSummary(BaseModel):
     commission_percentage_actual: Optional[float] = 0.0  # Percentual de comissão real calculado
     profitability_percentage: float
     items_count: int
+    origem: Optional[str] = None
     created_at: datetime
 
     class Config:

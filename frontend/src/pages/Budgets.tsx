@@ -408,7 +408,7 @@ export default function Budgets() {
           <Col>
             <Space direction="vertical" size={4}>
               <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
-                📋 Orçamentos
+                📋 Propostas
               </Title>
               <Text type="secondary" style={{ fontSize: '16px' }}>
                 Gerencie seus orçamentos, rentabilidade e comissões • {getPeriodText()}
@@ -439,9 +439,9 @@ export default function Budgets() {
                   icon={<PlusOutlined />}
                   size="large"
                 >
-                  Novo Orçamento
+                  Nova Proposta
                 </Button>
-              </Link>
+                </Link>
             </Space>
           </Col>
         </Row>
@@ -456,7 +456,7 @@ export default function Budgets() {
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={8}>
               <Input
-                placeholder="🔍 Buscar por cliente ou pedido..."
+                placeholder="Buscar por cliente ou pedido..."
                 allowClear
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
@@ -472,7 +472,6 @@ export default function Budgets() {
                 style={{ width: '100%' }}
               >
                 <Option value="draft">🗂️ Rascunho</Option>
-                <Option value="pending">⏳ Pendente</Option>
                 <Option value="approved">✅ Aprovado</Option>
                 <Option value="lost">❌ Perdido</Option>
                 <Option value="sent">✉️ Orçamento Enviado</Option>
@@ -536,12 +535,12 @@ export default function Budgets() {
         </Card>
       )}
 
-      {/* Tabela de Orçamentos */}
+      {/* Tabela de Propostas */}
       <Card 
         title={
           <Space>
             <FileTextOutlined />
-            <span>Lista de Orçamentos</span>
+            <span>Lista de Propostas</span>
             <Badge count={filteredBudgets.length} style={{ backgroundColor: '#1890ff' }} />
           </Space>
         }
@@ -564,7 +563,7 @@ export default function Budgets() {
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
-              `${range[0]}-${range[1]} de ${total} orçamentos`,
+              `${range[0]}-${range[1]} de ${total} propostas`,
             pageSizeOptions: ['10', '20', '50', '100'],
           }}
           size="middle"

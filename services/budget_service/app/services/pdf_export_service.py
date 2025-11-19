@@ -75,39 +75,39 @@ class DitualPDFTemplate:
         self.styles.add(ParagraphStyle(
             name='CompanyName',
             parent=self.styles['Heading1'],
-            fontSize=18,
+            fontSize=16,
             fontName='Helvetica-Bold',
             textColor=self.DITUAL_RED,
             alignment=TA_LEFT,
             spaceAfter=4,
             spaceBefore=0,
-            leading=20
+            leading=18
         ))
         
         # Estilo para informações da empresa (moderno e limpo)
         self.styles.add(ParagraphStyle(
             name='CompanyInfo',
             parent=self.styles['Normal'],
-            fontSize=9,
+            fontSize=8,
             fontName='Helvetica',
             textColor=self.DITUAL_GRAY,
             alignment=TA_LEFT,
             spaceAfter=1,
             spaceBefore=1,
-            leading=11
+            leading=10
         ))
         
         # Estilo para número da proposta (elegante)
         self.styles.add(ParagraphStyle(
             name='ProposalNumber',
             parent=self.styles['Heading1'],
-            fontSize=14,
+            fontSize=11,
             fontName='Helvetica-Bold',
             textColor=self.DITUAL_RED,
             alignment=TA_RIGHT,
             spaceAfter=0,
             spaceBefore=0,
-            leading=16
+            leading=13
         ))
         
         # Estilo para labels dos dados do cliente
@@ -229,32 +229,32 @@ class DitualPDFTemplate:
                 self._get_logo_cell(),
                 # Informações da empresa
                 Paragraph("""
-                    <b>DITUAL SAO PAULO DISTRIBUIDORA DE TUBOS E ACOS LTDA</b><br/>
+                    <b>DITUAL SAO PAULO DISTRIBUIDORA DE TUBOS E ACOS\u00A0LTDA</b><br/>
                     CNPJ: 26.600.524/0001-07<br/>
                     Estr. Presidente Juscelino Kubitschek De Oliveira, 1996<br/>
                     Jardim Albertina - Guarulhos/SP - CEP: 07260-000<br/>
                     Telefone: (11) 2489-9110 | E-mail: vendas@ditualsp.com.br
                 """, self.styles['CompanyInfo']),
                 # Número da proposta
-                Paragraph(f"<b>PROPOSTA</b><br/>Nº {budget.order_number}", 
+                Paragraph(f"Proposta: <b>{budget.order_number}</b>", 
                          self.styles['ProposalNumber'])
             ]
         ]
         
         # Larguras somando exatamente à largura útil (≈ 180 mm)
-        header_table = Table(company_data, colWidths=[55*mm, 75*mm, 50*mm])
+        header_table = Table(company_data, colWidths=[47*mm, 95*mm, 38*mm])
         header_table.setStyle(TableStyle([
             # Fundo branco moderno
             ('BACKGROUND', (0, 0), (-1, 0), self.HEADER_BG),
             ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            ('LEFTPADDING', (0, 0), (-1, 0), 15),
-            ('RIGHTPADDING', (0, 0), (-1, 0), 15),
-            ('TOPPADDING', (0, 0), (-1, 0), 15),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 15),
+            ('LEFTPADDING', (0, 0), (-1, 0), 10),
+            ('RIGHTPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
             ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
             ('VALIGN', (2, 0), (2, 0), 'TOP'),
             # Borda sutil na parte inferior
-            ('LINEBELOW', (0, 0), (-1, 0), 2, self.BORDER_COLOR),
+            ('LINEBELOW', (0, 0), (-1, 0), 1, self.BORDER_COLOR),
         ]))
 
         story.append(header_table)
@@ -265,7 +265,7 @@ class DitualPDFTemplate:
         if self.logo_path and os.path.exists(self.logo_path):
             try:
                 # Ajustar tamanho do logo proporcionalmente
-                img = Image(self.logo_path, width=50*mm, height=25*mm)
+                img = Image(self.logo_path, width=45*mm, height=22*mm)
                 return img
             except Exception as e:
                 print(f"Erro ao carregar logo: {e}")

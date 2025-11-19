@@ -42,7 +42,7 @@ class Budget(Base):
     created_by = Column(String, nullable=False)  # Username who created
     
     # Business fields
-    origem = Column(String(20), nullable=True)
+    origem = Column(String(50), nullable=True)
     outras_despesas_totais = Column(Float, nullable=True, comment='Outras despesas do pedido')
     freight_type = Column(String(10), nullable=False, default='FOB')
     freight_value_total = Column(Float, nullable=True, comment='Valor total do frete')

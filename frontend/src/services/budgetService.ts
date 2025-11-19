@@ -194,6 +194,7 @@ export interface BudgetSummary {
   total_commission: number;
   profitability_percentage: number;
   items_count: number;
+  origem?: string;
   created_at: string;
 }
 
