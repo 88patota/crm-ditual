@@ -402,8 +402,9 @@ class DitualPDFTemplate:
             unit_price = item.sale_value_with_icms or item.unit_value or 0
             icms_percentage = item.sale_icms_percentage or 0
             
-            # Formatação dos valores
-            weight_str = f"{item.weight:,.0f}".replace(',', '.')
+            # Formatação da QTD usando peso de venda com fallback para peso de compra
+            qtd_weight = item.sale_weight if item.sale_weight is not None else (item.weight or 0.0)
+            weight_str = f"{qtd_weight:,.0f}".replace(',', '.')
             unit_price_str = self._format_currency(unit_price)
             # Percentuais com vírgula (pt-BR)
             icms_str = (f"{icms_percentage * 100:.1f}".replace('.', ',') + '%')
