@@ -47,9 +47,8 @@ class UserClient:
             }
             
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # Primeiro, obter o perfil do usuário atual através do endpoint /me
                 response = await client.get(
-                    f"{self.user_service_url}/api/v1/users/me",
+                    f"{self.user_service_url}/api/v1/users/by-username/{username}",
                     headers=headers
                 )
                 

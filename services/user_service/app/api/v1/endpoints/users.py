@@ -169,6 +169,22 @@ async def change_password(
     return {"message": "Senha alterada com sucesso"}
 
 
+@router.get("/by-username/{username}", response_model=UserResponse)
+async def get_user_by_username_endpoint(
+    username: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Obter usuário por username (dados públicos)"""
+    user = await user_service.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    return user
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: int,
