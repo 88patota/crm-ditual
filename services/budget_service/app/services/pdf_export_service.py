@@ -471,17 +471,17 @@ class DitualPDFTemplate:
         """Adiciona totais e peso (como na proposta)"""
         
         # Calcular totais
-        total_weight = sum(item.weight for item in budget.items)
+        total_weight = sum((item.sale_weight if item.sale_weight is not None else item.weight) for item in budget.items)
         
         # Valor Total S/IPI: soma dos valores de venda com ICMS (sem IPI)
         total_without_ipi = sum(
-            (item.sale_value_with_icms or item.unit_value or 0) * item.weight 
+            (item.sale_value_with_icms or item.unit_value or 0) * (item.sale_weight if item.sale_weight is not None else item.weight)
             for item in budget.items
         )
         
         # Valor Total C/IPI: soma dos valores de venda com ICMS + IPI
         total_with_ipi = sum(
-            ((item.sale_value_with_icms or item.unit_value or 0) * item.weight) + (item.ipi_value or 0)
+            ((item.sale_value_with_icms or item.unit_value or 0) * (item.sale_weight if item.sale_weight is not None else item.weight)) + (item.ipi_value or 0)
             for item in budget.items
         )
         
