@@ -47,11 +47,13 @@ async def create_admin_user():
     print("🚀 Iniciando criação do usuário admin...")
     print("=" * 50)
     
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin102030")
+
     # Dados do usuário admin
     admin_data = {
         "username": "admin",
         "email": "admin@crmditual.com",
-        "password": "admin102030",
+        "password": admin_password,
         "full_name": "Administrador do Sistema",
         "role": UserRole.ADMIN.value,
         "is_active": True
@@ -98,7 +100,7 @@ async def create_admin_user():
                 print("=" * 50)
                 print("🔐 CREDENCIAIS DE ACESSO:")
                 print(f"   Username: admin")
-                print(f"   Password: admin102030")
+                print(f"   Password: {admin_password}")
                 print("=" * 50)
                 logger.info("✅ Usuário admin criado com sucesso")
             else:

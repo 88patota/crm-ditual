@@ -46,7 +46,7 @@ export default function MarkupSettings() {
   const queryClient = useQueryClient();
 
   // Buscar configurações atuais
-  const { data: settings, isLoading, refetch } = useQuery({
+  const { data: settings, isLoading, refetch } = useQuery<MarkupConfiguration>({
     queryKey: ['markup-settings'],
     queryFn: budgetService.getMarkupSettings,
   });

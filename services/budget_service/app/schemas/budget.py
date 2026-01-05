@@ -59,7 +59,7 @@ class BudgetSimplifiedCreate(BaseModel):
     # Número do pedido será gerado automaticamente se não fornecido
     order_number: Optional[str] = None
     client_name: str
-    status: Optional[str] = "draft"
+    status: BudgetStatus = BudgetStatus.DRAFT
     expires_at: Optional[datetime] = None
     notes: Optional[str] = None
     
@@ -216,6 +216,7 @@ class BudgetBase(BaseModel):
 
 
 class BudgetCreate(BudgetBase):
+    status: BudgetStatus = BudgetStatus.DRAFT
     items: List[BudgetItemCreate] = []
 
 

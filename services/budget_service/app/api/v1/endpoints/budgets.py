@@ -718,6 +718,7 @@ async def create_simplified_budget(
         complete_budget_data = BudgetCreate(
             order_number=order_number,
             client_name=budget_data.client_name,
+            status=budget_data.status,
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             origem=budget_data.origem,

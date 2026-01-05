@@ -50,11 +50,15 @@ echo "✅ Containers estão rodando"
 echo "⏳ Aguardando serviços ficarem prontos..."
 sleep 5
 
+echo "🗄️ Executando migrações do user_service..."
+$COMPOSE_CMD exec -T user_service alembic upgrade head
+
 # Executar o script Python dentro do container
 echo "🔧 Executando script de criação do usuário admin..."
 echo "=============================================="
 
-$COMPOSE_CMD exec user_service python create_admin_user.py
+ADMIN_PASSWORD=admin102030
+$COMPOSE_CMD exec -T -e ADMIN_PASSWORD="$ADMIN_PASSWORD" user_service python create_admin_user.py
 
 if [ $? -eq 0 ]; then
     echo ""
@@ -63,7 +67,7 @@ if [ $? -eq 0 ]; then
     echo "✅ Usuário admin criado com sucesso"
     echo "🔐 Credenciais:"
     echo "   Username: admin"
-    echo "   Password: admin102030"
+    echo "   Password: $ADMIN_PASSWORD"
     echo ""
     echo "🌐 Você pode agora fazer login no sistema!"
     echo "=============================================="

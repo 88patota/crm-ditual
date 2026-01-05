@@ -86,6 +86,15 @@ export interface BudgetPreviewCalculation {
   total_final_value?: number; // Valor final incluindo IPI
 }
 
+export interface MarkupConfiguration {
+  minimum_markup_percentage: number;
+  maximum_markup_percentage: number;
+  default_market_position: 'budget' | 'competitive' | 'premium';
+  icms_sale_default: number;
+  commission_default: number;
+  other_expenses_default: number;
+}
+
 // Interface para estatísticas do dashboard
 export interface DashboardStats {
   period: {
@@ -317,7 +326,16 @@ export const budgetService = {
   },
 
   // Método para obter configurações de markup
-  // [REMOVIDO] getMarkupSettings - funcionalidade de markup descontinuada
+  async getMarkupSettings(): Promise<MarkupConfiguration> {
+    return {
+      minimum_markup_percentage: 20.0,
+      maximum_markup_percentage: 200.0,
+      default_market_position: 'competitive',
+      icms_sale_default: 17.0,
+      commission_default: 1.5,
+      other_expenses_default: 0.0,
+    };
+  },
 
   // Método para obter próximo número de pedido
   async getNextOrderNumber(): Promise<string> {

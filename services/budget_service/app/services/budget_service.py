@@ -13,6 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 class BudgetService:
+    @staticmethod
+    def _resolve_budget_status(status: object) -> str:
+        if status is None:
+            return BudgetStatus.DRAFT.value
+        if isinstance(status, BudgetStatus):
+            return status.value
+        if isinstance(status, str):
+            try:
+                return BudgetStatus(status).value
+            except ValueError as e:
+                raise ValueError(f"Status inválido: {status}") from e
+        raise ValueError(f"Tipo inválido para status: {type(status)}")
     
     @staticmethod
     async def create_budget(db: AsyncSession, budget_data: BudgetCreate, created_by: str) -> Budget:
@@ -77,6 +89,7 @@ class BudgetService:
             order_number=budget_data.order_number,
             client_name=budget_data.client_name,
             client_id=budget_data.client_id,
+            status=BudgetService._resolve_budget_status(getattr(budget_data, "status", None)),
             notes=budget_data.notes,
             expires_at=budget_data.expires_at,
             created_by=created_by,

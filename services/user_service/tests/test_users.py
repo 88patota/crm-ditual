@@ -1,8 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+import asyncio
+from types import SimpleNamespace
 from app.main import app
 from app.core.database import get_db, Base
+from app.core.security import require_admin, get_current_active_user
 from app.models.user import UserRole
 
 
@@ -25,20 +28,35 @@ async def override_get_db():
         finally:
             await session.close()
 
+async def override_require_admin():
+    return SimpleNamespace(id=1, username="admin", role=UserRole.ADMIN, is_active=True)
+
+
+async def override_get_current_active_user():
+    return SimpleNamespace(id=1, username="admin", role=UserRole.ADMIN, is_active=True)
+
 
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[require_admin] = override_require_admin
+app.dependency_overrides[get_current_active_user] = override_get_current_active_user
 
 client = TestClient(app)
 
 
 @pytest.fixture(scope="module")
-async def setup_database():
+def setup_database():
     """Setup test database"""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    async def _create_all():
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+    async def _drop_all():
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+
+    asyncio.run(_create_all())
     yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    asyncio.run(_drop_all())
 
 
 def test_create_user(setup_database):
