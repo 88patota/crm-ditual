@@ -576,7 +576,7 @@ export default function Budgets() {
         extra={
           <Space>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              Total: {formatCurrency(filteredBudgets.reduce((sum, budget) => sum + budget.total_sale_value, 0))}
+              Total: {formatCurrency(filteredBudgets.reduce((sum, budget) => sum + (budget.total_sale_with_icms || 0), 0))}
             </Text>
           </Space>
         }
