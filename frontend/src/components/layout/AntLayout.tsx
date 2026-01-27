@@ -26,6 +26,8 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
+  const budgetsNavTo = sessionStorage.getItem('budgets:lastListUrl') || '/budgets';
+
   const navigationItems = [
     {
       key: '/dashboard',
@@ -35,7 +37,7 @@ const AntLayout: React.FC<AntLayoutProps> = ({ children }) => {
     {
       key: '/budgets',
       icon: <FileTextOutlined />,
-      label: <Link to="/budgets">Proposta</Link>,
+      label: <Link to={budgetsNavTo}>Proposta</Link>,
     },
     {
       key: '/profile',
