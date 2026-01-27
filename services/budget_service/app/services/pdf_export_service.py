@@ -389,6 +389,7 @@ class DitualPDFTemplate:
                 "Und",
                 "Qtd",
                 "Preço Unit.",
+                "Total c/ICMS",
                 "ICMS",
                 "IPI (%)",
                 "Prazo"
@@ -406,6 +407,8 @@ class DitualPDFTemplate:
             qtd_weight = item.sale_weight if item.sale_weight is not None else (item.weight or 0.0)
             weight_str = f"{qtd_weight:,.0f}".replace(',', '.')
             unit_price_str = self._format_currency(unit_price)
+            total_item_with_icms = unit_price * qtd_weight
+            total_item_with_icms_str = self._format_currency(total_item_with_icms)
             # Percentuais com vírgula (pt-BR)
             icms_str = (f"{icms_percentage * 100:.1f}".replace('.', ',') + '%')
             ipi_percent = (item.ipi_percentage or 0) * 100
@@ -417,6 +420,7 @@ class DitualPDFTemplate:
                 "KG",
                 weight_str,
                 unit_price_str,
+                total_item_with_icms_str,
                 icms_str,
                 ipi_str,
                 self._format_delivery_time(item.delivery_time)
@@ -427,8 +431,8 @@ class DitualPDFTemplate:
         # Combinar cabeçalho e dados
         all_data = header_data + table_data
         
-        # Larguras das colunas somando 180 mm
-        col_widths = [14*mm, 62*mm, 12*mm, 18*mm, 28*mm, 14*mm, 14*mm, 18*mm]
+        # Larguras das colunas somando 180 mm (largura útil com margens atuais)
+        col_widths = [12*mm, 52*mm, 10*mm, 16*mm, 24*mm, 24*mm, 12*mm, 12*mm, 18*mm]
 
         items_table = Table(all_data, colWidths=col_widths, repeatRows=1)
         items_table.setStyle(TableStyle([
