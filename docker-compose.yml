@@ -55,6 +55,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=development
       - SECRET_KEY=your-secret-key-here
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=480
       - ACCESS_TOKEN_EXPIRE_MINUTES=480
     ports:
       - "8001:8000"
