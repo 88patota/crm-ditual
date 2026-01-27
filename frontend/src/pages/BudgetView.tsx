@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDeliveryTime } from '../lib/formatters';
@@ -60,7 +60,21 @@ const getOriginDisplay = (o?: string): string => {
 export default function BudgetView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+
+  const getReturnTo = (): string => {
+    const state = location.state as { from?: unknown } | null;
+    const fromState = state?.from;
+    if (typeof fromState === 'string' && fromState.startsWith('/')) return fromState;
+    const stored = sessionStorage.getItem('budgets:lastListUrl');
+    if (stored && stored.startsWith('/')) return stored;
+    return '/budgets';
+  };
+
+  const goBackToList = () => {
+    navigate(getReturnTo());
+  };
 
   const { data: budget, isLoading, error } = useQuery<Budget>({
     queryKey: ['budget', id],
@@ -95,7 +109,7 @@ export default function BudgetView() {
     onSuccess: () => {
       message.success('Orçamento deletado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      navigate('/budgets');
+      goBackToList();
     },
     onError: (error: unknown) => {
       console.error('Erro ao deletar orçamento:', error);
@@ -569,7 +583,7 @@ export default function BudgetView() {
         title="Orçamento não encontrado"
         subTitle="O orçamento que você está procurando não existe ou foi removido."
         extra={
-          <Link to="/budgets">
+          <Link to={getReturnTo()}>
             <Button type="primary">Voltar para Orçamentos</Button>
           </Link>
         }
@@ -586,7 +600,7 @@ export default function BudgetView() {
             <Space size="large">
               <Button 
                 icon={<ArrowLeftOutlined />} 
-                onClick={() => navigate('/budgets')}
+                onClick={goBackToList}
               >
                 Voltar
               </Button>
@@ -629,7 +643,7 @@ export default function BudgetView() {
                 </Button>
               </Tooltip>
               
-              <Link to={`/budgets/${id}/edit`}>
+              <Link to={`/budgets/${id}/edit`} state={{ from: getReturnTo() }}>
                 <Button type="primary" icon={<EditOutlined />}>
                   Editar
                 </Button>

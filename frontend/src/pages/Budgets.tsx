@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   Row,
@@ -38,7 +38,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { budgetService } from '../services/budgetService';
 import type { BudgetSummary } from '../services/budgetService';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { formatCurrency, formatPercentFromFraction } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
@@ -49,17 +49,133 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
+type BudgetFiltersUrlState = {
+  searchText: string;
+  statusFilter: string | undefined;
+  clientFilter: string;
+  sellerFilter: string | undefined;
+  filterDays: number;
+  customDateRange: [string, string] | null;
+};
+
+const buildBudgetSearchParams = (state: BudgetFiltersUrlState): URLSearchParams => {
+  const params = new URLSearchParams();
+
+  if (state.searchText) params.set('q', state.searchText);
+  if (state.statusFilter) params.set('status', state.statusFilter);
+  if (state.clientFilter) params.set('client', state.clientFilter);
+  if (state.sellerFilter) params.set('seller', state.sellerFilter);
+
+  if (state.filterDays === 0) {
+    params.set('days', 'custom');
+    if (state.customDateRange) {
+      params.set('start', state.customDateRange[0]);
+      params.set('end', state.customDateRange[1]);
+    }
+  } else if (state.filterDays !== 30) {
+    params.set('days', String(state.filterDays));
+  }
+
+  return params;
+};
+
 export default function Budgets() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [clientFilter, setClientFilter] = useState('');
-  const [filterDays, setFilterDays] = useState<number>(30);
-  const [customDateRange, setCustomDateRange] = useState<[string, string] | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [sellerFilter, setSellerFilter] = useState<string | undefined>();
+  const [searchText, setSearchText] = useState(() => searchParams.get('q') ?? '');
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(() => searchParams.get('status') ?? undefined);
+  const [clientFilter, setClientFilter] = useState(() => searchParams.get('client') ?? '');
+  const [filterDays, setFilterDays] = useState<number>(() => {
+    const daysParam = searchParams.get('days');
+    if (daysParam === 'custom') return 0;
+    const parsed = daysParam ? parseInt(daysParam, 10) : 30;
+    return Number.isFinite(parsed) ? parsed : 30;
+  });
+  const [customDateRange, setCustomDateRange] = useState<[string, string] | null>(() => {
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+    return start && end ? [start, end] : null;
+  });
+  const [showFilters, setShowFilters] = useState(() => {
+    const hasAny =
+      (searchParams.get('q') ?? '') !== '' ||
+      (searchParams.get('status') ?? '') !== '' ||
+      (searchParams.get('client') ?? '') !== '' ||
+      (searchParams.get('seller') ?? '') !== '' ||
+      (searchParams.get('days') ?? '') !== '' ||
+      (searchParams.get('start') ?? '') !== '' ||
+      (searchParams.get('end') ?? '') !== '';
+    return hasAny;
+  });
+  const [sellerFilter, setSellerFilter] = useState<string | undefined>(() => searchParams.get('seller') ?? undefined);
+
+  const currentListUrl = `${location.pathname}${location.search}`;
+
+  const syncUrl = (overrides: Partial<{
+    searchText: string;
+    statusFilter: string | undefined;
+    clientFilter: string;
+    sellerFilter: string | undefined;
+    filterDays: number;
+    customDateRange: [string, string] | null;
+  }> = {}) => {
+    const next = {
+      searchText,
+      statusFilter,
+      clientFilter,
+      sellerFilter,
+      filterDays,
+      customDateRange,
+      ...overrides,
+    };
+
+    const params = buildBudgetSearchParams(next);
+
+    if (params.toString() === searchParams.toString()) return;
+    setSearchParams(params, { replace: true });
+  };
+
+  useEffect(() => {
+    const params = buildBudgetSearchParams({
+      searchText,
+      statusFilter,
+      clientFilter,
+      sellerFilter,
+      filterDays,
+      customDateRange,
+    });
+    if (params.toString() === searchParams.toString()) return;
+    setSearchParams(params, { replace: true });
+  }, [searchText, statusFilter, clientFilter, sellerFilter, filterDays, customDateRange, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    sessionStorage.setItem('budgets:lastListUrl', currentListUrl);
+  }, [currentListUrl]);
+
+  useEffect(() => {
+    const nextSearchText = searchParams.get('q') ?? '';
+    const nextStatus = searchParams.get('status') ?? undefined;
+    const nextClient = searchParams.get('client') ?? '';
+    const nextSeller = searchParams.get('seller') ?? undefined;
+    const daysParam = searchParams.get('days');
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
+
+    const nextCustomDateRange = start && end ? [start, end] as [string, string] : null;
+    const nextFilterDays = daysParam === 'custom'
+      ? 0
+      : (Number.isFinite(daysParam ? parseInt(daysParam, 10) : 30) ? parseInt(daysParam ?? '30', 10) : 30);
+
+    setSearchText(nextSearchText);
+    setStatusFilter(nextStatus);
+    setClientFilter(nextClient);
+    setSellerFilter(nextSeller);
+    setFilterDays(nextCustomDateRange ? 0 : nextFilterDays);
+    setCustomDateRange(nextCustomDateRange);
+  }, [searchParams]);
 
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ['users'],
@@ -84,22 +200,29 @@ export default function Budgets() {
     if (value === 'custom') {
       setFilterDays(0); // 0 indica modo personalizado
       // Não limpar customDateRange aqui, deixar o usuário selecionar
+      syncUrl({ filterDays: 0 });
     } else {
       const days = parseInt(value);
       setFilterDays(days);
       setCustomDateRange(null); // Limpar range personalizado
+      syncUrl({ filterDays: days, customDateRange: null });
     }
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleCustomDateChange = (dates: any) => {
     if (dates && dates[0] && dates[1]) {
-      setCustomDateRange([
+      const nextRange: [string, string] = [
         dates[0].format('YYYY-MM-DD'),
         dates[1].format('YYYY-MM-DD')
-      ]);
+      ];
+      setFilterDays(0);
+      setCustomDateRange(nextRange);
+      syncUrl({ filterDays: 0, customDateRange: nextRange });
     } else {
       setCustomDateRange(null);
+      setFilterDays(0);
+      syncUrl({ filterDays: 0, customDateRange: null });
     }
   };
 
@@ -351,7 +474,7 @@ export default function Budgets() {
       fixed: 'right',
       render: (_, record: BudgetSummary) => (
         <Space size="small">
-          <Link to={`/budgets/${record.id}`}>
+          <Link to={`/budgets/${record.id}`} state={{ from: currentListUrl }}>
             <Tooltip title="Visualizar">
               <Button
                 type="text"
@@ -360,7 +483,7 @@ export default function Budgets() {
               />
             </Tooltip>
           </Link>
-          <Link to={`/budgets/${record.id}/edit`}>
+          <Link to={`/budgets/${record.id}/edit`} state={{ from: currentListUrl }}>
             <Tooltip title="Editar">
               <Button
                 type="text"
@@ -384,12 +507,12 @@ export default function Budgets() {
     {
       key: 'view',
       icon: <EyeOutlined />,
-      label: <Link to={`/budgets/${budget.id}`}>Visualizar</Link>,
+      label: <Link to={`/budgets/${budget.id}`} state={{ from: currentListUrl }}>Visualizar</Link>,
     },
     {
       key: 'edit',
       icon: <EditOutlined />,
-      label: <Link to={`/budgets/${budget.id}/edit`}>Editar</Link>,
+      label: <Link to={`/budgets/${budget.id}/edit`} state={{ from: currentListUrl }}>Editar</Link>,
     },
     {
       type: 'divider',
@@ -607,7 +730,7 @@ export default function Budgets() {
               
               // Só navega se não foi clique em botão de ação
               if (!isActionButton) {
-                navigate(`/budgets/${record.id}`);
+                navigate(`/budgets/${record.id}`, { state: { from: currentListUrl } });
               }
             },
             onDoubleClick: () => {
